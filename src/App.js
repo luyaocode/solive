@@ -1,15 +1,33 @@
 import './App.css';
 import { useState } from 'react';
 
+const items = ['Sword', 'Shield', 'Potion', 'Staff', 'Helmet'];
+
 function Square({ value, onSquareClick }) {
-  return (
-    <button className="square" onClick={onSquareClick}>
-      {value}
-    </button>
-  );
+  if (value === '○') {
+    return (
+      <button className="square" onClick={onSquareClick}>
+        <span className="white-piece"></span>
+      </button>
+    )
+  }
+  else if (value === '●') {
+    return (
+      <button className="square" onClick={onSquareClick}>
+        <span className="black-piece"></span>
+      </button>
+    );
+  }
+  else {
+    return (
+      <button className="square" onClick={onSquareClick}>
+        {value}
+      </button>
+    );
+  }
 }
 
-function Board({ xIsNext, board, onPlay, gameOver, setGameOver }) {
+function Board({ xIsNext, board, onPlay, gameOver, setGameOver, selectedItem }) {
 
   const renderCell = (cellValue, rowIndex, colIndex) => {
     return (
@@ -39,11 +57,13 @@ function Board({ xIsNext, board, onPlay, gameOver, setGameOver }) {
       return;
     }
   }
-  let nextSquare = xIsNext ? '●' : '○';
-  let status = '下一个棋子: ' + (nextSquare);
+  let nextPiece = xIsNext ? '●' : '○';
+  let nextPieceStatus = '下一个棋子: ' + (nextPiece);
+  let nextItemStatus = '下一个道具: ' + (selectedItem);
   return (
     <>
-      <div className="status">{status}</div>
+      <div className="status">{nextPieceStatus}</div>
+      <div className="status">{nextItemStatus}</div>
       <div className="board-row">
         {board.map((row, rowIndex) => (
           <div key={rowIndex} className="board-row">
@@ -61,8 +81,19 @@ function Game() {
   const xIsNext = currentMove % 2 === 0;
   const currentBoard = history[currentMove];
   const [gameOver, setGameOver] = useState(false);
+  const [selectedItem, setSelectedItem] = useState(items[Math.floor(Math.random() * items.length)]);
+  const [selectedItemHistory, setSelectedItemHistory] = useState([selectedItem]);
+
+  function pickRandomItem() {
+    const randomIndex = Math.floor(Math.random() * items.length);
+    const randomItem = items[randomIndex];
+    setSelectedItem(randomItem);
+    const nextItemHistory = [...selectedItemHistory.slice(0, currentMove + 1), selectedItem];
+    setSelectedItemHistory(nextItemHistory);
+  };
 
   function handlePlay(nextBoard) {
+    pickRandomItem();
     const nextHistory = [...history.slice(0, currentMove + 1), nextBoard];
     setHistory(nextHistory);
     setCurrentMove(nextHistory.length - 1);
@@ -73,6 +104,7 @@ function Game() {
       return;
     }
     setCurrentMove(nextMove);
+    setSelectedItem(selectedItemHistory[nextMove]);
   }
 
   const moves = history.map((board, move) => {
@@ -104,9 +136,12 @@ function Game() {
   const RestartButton = () => {
     let description = "重新开始"
     function onButtonClick() {
-      const nextHistory = [...history.slice(0, 1)];
-      setHistory(nextHistory);
-      setCurrentMove(nextHistory.length - 1);
+      const initBoardHistory = [...history.slice(0, 1)];
+      setHistory(initBoardHistory);
+      setCurrentMove(0);
+      const initItemHistory = [...selectedItemHistory.slice(0, 1)];
+      setSelectedItemHistory(initItemHistory);
+      setSelectedItem(items[Math.floor(Math.random() * items.length)]);
       setGameOver(false);
     }
     return (
@@ -117,7 +152,8 @@ function Game() {
   return (
     <div className="game">
       <div className="game-board">
-        <Board xIsNext={xIsNext} board={currentBoard} onPlay={handlePlay} gameOver={gameOver} setGameOver={setGameOver} />
+        <Board xIsNext={xIsNext} board={currentBoard} onPlay={handlePlay} gameOver={gameOver} setGameOver={setGameOver}
+          selectedItem={selectedItem} />
       </div>
       <div className="game-info">
         <UndoButton />
