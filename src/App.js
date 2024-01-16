@@ -4,8 +4,6 @@ import { Sword, Shield, Bow } from './Item.ts'
 const _ = require('lodash');
 
 // const root = document.documentElement;
-
-
 const sword = new Sword();
 const shield = new Shield();
 const bow = new Bow();
@@ -125,7 +123,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver, setGam
     }
     onPlay(lastClick, setLastClick, nextBoard, i, j);
     if (calculateWinner(nextBoard, j, i)) {
-      alert(nextBoard[i][j] + '胜利！');
+      alert(nextBoard[i][j].type + '胜利！');
       setGameOver(true);
       return;
     }
@@ -133,13 +131,14 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver, setGam
   let nextPiece = xIsNext ? '●' : '○';
   let currentItem = selectedItemHistory[currentMove];
   let nextPieceStatus = '下一个棋子: ' + (nextPiece);
-  // let currentItemStatus = '当前道具: ' + (currentItem.name);
-  let nextItemStatus = '下一个道具: ' + (selectedItem.name);
+  let isUsedStatus = currentItem.isUsed ? '已使用' : '未使用';
+  let currentItemStatus = '当前道具: ' + (currentItem.cname) + '(' + (isUsedStatus) + ')';
+  let nextItemStatus = '下一个道具: ' + (selectedItem.cname);
   return (
     <>
-      <div className="status">{nextPieceStatus}</div>
-      <div className="status">{nextItemStatus}</div>
-      {/* <div className="status">{currentItemStatus}</div> */}
+      <div className="status" title='测试文本'>{nextPieceStatus}</div>
+      <div className="status" title-tip='测试文本'>{nextItemStatus}</div>
+      <div className="status">{currentItemStatus}</div>
       <div className="board-row">
         {board.map((row, rowIndex) => (
           <div key={rowIndex} className="board-row">
@@ -393,7 +392,7 @@ function calculateWinner(board, x, y) {
     [1, 0], [0, 1], [1, 1], [1, -1], // 水平、垂直、右斜、左斜方向
   ];
 
-  const player = board[y][x];
+  const currentType = board[y][x].type;
   const checkDirection = (dx, dy) => {
     // 计算当前方向上的连珠数
     const count = (dx, dy) => {
@@ -404,7 +403,7 @@ function calculateWinner(board, x, y) {
         const newX = x + i * dx;
         const newY = y + i * dy;
 
-        if (newX >= 0 && newX < 19 && newY >= 0 && newY < 19 && board[newY][newX] === player) {
+        if (newX >= 0 && newX < 19 && newY >= 0 && newY < 19 && board[newY][newX].type === currentType) {
           result++;
         } else {
           break;
@@ -417,7 +416,7 @@ function calculateWinner(board, x, y) {
     };
 
     // 检查当前方向上是否有五子连珠
-    return (count(dx, dy) + count(-dx, -dy) >= 4) ? player : null;
+    return (count(dx, dy) + count(-dx, -dy) >= 4) ? currentType : null;
   };
 
   // 检查所有方向
