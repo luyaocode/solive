@@ -1,3 +1,8 @@
+:root {
+  --square-color: #885727;
+  --piece-color: #FFFFFF, transparent;
+}
+
 .App {
   text-align: center;
 }
@@ -39,8 +44,7 @@
 }
 
 .square {
-  /* background: #fff; */
-  background: #CD853F;
+  background: var(--square-color);
   border: 1px solid #0f0e0e;
   float: left;
   font-size: 30px;
@@ -54,20 +58,55 @@
   width: 34px;
 }
 
-.white-piece {
+.piece-blank {
   width: 90%;
   height: 90%;
-  background-color: #fff;
+  background-color: var(--piece-color);
   border-radius: 50%;
   display: block;
   margin: 1px;
 }
 
-.black-piece {
+.piece-black {
   width: 90%;
   height: 90%;
-  background-color: #000000;
+  background-color: black;
   border-radius: 50%;
+  border-color: gray;
+  display: block;
+  margin: 1px;
+}
+
+.piece-white {
+  width: 90%;
+  height: 90%;
+  background-color: white;
+  border-radius: 50%;
+  border-color: gray;
+  display: block;
+  margin: 1px;
+}
+
+.piece-black-can-not-be-destroyed {
+  width: 90%;
+  height: 90%;
+  background-color: black;
+  border-radius: 50%;
+  border-width: 3px;
+  border-style: solid;
+  border-color: gold;
+  display: block;
+  margin: 1px;
+}
+
+.piece-white-can-not-be-destroyed {
+  width: 90%;
+  height: 90%;
+  background-color: white;
+  border-radius: 50%;
+  border-width: 3px;
+  border-style: solid;
+  border-color: gold;
   display: block;
   margin: 1px;
 }
