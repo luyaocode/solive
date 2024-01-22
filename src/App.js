@@ -189,9 +189,23 @@ class Piece {
     item.do();
   }
 
-  destroy(item) {
+  destroy(item, board) {
     this.setType('');
-    if (item !== null) {
+    if (item !== null && board != null) {
+      if (this.growthTime > 0) {
+        const r = this.x;
+        const c = this.y;
+        const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
+        for (const arr of arrayToCheck) {
+          const tr = arr[0];
+          const tc = arr[1];
+          if (tr >= 0 && tr < 19 && tc >= 0 && tc < 19) {
+            if (board[tr][tc].growthTime > 0) {
+              board[tr][tc].setGrowthTime(null, this.type, -1);
+            }
+          }
+        }
+      }
       item.isUsed = true;
     }
   }
@@ -235,8 +249,8 @@ class Piece {
     this.setStyle();
   }
 
-  bomb(item) {
-    this.destroy(item);
+  bomb(item, board) {
+    this.destroy(item, board);
   }
 
   attachSeed(item, board) {
@@ -576,7 +590,7 @@ function doItem(item, board, i, j, lastClick) {
     }
     case 'sword':
     case 'bow': {
-      board[i][j].destroy(item);
+      board[i][j].destroy(item, board);
       break;
     }
     case 'infectPotion': {
@@ -674,7 +688,7 @@ function Game() {
     // 后处理事件
     let haveValid = haveValidPiece(selectedItem, lastClick, i, j, nextBoard);
     let bombed = false;
-    nextBoard.forEach((row) => { row.forEach((cell) => { cell.liveTime -= 1; if (cell.liveTime === 0) { bombed = true; cell.bomb(null); } }) })
+    nextBoard.forEach((row) => { row.forEach((cell) => { cell.liveTime -= 1; if (cell.liveTime === 0) { bombed = true; cell.bomb(null, null); } }) })
     let grew = false;
     nextBoard.forEach((row) => { row.forEach((cell) => { cell.growthTime -= 1; if (cell.growthTime >= 0) { grew = true; cell.grow(null); } }) })
     if (bombed || !haveValid) {
