@@ -24,10 +24,10 @@ const xFlower = new XFlower();
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower];
 // 设置每个元素的权重
 const weights = {
-  sword: 30,
-  shield: 50,
-  bow: 20,
-  infectPotion: 40,
+  sword: 0,
+  shield: 0,
+  bow: 0,
+  infectPotion: 0,
   timeBomb: 10,
   xFlower: 10,
 };
@@ -157,6 +157,7 @@ class Piece {
   setSquareStyle(item, squareStyle) {
     if (item === null && squareStyle !== '') {
       this.squareStyle = squareStyle;
+      return;
     }
     if (this.type !== '') {
       this.squareStyle = Square_Current_Piece_Style;
@@ -250,7 +251,26 @@ class Piece {
   }
 
   bomb(item, board) {
-    this.destroy(item, board);
+    if (this.growthTime > 0) {
+      if (this.type !== '') {
+        const r = this.x;
+        const c = this.y;
+        const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
+        for (const arr of arrayToCheck) {
+          const tr = arr[0];
+          const tc = arr[1];
+          if (tr >= 0 && tr < 19 && tc >= 0 && tc < 19) {
+            if (board[tr][tc].growthTime > 0) {
+              board[tr][tc].setGrowthTime(null, '', -1);
+              board[tr][tc].setType('');
+            }
+          }
+        }
+      }
+    }
+    else {
+      this.destroy(item, board);
+    }
   }
 
   attachSeed(item, board) {
@@ -688,7 +708,7 @@ function Game() {
     // 后处理事件
     let haveValid = haveValidPiece(selectedItem, lastClick, i, j, nextBoard);
     let bombed = false;
-    nextBoard.forEach((row) => { row.forEach((cell) => { cell.liveTime -= 1; if (cell.liveTime === 0) { bombed = true; cell.bomb(null, null); } }) })
+    nextBoard.forEach((row) => { row.forEach((cell) => { cell.liveTime -= 1; if (cell.liveTime === 0) { bombed = true; cell.bomb(null, nextBoard); } }) })
     let grew = false;
     nextBoard.forEach((row) => { row.forEach((cell) => { cell.growthTime -= 1; if (cell.growthTime >= 0) { grew = true; cell.grow(null); } }) })
     if (bombed || !haveValid) {
