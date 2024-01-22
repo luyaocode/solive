@@ -1,10 +1,12 @@
 import './App.css';
 import { useState, useEffect, useRef } from 'react';
+import { Howl } from 'howler';
 
 import { Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower } from './Item.ts'
-import { toBeEmpty } from '@testing-library/jest-dom/dist/matchers.js';
 const _ = require('lodash');
+const root = document.documentElement;
 
+// 样式
 const Init_Square_Style = 'square';
 const Square_Bomb_Style = 'square-bomb';
 const Square_Current_Piece_Style = 'square-current-piece';
@@ -12,29 +14,55 @@ const Square_Growth_Black_Style = 'square-growth-black';
 const Square_Growth_White_Style = 'square-growth-white';
 const Piece_Winner_Style = 'piece-winner';
 
+// 音效
+const Win = 'win.mp3';
+const Failure = 'failure.mp3';
+const Place_Piece = 'place-piece.mp3';
+const Move_Piece = 'move-piece.wav';
+const Sword_Defeat_Normal = 'sword-defeat-normal.wav';
+const Sword_Defeat_Shield = 'sword-defeat-shield.mp3';
+const Sword_Defeat_Flower = 'sword-defeat-flower.mp3';
+const Sword_No_Effect = 'sword-no-effect.mp3';
+const Take_Shield = 'take-shield.wav';
+const Bow_Melee_Failed_Shield = 'bow-melee-failed-shield.mp3';
+const Bow_Melee_Defeat_Normal = 'bow-melee-defeat-normal.mp3';
+const Bow_Melee_Defeat_Flower = 'bow-melee-defeat-flower.mp3';
+const Bow_Melee_No_Effect = 'bow-melee-no-effect.mp3';
+const Bow_Ranged_Failed_Shield = 'bow-ranged-failed-shield.mp3';
+const Bow_Ranged_Defeat_Normal = 'bow-ranged-defeat-normal.wav';
+const Bow_Ranged_Defeat_Flower = 'bow-ranged-defeat-flower.mp3';
+const Bow_Ranged_No_Effect = 'bow-ranged-no-effect.mp3';
 
-const root = document.documentElement;
+const Infect_Normal = 'infect-normal.mp3';
+const Infect_Flower = 'infect-flower.mp3';
+const Infect_No_Effect = 'infect-no-effect.mp3';
+const Infect_Failed_Shield = 'infect-failed-shield.mp3';
+
+const Bomb_Attach = 'bomb-attach.mp3';
+const Bomb_Bomb = 'bomb-bomb.mp3';
+const Flower_Place = 'flower-place.mp3';
+const Flower_Full_Grown = 'flower-full-grown.mp3';
+
+
+// 道具
 const sword = new Sword();
 const shield = new Shield();
 const bow = new Bow();
 const infectPotion = new InfectPotion();
 const timeBomb = new TimeBomb();
 const xFlower = new XFlower();
-
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower];
-// 设置每个元素的权重
 const weights = {
-  sword: 0,
-  shield: 0,
-  bow: 0,
-  infectPotion: 0,
+  sword: 30,
+  shield: 50,
+  bow: 20,
+  infectPotion: 20,
   timeBomb: 10,
   xFlower: 10,
 };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
   const randomValue = Math.random() * totalWeight;
-  // 根据随机数选择元素
   let selectedElement;
   let cumulativeWeight = 0;
   for (const element of its) {
@@ -51,7 +79,6 @@ function getItem(weights) {
 let items = [];
 for (let i = 0; i < 19; i++) {
   for (let j = 0; j < 19; j++) {
-    // 抽取道具
     const item = _.cloneDeep(getItem(weights));
     items.push(item);
   }
@@ -175,9 +202,7 @@ class Piece {
     else if (this.liveTime > 0) {
       this.squareStyle = Square_Bomb_Style;
     }
-
   }
-
   useItem(item, board) {
     if (item.name === 'shield') {
       this.setCanBeDestroyed(false);
@@ -190,7 +215,82 @@ class Piece {
     item.do();
   }
 
-  destroy(item, board) {
+  handleSound(item, currPiece = null) {
+    // 音效
+    if (item instanceof Sword) {
+      if (this.type === '') {
+        playSound(Sword_No_Effect);
+      }
+      else if (this.growthTime > 0) {
+        playSound(Sword_Defeat_Flower);
+      }
+      else if (this.canBeDestroyed) {
+        playSound(Sword_Defeat_Normal);
+      }
+      else {
+        playSound(Sword_Defeat_Shield);
+      }
+    }
+    else if (item instanceof Bow) {
+      if (!currPiece) {
+        return;
+      }
+      const r = currPiece.x;
+      const c = currPiece.y;
+      const dist = Math.sqrt(Math.pow(this.x - r, 2) + Math.pow(this.y - c, 2));
+      if (this.type === '') {
+        if (dist <= 1) {
+          playSound(Bow_Melee_No_Effect);
+        } else {
+          playSound(Bow_Ranged_No_Effect);
+        }
+      }
+      else if (this.growthTime > 0) {
+        if (dist <= 1) {
+          playSound(Bow_Melee_Defeat_Flower);
+        } else {
+          playSound(Bow_Ranged_Defeat_Flower);
+        }
+      }
+      else if (this.canBeDestroyed) {
+        if (dist <= 1) {
+          playSound(Bow_Melee_Defeat_Normal);
+        } else {
+          playSound(Bow_Ranged_Defeat_Normal);
+        }
+      }
+      else {
+        if (dist <= 1) {
+          playSound(Bow_Melee_Failed_Shield);
+        } else {
+          playSound(Bow_Ranged_Failed_Shield);
+        }
+      }
+    }
+    else if (item instanceof InfectPotion) {
+      if (this.type === '') {
+        playSound(Infect_No_Effect);
+      }
+      else if (!this.canBeDestroyed) {
+        playSound(Infect_Failed_Shield);
+      }
+      else if (this.growthTime > 0) {
+        playSound(Infect_Flower);
+      }
+      else {
+        playSound(Infect_Normal);
+      }
+    }
+    else if (item instanceof TimeBomb) {
+      playSound(Bomb_Attach);
+    }
+    else if (item instanceof XFlower) {
+      playSound(Flower_Place);
+    }
+  }
+
+  destroy(item, board, currPiece = null) {
+    this.handleSound(item, currPiece);
     this.setType('');
     if (item !== null && board != null) {
       if (this.growthTime > 0) {
@@ -211,6 +311,7 @@ class Piece {
     }
   }
   infect(item, piece, board) {
+    this.handleSound(item, piece);
     if (this.type !== '' && this.canBeInfected) {
       this.setType(piece.type);
     }
@@ -232,6 +333,7 @@ class Piece {
   }
 
   attachBomb(item, board) {
+    this.handleSound(item);
     const r = this.x;
     const c = this.y;
     const arrayToCheck = [[r, c], [r, c + 1], [r, c - 1], [r + 1, c], [r - 1, c]];
@@ -274,6 +376,7 @@ class Piece {
   }
 
   attachSeed(item, board) {
+    this.handleSound(item);
     const r = this.x;
     const c = this.y;
     const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
@@ -316,8 +419,17 @@ class Piece {
 }
 
 function Square({ piece, onSquareClick, squareStyle }) {
+  const playSound = () => {
+    if (piece.type !== '') {
+      return;
+    }
+    const sound = new Howl({
+      src: ['audio/' + Move_Piece],
+    });
+    sound.play();
+  };
   return (
-    <button className={piece.squareStyle} onClick={onSquareClick}>
+    <button className={piece.squareStyle} onClick={onSquareClick} onMouseEnter={playSound}>
       <span className={piece.style}></span>
     </button>
   );
@@ -355,7 +467,6 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver, setGam
     if (board[i][j].type !== '') {
       if (!selectedItem.before) {
         return;
-
       }
     }
     else {
@@ -411,13 +522,14 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver, setGam
     for (const arr of checkArray) {
       const winnerInfo = calculateWinner(nextBoard, arr[1], arr[0]);
       if (winnerInfo[0]) {
-        openModal(winnerInfo[0] + '胜利！');
+        openModal(winnerInfo[0] + '胜利！', 60000);
         setGameOver(true);
         for (const arr of winnerInfo[1]) {
           const x = arr[0];
           const y = arr[1];
           nextBoard[x][y].setWinnerPiece();
         }
+        playSound(Win);
       }
     }
     checkArray = [];
@@ -458,6 +570,17 @@ function createBoard(setGameStart) {
   setGameStart(true);
   return board;
 }
+
+async function playSound(audioName) {
+  let audioSrc = audioName ? 'audio/' + audioName : null;
+  if (!audioSrc) {
+    return;
+  }
+  const sound = new Howl({
+    src: [audioSrc],
+  });
+  sound.play();
+};
 
 /**
  * 是否存在可被选中的棋子
@@ -557,6 +680,8 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     else if (!board[i][j].canBeDestroyed) {
       isHitValid = false;
       openModal('未能击穿敌方装甲！');
+      const currPiece = board[r][c];
+      board[i][j].handleSound(item, board, currPiece);
     }
     else {
       openModal('轻轻一击~');
@@ -580,6 +705,8 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     else if (!board[i][j].canBeDestroyed) {
       isHitValid = false;
       openModal('目标具有护盾，不能被侵蚀！');
+      const currPiece = board[r][c];
+      board[i][j].handleSound(item, board, currPiece);
     }
     else {
       openModal('侵蚀成功！');
@@ -610,7 +737,7 @@ function doItem(item, board, i, j, lastClick) {
     }
     case 'sword':
     case 'bow': {
-      board[i][j].destroy(item, board);
+      board[i][j].destroy(item, board, currPiece);
       break;
     }
     case 'infectPotion': {
@@ -663,7 +790,6 @@ function Game() {
       // 判断二次选中棋子合法性
       let isValid = validateLoc(selectedItem, lastClick, i, j, currentBoard, openModal, closeModal);
       if (isValid === true) {
-        // 执行操作
         doItem(selectedItem, nextBoard, i, j, lastClick);
         setIsNext(!xIsNext);
       }
@@ -672,7 +798,6 @@ function Game() {
       }
       else if (isValid === -2) {
         setIsNext(!xIsNext);
-
       }
       else {
         return;
@@ -690,6 +815,8 @@ function Game() {
     if (selectedItem.name === 'shield') {
       nextBoard[i][j].useItem(selectedItem, nextBoard);
       setIsNext(!xIsNext);
+      playSound(Take_Shield);
+
     }
     else if (selectedItem.name === 'timeBomb') {
       nextBoard[i][j].useItem(selectedItem, nextBoard);
@@ -702,15 +829,22 @@ function Game() {
     else {
       if (!selectedItem.before) {
         nextBoard[i][j].beforeUse(selectedItem);
+        playSound(Place_Piece);
       }
     }
-
     // 后处理事件
     let haveValid = haveValidPiece(selectedItem, lastClick, i, j, nextBoard);
     let bombed = false;
     nextBoard.forEach((row) => { row.forEach((cell) => { cell.liveTime -= 1; if (cell.liveTime === 0) { bombed = true; cell.bomb(null, nextBoard); } }) })
+    if (bombed) {
+      playSound(Bomb_Bomb);
+    }
     let grew = false;
-    nextBoard.forEach((row) => { row.forEach((cell) => { cell.growthTime -= 1; if (cell.growthTime >= 0) { grew = true; cell.grow(null); } }) })
+    let grown = false;
+    nextBoard.forEach((row) => { row.forEach((cell) => { cell.growthTime -= 1; if (cell.growthTime >= 0) { grew = true; cell.grow(null); if (cell.growthTime === 0) { grown = true; } } }) })
+    if (grown) {
+      playSound(Flower_Full_Grown);
+    }
     if (bombed || !haveValid) {
       setIsNext(!xIsNext);
       selectedItem.before = false;
@@ -777,13 +911,13 @@ function Game() {
     )
   }
 
-  const openModal = (info) => {
+  const openModal = (info, time = 500) => {
     setModalOpen(true);
     setModalInfo(info);
     // 在打开弹窗后的3000毫秒（3秒）后，调用closeModal函数
     timeoutIdRef.current = setTimeout(() => {
       closeModal();
-    }, 500);
+    }, time);
   };
 
   const closeModal = () => {
@@ -869,7 +1003,7 @@ function calculateWinner(board, x, y) {
       let tem = [...coordinates1, ...coordinates2].slice(0, 4);
       tem.push([y, x]);
       rest.push(currentType, tem);
-      if (toBeEmpty.length > 5) {
+      if (tem.length > 5) {
         rest = rest.slice(1);
       }
     }

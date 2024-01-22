@@ -1,7 +1,7 @@
 :root {
   --square-color: #885727;
   --square-bomb-color: #ff0909;
-  --square-current-color: rgb(255, 128, 0);
+  --square-current-color: rgb(255, 128, 0), transparent;
   --square-growth-black-color: #0c4204;
   --square-growth-white-color: #20f708;
   --piece-color: #FFFFFF, transparent;

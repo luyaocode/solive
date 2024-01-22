@@ -1,0 +1,40 @@
+棋子
+    落子                    place-piece
+    移动棋子                move-piece
+大剑
+    击败普通棋子            sword-defeat-normal
+    击破护盾                sword-defeat-shield
+    击破花朵                sword-defeat-flower
+    作用无效                sword-no-effect
+大盾
+    加护                    take-shield
+弓箭
+    近战
+        未能击破护盾        bow-melee-failed-shield
+        击破普通棋子        bow-melee-defeat-normal
+        击破花朵            bow-melee-defeat-flower
+        作用无效            bow-melee-no-effect
+    远程
+        未能击破护盾        bow-ranged-failed-shield
+        击破普通棋子        bow-ranged-defeat-normal
+        击破花朵            bow-ranged-defeat-flower
+        作用无效            bow-ranged-no-effect
+侵蚀药水
+    侵蚀普通棋子            infect-normal
+    侵蚀花朵                infect-flower
+    侵蚀空格                infect-no-effect
+    侵蚀护盾                infect-failed-shield
+炸弹
+    放置                    bomb-attach
+    爆炸                    bomb-bomb
+花朵
+    放置                    flower-place
+    完全生成                flower-full-grown
+
+
+
+
+胜利                        win
+失败                        failure
+
+
