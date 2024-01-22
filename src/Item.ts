@@ -151,7 +151,7 @@ export class XFlower implements Flower {
   info: string = '攻击范围：0；放置一颗种子，3回合之后长成一朵花；可放置于任意空白区域';
   isUsed: boolean;
   before: boolean = false;
-  growthTime: number = 4;
+  growthTime: number = 5;
 
   constructor(name: string = 'xFlower', isUsed: boolean = false) {
     this.name = name;

@@ -53,12 +53,12 @@ const timeBomb = new TimeBomb();
 const xFlower = new XFlower();
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower];
 const weights = {
-  sword: 30,
+  sword: 20,
   shield: 50,
-  bow: 20,
-  infectPotion: 20,
+  bow: 30,
+  infectPotion: 10,
   timeBomb: 10,
-  xFlower: 10,
+  xFlower: 20,
 };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
@@ -312,7 +312,11 @@ class Piece {
   }
   infect(item, piece, board) {
     this.handleSound(item, piece);
-    if (this.type !== '' && this.canBeInfected) {
+    if (this.type === '') {
+      item.isUsed = true;
+      return;
+    }
+    if (this.canBeInfected) {
       this.setType(piece.type);
     }
     if (this.growthTime > 0) {
@@ -420,6 +424,8 @@ class Piece {
 
 function Square({ piece, onSquareClick, squareStyle }) {
   const playSound = () => {
+    // 调试
+    return;
     if (piece.type !== '') {
       return;
     }
@@ -573,6 +579,8 @@ function createBoard(setGameStart) {
 
 async function playSound(audioName) {
   let audioSrc = audioName ? 'audio/' + audioName : null;
+  // 调试
+  return;
   if (!audioSrc) {
     return;
   }
@@ -733,7 +741,6 @@ function doItem(item, board, i, j, lastClick) {
   switch (item.name) {
     case 'shield': {
       break;
-
     }
     case 'sword':
     case 'bow': {
@@ -759,6 +766,10 @@ function doItem(item, board, i, j, lastClick) {
 }
 
 function Game() {
+  // 音效
+  const [isMute, setMute] = useState(false);
+  const [volume, setVolume] = useState(1);
+
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalInfo, setModalInfo] = useState('');
@@ -846,10 +857,13 @@ function Game() {
       playSound(Flower_Full_Grown);
     }
     if (bombed || !haveValid) {
-      setIsNext(!xIsNext);
-      selectedItem.before = false;
-      selectedItem.isUsed = true;
+      // setIsNext(!xIsNext);
+      // selectedItem.before = false;
+      // selectedItem.isUsed = true;
       if (!haveValid) {
+        setIsNext(!xIsNext);
+        selectedItem.before = false;
+        selectedItem.isUsed = true;
         openModal('没有有效目标，已为您自动跳过！');
       }
     }
