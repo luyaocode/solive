@@ -1,6 +1,11 @@
 :root {
   --square-color: #885727;
+  --square-bomb-color: #ff0909;
+  --square-current-color: rgb(255, 128, 0);
+  --square-growth-black-color: #0c4204;
+  --square-growth-white-color: #20f708;
   --piece-color: #FFFFFF, transparent;
+  --piece-winner-color: #2c09c9;
 }
 
 .App {
@@ -58,6 +63,82 @@
   width: 34px;
 }
 
+.square:hover {
+  background: rgb(203, 194, 23);
+}
+
+.square-bomb {
+  background: var(--square-bomb-color);
+  border: 1px solid #0f0e0e;
+  float: left;
+  font-size: 30px;
+  font-weight: bold;
+  line-height: 34px;
+  height: 34px;
+  margin-right: -1px;
+  margin-top: -1px;
+  padding: 0;
+  text-align: center;
+  width: 34px;
+}
+
+.square-bomb:hover {
+  background: rgb(203, 194, 23);
+}
+
+.square-growth-black {
+  background: var(--square-growth-black-color);
+  border: 1px solid #0f0e0e;
+  float: left;
+  font-size: 30px;
+  font-weight: bold;
+  line-height: 34px;
+  height: 34px;
+  margin-right: -1px;
+  margin-top: -1px;
+  padding: 0;
+  text-align: center;
+  width: 34px;
+}
+
+.square-growth-black:hover {
+  background: rgb(203, 194, 23);
+}
+
+.square-growth-white {
+  background: var(--square-growth-white-color);
+  border: 1px solid #0f0e0e;
+  float: left;
+  font-size: 30px;
+  font-weight: bold;
+  line-height: 34px;
+  height: 34px;
+  margin-right: -1px;
+  margin-top: -1px;
+  padding: 0;
+  text-align: center;
+  width: 34px;
+}
+
+.square-growth-white:hover {
+  background: rgb(203, 194, 23);
+}
+
+.square-current-piece {
+  background: var(--square-current-color);
+  border: 1px solid #0f0e0e;
+  float: left;
+  font-size: 30px;
+  font-weight: bold;
+  line-height: 34px;
+  height: 34px;
+  margin-right: -1px;
+  margin-top: -1px;
+  padding: 0;
+  text-align: center;
+  width: 34px;
+}
+
 .piece-blank {
   width: 90%;
   height: 90%;
@@ -87,6 +168,19 @@
   margin: 1px;
 }
 
+.piece-winner {
+  width: 100%;
+  height: 100%;
+  background-color: var(--piece-winner-color);
+  border-radius: 50%;
+  border-color: rgb(232, 6, 6);
+  border-width: 2px;
+  /* 设置边框宽度为5像素，根据需要调整 */
+  border-style: solid;
+  /* 设置边框样式为实线，根据需要调整 */
+  display: block;
+}
+
 .piece-black-can-not-be-destroyed {
   width: 90%;
   height: 90%;
@@ -111,10 +205,6 @@
   margin: 1px;
 }
 
-.square:hover {
-  background: rgb(203, 194, 23);
-}
-
 .board-row:after {
   clear: both;
   content: '';
@@ -132,4 +222,35 @@
 
 .game-info {
   margin-left: 20px;
+}
+
+/* Modal */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.modal {
+  background: #fff;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 400px;
+  width: 100%;
+  text-align: center;
+  position: relative;
+}
+
+.close-button {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 18px;
+  cursor: pointer;
 }
