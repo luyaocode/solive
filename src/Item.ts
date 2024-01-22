@@ -148,10 +148,10 @@ export class TimeBomb implements Bomb {
 export class XFlower implements Flower {
   name: string = 'xFlower';
   cname: string = '花朵-X型';
-  info: string = '攻击范围：0；放置一颗种子，2回合之后长成一朵花；可放置于任意空白区域';
+  info: string = '攻击范围：0；放置一颗种子，3回合之后长成一朵花；可放置于任意空白区域';
   isUsed: boolean;
   before: boolean = false;
-  growthTime: number = 3;
+  growthTime: number = 4;
 
   constructor(name: string = 'xFlower', isUsed: boolean = false) {
     this.name = name;

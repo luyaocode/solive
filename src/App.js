@@ -24,12 +24,12 @@ const xFlower = new XFlower();
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower];
 // 设置每个元素的权重
 const weights = {
-  sword: 20,
-  shield: 30,
+  sword: 30,
+  shield: 50,
   bow: 20,
-  infectPotion: 20,
+  infectPotion: 40,
   timeBomb: 10,
-  xFlower: 20,
+  xFlower: 10,
 };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
@@ -107,12 +107,20 @@ class Piece {
     this.setSquareStyle(item);
   }
 
-  setGrowthTime(item, type) {
-    this.growthTime = item.growthTime;
-    if (this.growthTime > 0) {
+  setGrowthTime(item, type, growthTime) {
+    if (item === null) {
+      this.growthTime = growthTime;
       this.setWillBe(type);
+      this.setSquareStyle(null, Init_Square_Style);
     }
-    this.setSquareStyle(item);
+    else {
+      this.growthTime = item.growthTime;
+      if (this.growthTime > 0) {
+        this.setWillBe(type);
+        this.setSquareStyle(item, '');
+      }
+    }
+
   }
 
   setCanBeDestroyed(canBeDestroyed) {
@@ -146,7 +154,10 @@ class Piece {
     }
   }
 
-  setSquareStyle(item) {
+  setSquareStyle(item, squareStyle) {
+    if (item === null && squareStyle !== '') {
+      this.squareStyle = squareStyle;
+    }
     if (this.type !== '') {
       this.squareStyle = Square_Current_Piece_Style;
     }
@@ -184,9 +195,23 @@ class Piece {
       item.isUsed = true;
     }
   }
-  infect(item, piece) {
+  infect(item, piece, board) {
     if (this.type !== '' && this.canBeInfected) {
       this.setType(piece.type);
+    }
+    if (this.growthTime > 0) {
+      const r = this.x;
+      const c = this.y;
+      const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
+      for (const arr of arrayToCheck) {
+        const tr = arr[0];
+        const tc = arr[1];
+        if (tr >= 0 && tr < 19 && tc >= 0 && tc < 19) {
+          if (board[tr][tc].growthTime > 0) {
+            board[tr][tc].setGrowthTime(null, this.type, -1);
+          }
+        }
+      }
     }
     item.isUsed = true;
   }
@@ -235,7 +260,7 @@ class Piece {
 
   grow(item) {
     if (this.growthTime > 0) {
-      this.setSquareStyle(item);
+      this.setSquareStyle(item, '');
     }
     else if (this.growthTime === 0) {
       if (this.type === '') {
@@ -555,7 +580,7 @@ function doItem(item, board, i, j, lastClick) {
       break;
     }
     case 'infectPotion': {
-      board[i][j].infect(item, currPiece);
+      board[i][j].infect(item, currPiece, board);
       break;
     }
     case 'timeBomb': {
