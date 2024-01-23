@@ -53,12 +53,12 @@ const timeBomb = new TimeBomb();
 const xFlower = new XFlower();
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower];
 const weights = {
-  sword: 20,
+  sword: 30,
   shield: 50,
-  bow: 30,
+  bow: 20,
   infectPotion: 10,
   timeBomb: 10,
-  xFlower: 20,
+  xFlower: 10,
 };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
@@ -424,8 +424,6 @@ class Piece {
 
 function Square({ piece, onSquareClick, squareStyle }) {
   const playSound = () => {
-    // 调试
-    return;
     if (piece.type !== '') {
       return;
     }
@@ -579,8 +577,6 @@ function createBoard(setGameStart) {
 
 async function playSound(audioName) {
   let audioSrc = audioName ? 'audio/' + audioName : null;
-  // 调试
-  return;
   if (!audioSrc) {
     return;
   }
@@ -600,7 +596,7 @@ function haveValidPiece(item, lastClick, i, j, board) {
     for (const arr of arrayToCheck) {
       let x = arr[0];
       let y = arr[1];
-      if (x >= 0 && x < 19 && y >= 0 && y < 19 && board[x][y].type !== board[i][j].type && board[x][y].type !== '') {
+      if (x >= 0 && x < 19 && y >= 0 && y < 19 && board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].liveTime < 0) {
         result = true;
         break;
       }
@@ -611,7 +607,7 @@ function haveValidPiece(item, lastClick, i, j, board) {
     for (const arr of arrayToCheck) {
       let x = arr[0];
       let y = arr[1];
-      if (x >= 0 && x < 19 && y >= 0 && y < 19 && board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].canBeDestroyed) {
+      if (x >= 0 && x < 19 && y >= 0 && y < 19 && board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].canBeDestroyed && board[x][y].liveTime < 0) {
         result = true;
         break;
       }
@@ -625,7 +621,7 @@ function haveValidPiece(item, lastClick, i, j, board) {
     for (const arr of arrayToCheck) {
       let x = arr[0];
       let y = arr[1];
-      if (x >= 0 && x < 19 && y >= 0 && y < 19 && board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].canBeInfected) {
+      if (x >= 0 && x < 19 && y >= 0 && y < 19 && board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].canBeInfected && board[x][y].liveTime < 0) {
         result = true;
         break;
       }
@@ -857,10 +853,12 @@ function Game() {
       playSound(Flower_Full_Grown);
     }
     if (bombed || !haveValid) {
-      // setIsNext(!xIsNext);
-      // selectedItem.before = false;
-      // selectedItem.isUsed = true;
-      if (!haveValid) {
+      if (bombed && nextBoard[i][j].liveTime == -1) {
+        setIsNext(!xIsNext);
+        selectedItem.before = false;
+        selectedItem.isUsed = true;
+      }
+      else if (!haveValid) {
         setIsNext(!xIsNext);
         selectedItem.before = false;
         selectedItem.isUsed = true;
