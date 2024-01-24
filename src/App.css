@@ -50,7 +50,13 @@
 
 .square {
   background: var(--square-color);
+  background-image: url('/public/picture/square.png');
+  background-size: cover;
+  /* 让背景图片占满整个元素 */
+  background-position: center;
+  /* 将背景图片居中显示*/
   border: 1px solid #0f0e0e;
+  border: none;
   float: left;
   font-size: 30px;
   font-weight: bold;

@@ -289,11 +289,16 @@ class Piece {
     }
   }
 
-  destroy(item, board, currPiece = null) {
-    this.handleSound(item, currPiece);
-    this.setType('');
-    if (item !== null && board != null) {
-      if (this.growthTime > 0) {
+  destroy(item, board, piece = null) {
+    this.handleSound(item, piece);
+    if (board === null) {
+      return;
+    }
+    if (this.growthTime > 0) {
+      if (this.type === '' && this.liveTime === 0) {
+        this.setSquareStyle(null);
+      }
+      else {
         const r = this.x;
         const c = this.y;
         const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
@@ -307,9 +312,15 @@ class Piece {
           }
         }
       }
+    }
+
+    this.setType('');
+    if (item !== null) {
       item.isUsed = true;
     }
   }
+
+
   infect(item, piece, board) {
     this.handleSound(item, piece);
     if (this.type === '') {
@@ -357,26 +368,7 @@ class Piece {
   }
 
   bomb(item, board) {
-    if (this.growthTime > 0) {
-      if (this.type !== '') {
-        const r = this.x;
-        const c = this.y;
-        const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
-        for (const arr of arrayToCheck) {
-          const tr = arr[0];
-          const tc = arr[1];
-          if (tr >= 0 && tr < 19 && tc >= 0 && tc < 19) {
-            if (board[tr][tc].growthTime > 0) {
-              board[tr][tc].setGrowthTime(null, '', -1);
-              board[tr][tc].setType('');
-            }
-          }
-        }
-      }
-    }
-    else {
-      this.destroy(item, board);
-    }
+    this.destroy(item, board);
   }
 
   attachSeed(item, board) {
@@ -853,7 +845,7 @@ function Game() {
       playSound(Flower_Full_Grown);
     }
     if (bombed || !haveValid) {
-      if (bombed && nextBoard[i][j].liveTime == -1) {
+      if (bombed && nextBoard[i][j].liveTime > 0) {
         setIsNext(!xIsNext);
         selectedItem.before = false;
         selectedItem.isUsed = true;
