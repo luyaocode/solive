@@ -94,10 +94,13 @@ interface Bomb extends Item {
 
 interface Flower extends Item {
   growthTime: number;
-
 }
 
 interface Potion extends Item {
+}
+
+interface Spell extends Item {
+
 }
 
 export class InfectPotion implements Potion {
@@ -167,3 +170,27 @@ export class XFlower implements Flower {
     this.before = true;
   }
 }
+
+export class FreezeSpell implements Spell {
+  name: string = 'freezeSpell';
+  cname: string = '冻结术';
+  info: string = '攻击范围：1.5；冻结范围内敌方单位，持有护盾单位除外';
+  isUsed: boolean;
+  before: boolean = false;
+  duration: number = 10;
+
+  constructor(name: string = '冻结术', isUsed: boolean = false) {
+    this.name = name;
+    this.isUsed = isUsed;
+  }
+
+  do() {
+    console.log(`${this.name} is being used!`);
+    this.isUsed = true;
+
+  }
+  beforeUse() {
+    this.before = true;
+  }
+}
+

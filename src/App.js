@@ -1,8 +1,13 @@
 import './App.css';
 import { useState, useEffect, useRef } from 'react';
 import { Howl } from 'howler';
+import { Button } from 'antd';
+import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
 
-import { Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower } from './Item.ts'
+import {
+  Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
+  , FreezeSpell
+} from './Item.ts'
 const _ = require('lodash');
 const root = document.documentElement;
 
@@ -43,6 +48,23 @@ const Bomb_Bomb = 'bomb-bomb.mp3';
 const Flower_Place = 'flower-place.mp3';
 const Flower_Full_Grown = 'flower-full-grown.mp3';
 
+// 按钮
+const SOUND = '音效';
+const BGM = '背景音乐';
+const VOLUME = '音量';
+const OPEN = '开启';
+const CLOSE = '关闭';
+const RESTART_GAME = '重新开始';
+const OPEN_SOUND = OPEN + SOUND;
+const CLOSE_SOUND = CLOSE + SOUND;
+const OPEN_BGM = OPEN + BGM;
+const CLOSE_BGM = CLOSE + BGM;
+const MAX_VOLUME = 100;
+const MIN_VOLUME = 0;
+const VOLUME_PER_TIME = 10;
+
+let _isMute = false;
+let _volume = 100;
 
 // 道具
 const sword = new Sword();
@@ -51,7 +73,9 @@ const bow = new Bow();
 const infectPotion = new InfectPotion();
 const timeBomb = new TimeBomb();
 const xFlower = new XFlower();
-let its = [sword, shield, bow, infectPotion, timeBomb, xFlower];
+const freezeSpell = new FreezeSpell();
+
+let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
 const weights = {
   sword: 30,
   shield: 50,
@@ -59,6 +83,7 @@ const weights = {
   infectPotion: 10,
   timeBomb: 10,
   xFlower: 10,
+  freezeSpell: 10,
 };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
@@ -408,24 +433,21 @@ class Piece {
       item.beforeUse();
     }
   }
-
-  displayInfo() {
-    console.log(`Type: ${this.type}, Can be Destroyed: ${this.canBeDestroyed}`);
-  }
 }
 
-function Square({ piece, onSquareClick, squareStyle }) {
-  const playSound = () => {
-    if (piece.type !== '') {
+function Square({ piece, onSquareClick, squareStyle, playSound }) {
+  const playMovePieceSound = () => {
+    if (piece.type !== '' || _isMute) {
       return;
     }
     const sound = new Howl({
       src: ['audio/' + Move_Piece],
+      volume: _volume / 100,
     });
     sound.play();
   };
   return (
-    <button className={piece.squareStyle} onClick={onSquareClick} onMouseEnter={playSound}>
+    <button className={piece.squareStyle} onClick={onSquareClick} onMouseEnter={playMovePieceSound}>
       <span className={piece.style}></span>
     </button>
   );
@@ -441,12 +463,15 @@ function deepClonePiece(piece) {
   return clonedPiece;
 }
 
-function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver, setGameOver, selectedItem, selectedItemHistory, gameStart, setGameStart, openModal }) {
+function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
+  setGameOver, selectedItem, selectedItemHistory, gameStart, setGameStart,
+  openModal, playSound }) {
   const [lastClick, setLastClick] = useState([null, null]);
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const renderCell = (cellValue, rowIndex, colIndex) => {
     return (
-      <Square piece={cellValue} onSquareClick={() => handleClick(rowIndex, colIndex)} squareStyle={squareStyle} />
+      <Square piece={cellValue} onSquareClick={() => handleClick(rowIndex, colIndex)} squareStyle={squareStyle}
+        playSound={playSound} />
     );
   };
 
@@ -567,13 +592,17 @@ function createBoard(setGameStart) {
   return board;
 }
 
-async function playSound(audioName) {
+function playSound(audioName) {
+  if (_isMute) {
+    return;
+  }
   let audioSrc = audioName ? 'audio/' + audioName : null;
   if (!audioSrc) {
     return;
   }
   const sound = new Howl({
     src: [audioSrc],
+    volume: _volume / 100,
   });
   sound.play();
 };
@@ -753,11 +782,51 @@ function doItem(item, board, i, j, lastClick) {
   }
 }
 
-function Game() {
-  // 音效
-  const [isMute, setMute] = useState(false);
-  const [volume, setVolume] = useState(1);
+function SwitchSoundButton() {
+  const [buttonStatus, setButtonStatus] = useState(CLOSE_SOUND);
+  function onButtonClick() {
+    _isMute = !_isMute;
+    if (_isMute) {
+      setButtonStatus(OPEN_SOUND);
+    }
+    else {
+      setButtonStatus(CLOSE_SOUND);
+    }
+  }
+  return (
+    <Button onClick={onButtonClick}>{buttonStatus}</Button>
+  );
+}
 
+function VolumeControlButton() {
+  const [volume, setVolume] = useState(MAX_VOLUME);
+
+  function handleVolumeChange(amount) {
+    _volume += amount;
+    if (_volume > MAX_VOLUME) {
+      _volume = MAX_VOLUME;
+    }
+    else if (_volume < 0) {
+      _volume = MIN_VOLUME;
+    }
+    setVolume(_volume);
+  }
+
+  return (
+    <div>
+      <span>{VOLUME}</span>
+      <Button onClick={() => { handleVolumeChange(-VOLUME_PER_TIME) }}>
+        <MinusOutlined />
+      </Button>
+      <span>{volume}</span>
+      <Button onClick={() => { handleVolumeChange(VOLUME_PER_TIME) }}>
+        <PlusOutlined />
+      </Button>
+    </div>
+  );
+};
+
+function Game() {
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalInfo, setModalInfo] = useState('');
@@ -888,19 +957,19 @@ function Game() {
   const UndoButton = () => {
     let description = "悔棋"
     return (
-      <button onClick={() => jumpTo(currentMove - 1)}>{description}</button>
-    )
+      <Button onClick={() => jumpTo(currentMove - 1)}>{description}</Button>
+    );
   }
 
   const RedoButton = () => {
     let description = "还原"
     return (
-      <button onClick={() => jumpTo(currentMove + 1)}>{description}</button>
-    )
+      <Button onClick={() => jumpTo(currentMove + 1)}>{description}</Button>
+    );
   }
 
   const RestartButton = () => {
-    let description = "重新开始"
+    let description = RESTART_GAME;
     function onButtonClick() {
       const initBoardHistory = [...history.slice(0, 1)];
       setHistory(initBoardHistory);
@@ -909,10 +978,11 @@ function Game() {
       setSelectedItemHistory(initItemHistory);
       setSelectedItem(items[Math.floor(Math.random() * items.length)]);
       setGameOver(false);
+      setIsNext(true);
     }
     return (
-      <button onClick={onButtonClick}>{description}</button>
-    )
+      <Button onClick={onButtonClick}>{description}</Button>
+    );
   }
 
   const openModal = (info, time = 500) => {
@@ -942,12 +1012,15 @@ function Game() {
           currentMove={currentMove} onPlay={handlePlay} gameOver={gameOver}
           setGameOver={setGameOver} selectedItem={selectedItem} selectedItemHistory={selectedItemHistory}
           gameStart={gameStart} setGameStart={setGameStart} openModal={openModal}
+          playSound={playSound}
         />
       </div>
       <div className="game-info">
         <UndoButton />
         <RedoButton />
         <RestartButton />
+        <SwitchSoundButton />
+        <VolumeControlButton />
         <ol>{moves}</ol>
       </div>
       {isModalOpen && (
