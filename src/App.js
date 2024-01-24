@@ -88,13 +88,13 @@ const freezeSpell = new FreezeSpell();
 
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
 const weights = {
-  sword: 40,
-  shield: 50,
-  bow: 30,
-  infectPotion: 10,
-  timeBomb: 20,
-  xFlower: 30,
-  freezeSpell: 30,
+  sword: 20,
+  shield: 0,
+  bow: 20,
+  infectPotion: 0,
+  timeBomb: 0,
+  xFlower: 10,
+  freezeSpell: 0,
 };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
@@ -424,6 +424,10 @@ class Piece {
       if (this.growthTime > 0) {
         if (this.type === '' && this.liveTime === 0) {
           this.setSquareStyle(null);
+          if (this.status.frozen) {
+            this.status.frozen = false;
+          }
+          return;
         }
         else {
           const r = this.x;
@@ -448,7 +452,7 @@ class Piece {
     else {
       // 攻击花朵
       if (this.growthTime > 0) {
-        if (this.type === '' && this.liveTime === 0) {
+        if (this.type === '') {
           this.setSquareStyle(null);
         }
         else {
@@ -470,7 +474,13 @@ class Piece {
         this.status.frozen = false;
       }
       else {
-        this.setType('');
+        if (this.growthTime > 0) {
+
+        }
+        else {
+          this.setType('');
+
+        }
       }
     }
     if (item !== null) {
