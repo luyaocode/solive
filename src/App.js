@@ -17,6 +17,7 @@ const Square_Bomb_Style = 'square-bomb';
 const Square_Current_Piece_Style = 'square-current-piece';
 const Square_Growth_Black_Style = 'square-growth-black';
 const Square_Growth_White_Style = 'square-growth-white';
+const Square_Frozen = 'square-frozen';
 const Piece_Winner_Style = 'piece-winner';
 
 // 音效
@@ -66,6 +67,16 @@ const VOLUME_PER_TIME = 10;
 let _isMute = false;
 let _volume = 100;
 
+// 其他
+const Board_Width = 18;
+const Board_Height = 18;
+
+// 状态
+const InitPieceStatus = {
+  frozen: false,//冻结
+  frozenTime: 0,//冻结时常
+}
+
 // 道具
 const sword = new Sword();
 const shield = new Shield();
@@ -77,13 +88,13 @@ const freezeSpell = new FreezeSpell();
 
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
 const weights = {
-  sword: 30,
-  shield: 50,
-  bow: 20,
-  infectPotion: 10,
-  timeBomb: 10,
-  xFlower: 10,
-  freezeSpell: 10,
+  sword: 60,
+  shield: 60,
+  bow: 40,
+  infectPotion: 20,
+  timeBomb: 20,
+  xFlower: 30,
+  freezeSpell: 30,
 };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
@@ -112,7 +123,7 @@ for (let i = 0; i < 19; i++) {
 let checkArray = []
 
 class Piece {
-  constructor(type = '', willBe = '', canBeDestroyed = true, canBeInfected = true, liveTime = -1, growthTime = -1, x = -1, y = -1) {
+  constructor(type = '', willBe = '', canBeDestroyed = true, canBeInfected = true, liveTime = -1, growthTime = -1, x = -1, y = -1, status) {
     this.type = type;
     this.willBe = willBe;
     this.canBeDestroyed = canBeDestroyed;
@@ -123,7 +134,10 @@ class Piece {
     this.x = x;
     this.y = y;
     this.squareStyle = Init_Square_Style;
+    this.status = { ...status };
+    this.setSquareStyle();
     this.setStyle();
+
   }
 
   setType(type) {
@@ -172,7 +186,6 @@ class Piece {
         this.setSquareStyle(item, '');
       }
     }
-
   }
 
   setCanBeDestroyed(canBeDestroyed) {
@@ -190,16 +203,43 @@ class Piece {
       this.style = style;
     }
     else if (this.type === '●') {
-      this.style = 'piece-black';
       if (!this.canBeDestroyed) {
-        this.style = 'piece-black-can-not-be-destroyed';
+        if (this.status.frozen) {
+          this.style = 'piece-black-can-not-be-destroyed-frozen';
+        }
+        else {
+          this.style = 'piece-black-can-not-be-destroyed';
+        }
+      }
+      else {
+        if (this.status.frozen) {
+          this.style = 'piece-black-frozen';
+        }
+        else {
+          this.style = 'piece-black';
+        }
       }
     }
     else if (this.type === '○') {
-      this.style = 'piece-white';
       if (!this.canBeDestroyed) {
-        this.style = 'piece-white-can-not-be-destroyed';
+        if (this.status.frozen) {
+          this.style = 'piece-white-can-not-be-destroyed-frozen';
+        }
+        else {
+          this.style = 'piece-white-can-not-be-destroyed';
+        }
       }
+      else {
+        if (this.status.frozen) {
+          this.style = 'piece-white-frozen';
+        }
+        else {
+          this.style = 'piece-white';
+        }
+      }
+    }
+    else if (this.type === '炸') {
+      this.style = 'piece-bomb';
     }
     else {
       this.style = 'piece-blank';
@@ -207,6 +247,16 @@ class Piece {
   }
 
   setSquareStyle(item, squareStyle) {
+    if (item === undefined && squareStyle === undefined) {
+      if (this.status.frozen) {
+        this.squareStyle = Square_Frozen;
+      }
+      return;
+    }
+    if (item === undefined && squareStyle !== '') {
+      this.squareStyle = squareStyle;
+      return;
+    }
     if (item === null && squareStyle !== '') {
       this.squareStyle = squareStyle;
       return;
@@ -218,17 +268,23 @@ class Piece {
       this.squareStyle = Init_Square_Style;
     }
     if (this.growthTime > 0) {
-      if (this.willBe === '●') {
-        this.squareStyle = Square_Growth_Black_Style;
+      if (!this.status.frozen) {
+        if (this.willBe === '●') {
+          this.squareStyle = Square_Growth_Black_Style;
+        }
+        else if (this.willBe === '○') {
+          this.squareStyle = Square_Growth_White_Style;
+        }
       }
-      else if (this.willBe === '○')
-        this.squareStyle = Square_Growth_White_Style;
     }
     else if (this.liveTime > 0) {
       this.squareStyle = Square_Bomb_Style;
     }
   }
   useItem(item, board) {
+    if (item.isUsed) {
+      return;
+    }
     if (item.name === 'shield') {
       this.setCanBeDestroyed(false);
       this.setCanBeInfected(false);
@@ -237,7 +293,51 @@ class Piece {
     } else if (item.name === 'xFlower') {
       this.attachSeed(item, board);
     }
+    else if (item instanceof FreezeSpell) {
+      this.useFreezeSpell(item, board);
+    }
     item.do();
+  }
+
+  useFreezeSpell(item, board) {
+    const validPos = this.getValidPosition(item);
+    for (const arr of validPos) {
+      const tr = arr[0];
+      const tc = arr[1];
+      board[tr][tc].status.frozen = true;
+      board[tr][tc].setSquareStyle();
+      board[tr][tc].setStyle();
+    }
+  }
+
+  getValidPosition(item) {
+    const atkRange = item.attackRange;
+    if (item.attackRange > 0) {
+      let validPos = [];
+      const r = this.x;
+      const c = this.y;
+      if (atkRange <= 1) {
+        const arrayToCheck = [[r, c], [r, c + 1], [r, c - 1], [r + 1, c], [r - 1, c]];
+        for (const arr of arrayToCheck) {
+          const tr = arr[0];
+          const tc = arr[1];
+          if (tr >= 0 && tr < Board_Height && tc >= 0 && tc < Board_Width) {
+            validPos.push([tr, tc]);
+          }
+        }
+      }
+      else if (atkRange <= 1.5) {
+        const arrayToCheck = [[r, c], [r, c + 1], [r, c - 1], [r + 1, c], [r - 1, c], [r - 1, c - 1], [r - 1, c + 1], [r + 1, c - 1], [r + 1, c + 1]];
+        for (const arr of arrayToCheck) {
+          let tr = arr[0];
+          let tc = arr[1];
+          if (tr >= 0 && tr < Board_Height && tc >= 0 && tc < Board_Width) {
+            validPos.push([tr, tc]);
+          }
+        }
+      }
+      return validPos;
+    }
   }
 
   handleSound(item, currPiece = null) {
@@ -314,35 +414,70 @@ class Piece {
     }
   }
 
-  destroy(item, board, piece = null) {
+  destroy(item, board, piece = null, byBomb) {
     this.handleSound(item, piece);
     if (board === null) {
       return;
     }
-    if (this.growthTime > 0) {
-      if (this.type === '' && this.liveTime === 0) {
-        this.setSquareStyle(null);
-      }
-      else {
-        const r = this.x;
-        const c = this.y;
-        const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
-        for (const arr of arrayToCheck) {
-          const tr = arr[0];
-          const tc = arr[1];
-          if (tr >= 0 && tr < 19 && tc >= 0 && tc < 19) {
-            if (board[tr][tc].growthTime > 0) {
-              board[tr][tc].setGrowthTime(null, this.type, -1);
+    if (byBomb) {
+      // 炸花
+      if (this.growthTime > 0) {
+        if (this.type === '' && this.liveTime === 0) {
+          this.setSquareStyle(null);
+        }
+        else {
+          const r = this.x;
+          const c = this.y;
+          const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
+          for (const arr of arrayToCheck) {
+            const tr = arr[0];
+            const tc = arr[1];
+            if (tr >= 0 && tr < Board_Height && tc >= 0 && tc < Board_Width) {
+              if (board[tr][tc].growthTime > 0) {
+                board[tr][tc].setGrowthTime(null, '', -1);
+              }
             }
           }
         }
       }
+      this.setType('');
+      if (this.status.frozen) {
+        this.status.frozen = false;
+      }
     }
-
-    this.setType('');
+    else {
+      // 攻击花朵
+      if (this.growthTime > 0) {
+        if (this.type === '' && this.liveTime === 0) {
+          this.setSquareStyle(null);
+        }
+        else {
+          const r = this.x;
+          const c = this.y;
+          const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
+          for (const arr of arrayToCheck) {
+            const tr = arr[0];
+            const tc = arr[1];
+            if (tr >= 0 && tr < Board_Height && tc >= 0 && tc < Board_Width) {
+              if (board[tr][tc].growthTime > 0) {
+                board[tr][tc].setGrowthTime(null, '', -1);
+              }
+            }
+          }
+        }
+      }
+      if (this.status.frozen) {
+        this.status.frozen = false;
+      }
+      else {
+        this.setType('');
+      }
+    }
     if (item !== null) {
       item.isUsed = true;
     }
+    this.setSquareStyle();
+    this.setStyle();
   }
 
 
@@ -362,7 +497,7 @@ class Piece {
       for (const arr of arrayToCheck) {
         const tr = arr[0];
         const tc = arr[1];
-        if (tr >= 0 && tr < 19 && tc >= 0 && tc < 19) {
+        if (tr >= 0 && tr < Board_Height && tc >= 0 && tc < Board_Width) {
           if (board[tr][tc].growthTime > 0) {
             board[tr][tc].setGrowthTime(null, this.type, -1);
           }
@@ -380,7 +515,7 @@ class Piece {
     for (const arr of arrayToCheck) {
       const tr = arr[0];
       const tc = arr[1];
-      if (tr >= 0 && tr < 19 && tc >= 0 && tc < 19) {
+      if (tr >= 0 && tr < Board_Height && tc >= 0 && tc < Board_Width) {
         if (board[tr][tc].liveTime < 0) {
           board[tr][tc].setLiveTime(item);
         } else if (board[tr][tc].liveTime < item.liveTime) {
@@ -389,11 +524,14 @@ class Piece {
       }
     }
     item.isUsed = true;
+    this.setType('炸');
     this.setStyle();
   }
 
-  bomb(item, board) {
-    this.destroy(item, board);
+  bomb(item, board, byBomb) {
+    this.destroy(item, board, null, byBomb);
+    this.setSquareStyle(undefined, Init_Square_Style);
+    this.setStyle();
   }
 
   attachSeed(item, board) {
@@ -404,7 +542,11 @@ class Piece {
     for (const arr of arrayToCheck) {
       const tr = arr[0];
       const tc = arr[1];
-      if (tr >= 0 && tr < 19 && tc >= 0 && tc < 19) {
+      if (tr >= 0 && tr < Board_Height && tc >= 0 && tc < Board_Width) {
+        // 冰冻不能生长
+        if (board[tr][tc].status.frozen) {
+          continue;
+        }
         if (board[tr][tc].growthTime < 0) {
           board[tr][tc].setGrowthTime(item, this.type);
         } else if (board[tr][tc].growthTime < item.growthTime) {
@@ -459,7 +601,7 @@ function deepCloneBoard(board) {
 }
 
 function deepClonePiece(piece) {
-  const clonedPiece = new Piece(piece.type, piece.willBe, piece.canBeDestroyed, piece.canBeInfected, piece.liveTime, piece.growthTime, piece.x, piece.y);
+  const clonedPiece = new Piece(piece.type, piece.willBe, piece.canBeDestroyed, piece.canBeInfected, piece.liveTime, piece.growthTime, piece.x, piece.y, piece.status);
   return clonedPiece;
 }
 
@@ -580,10 +722,10 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
 // 创建棋盘
 function createBoard(setGameStart) {
   const board = [];
-  for (let i = 0; i < 19; i++) {
+  for (let i = 0; i < Board_Height; i++) {
     const row = [];
-    for (let j = 0; j < 19; j++) {
-      const piece = new Piece('', '', true, true, -1, -1, i, j);
+    for (let j = 0; j < Board_Width; j++) {
+      const piece = new Piece('', '', true, true, -1, -1, i, j, InitPieceStatus);
       row.push(piece);
     }
     board.push(row);
@@ -610,16 +752,36 @@ function playSound(audioName) {
 /**
  * 是否存在可被选中的棋子
  */
-function haveValidPiece(item, lastClick, i, j, board) {
+function haveValidPiece(item, lastClick, i, j, board, statusObj) {
   let result = false;
+  if (!(item instanceof FreezeSpell) && board[i][j].status.frozen) {
+    if (item instanceof TimeBomb) {
+      result = true;
+    }
+    else if (item instanceof XFlower) {
+      result = true;
+    }
+    else {
+      statusObj.pieceStatus = board[i][j].status;
+    }
+    return result;
+  }
   if (item.name === 'sword') {
     const arrayToCheck = [[i, j + 1], [i, j - 1], [i + 1, j], [i - 1, j]];
     for (const arr of arrayToCheck) {
       let x = arr[0];
       let y = arr[1];
-      if (x >= 0 && x < 19 && y >= 0 && y < 19 && board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].liveTime < 0) {
-        result = true;
-        break;
+      if (x >= 0 && x < Board_Height && y >= 0 && y < Board_Width && board[x][y].type !== board[i][j].type && board[x][y].liveTime < 0) {
+        if (board[x][y].type === '') {
+          if (board[x][y].status.frozen) {
+            result = true;
+            break;
+          }
+        }
+        else {
+          result = true;
+          break;
+        }
       }
     }
   }
@@ -628,9 +790,17 @@ function haveValidPiece(item, lastClick, i, j, board) {
     for (const arr of arrayToCheck) {
       let x = arr[0];
       let y = arr[1];
-      if (x >= 0 && x < 19 && y >= 0 && y < 19 && board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].canBeDestroyed && board[x][y].liveTime < 0) {
-        result = true;
-        break;
+      if (x >= 0 && x < Board_Height && y >= 0 && y < Board_Width && board[x][y].type !== board[i][j].type && board[x][y].canBeDestroyed && board[x][y].liveTime < 0) {
+        if (board[x][y].type === '') {
+          if (board[x][y].status.frozen) {
+            result = true;
+            break;
+          }
+        }
+        else {
+          result = true;
+          break;
+        }
       }
     }
   }
@@ -642,7 +812,7 @@ function haveValidPiece(item, lastClick, i, j, board) {
     for (const arr of arrayToCheck) {
       let x = arr[0];
       let y = arr[1];
-      if (x >= 0 && x < 19 && y >= 0 && y < 19 && board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].canBeInfected && board[x][y].liveTime < 0) {
+      if (x >= 0 && x < Board_Height && y >= 0 && y < Board_Width && board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].canBeInfected && board[x][y].liveTime < 0) {
         result = true;
         break;
       }
@@ -652,6 +822,9 @@ function haveValidPiece(item, lastClick, i, j, board) {
     result = true;
   }
   else if (item.name === 'xFlower') {
+    result = true;
+  }
+  else if (item instanceof FreezeSpell) {
     result = true;
   }
   return result;
@@ -679,14 +852,19 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
       openModal('糟糕，没有击中目标！');
     }
     else if (board[i][j].type === board[r][c].type) {
-      isObjectValid = false;
-      openModal('不能攻击同类棋子');
+      if (board[i][j].status.frozen) {
+        openModal('敲碎了冰块');
+      }
+      else {
+        isObjectValid = false;
+        openModal('不能攻击同类棋子');
+      }
     }
     else if (!board[i][j].canBeDestroyed) {
       openModal('给予敌方装甲致命一击！');
     }
     else {
-      openModal('轻轻一击~');
+      openModal('轻轻一击');
     }
   }
   else if (item.name === 'bow') {
@@ -699,17 +877,25 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
       openModal('糟糕，箭射偏了！');
     }
     else if (board[i][j].type === board[r][c].type) {
-      isObjectValid = false;
-      openModal('不能打同类！');
+      if (board[i][j].status.frozen) {
+        openModal('击碎了冰块');
+      } else {
+        isObjectValid = false;
+        openModal('不能打同类！');
+      }
     }
     else if (!board[i][j].canBeDestroyed) {
-      isHitValid = false;
-      openModal('未能击穿敌方装甲！');
-      const currPiece = board[r][c];
-      board[i][j].handleSound(item, board, currPiece);
+      if (board[i][j].status.frozen) {
+        openModal('击碎了冰块');
+      } else {
+        isHitValid = false;
+        openModal('未能击穿敌方装甲！');
+        const currPiece = board[r][c];
+        board[i][j].handleSound(item, board, currPiece);
+      }
     }
     else {
-      openModal('轻轻一击~');
+      openModal('轻轻一击');
     }
   }
   else if (item.name === 'shield') {
@@ -894,6 +1080,10 @@ function Game() {
       nextBoard[i][j].useItem(selectedItem, nextBoard);
       setIsNext(!xIsNext);
     }
+    else if (selectedItem instanceof FreezeSpell) {
+      nextBoard[i][j].useItem(selectedItem, nextBoard);
+      setIsNext(!xIsNext);
+    }
     else {
       if (!selectedItem.before) {
         nextBoard[i][j].beforeUse(selectedItem);
@@ -901,9 +1091,10 @@ function Game() {
       }
     }
     // 后处理事件
-    let haveValid = haveValidPiece(selectedItem, lastClick, i, j, nextBoard);
+    let statusObj = { pieceStatus: {} };
+    let haveValid = haveValidPiece(selectedItem, lastClick, i, j, nextBoard, statusObj);
     let bombed = false;
-    nextBoard.forEach((row) => { row.forEach((cell) => { cell.liveTime -= 1; if (cell.liveTime === 0) { bombed = true; cell.bomb(null, nextBoard); } }) })
+    nextBoard.forEach((row) => { row.forEach((cell) => { cell.liveTime -= 1; if (cell.liveTime === 0) { bombed = true; cell.bomb(null, nextBoard, bombed); } }) })
     if (bombed) {
       playSound(Bomb_Bomb);
     }
@@ -923,7 +1114,13 @@ function Game() {
         setIsNext(!xIsNext);
         selectedItem.before = false;
         selectedItem.isUsed = true;
-        openModal('没有有效目标，已为您自动跳过！');
+        if (statusObj.pieceStatus.frozen) {
+
+        }
+        else {
+          openModal('没有有效目标，已为您自动跳过！');
+
+        }
       }
     }
     pickRandomItem();
@@ -1038,7 +1235,10 @@ function Game() {
 }
 
 function calculateWinner(board, x, y) {
-  if (x < 0 || x >= 19 || y < 0 || y >= 19 || x === undefined || y === undefined) {
+  if (x < 0 || x >= Board_Width || y < 0 || y >= Board_Height || x === undefined || y === undefined) {
+    return false;
+  }
+  if (board[y][x].status.frozen) {
     return false;
   }
   const directions = [
@@ -1055,10 +1255,12 @@ function calculateWinner(board, x, y) {
       while (i <= 4) {
         const newX = x + i * dx;
         const newY = y + i * dy;
-
-        if (newX >= 0 && newX < 19 && newY >= 0 && newY < 19 && board[newY][newX].type === currentType) {
-          count += 1;
-          coordinates.push([newY, newX]);
+        if (newX >= 0 && newX < Board_Width && newY >= 0 && newY < Board_Height && board[newY][newX].type === currentType) {
+          // 判断特殊效果
+          if (!board[newY][newX].status.frozen) {
+            count += 1;
+            coordinates.push([newY, newX]);
+          }
         } else {
           break;
         }
@@ -1081,7 +1283,7 @@ function calculateWinner(board, x, y) {
       tem.push([y, x]);
       rest.push(currentType, tem);
       if (tem.length > 5) {
-        rest = rest.slice(1);
+        tem = tem.slice(1);
       }
     }
     else {

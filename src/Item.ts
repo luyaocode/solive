@@ -1,5 +1,4 @@
 // items.ts
-
 interface Item {
   name: string;
   cname: string;
@@ -14,9 +13,9 @@ export class Sword implements Item {
   name: string = 'sword';
   cname: string = '大剑';
   info: string = '攻击范围：1；可以击破护盾';
+  attackRange: number = 1;
   isUsed: boolean;
   before: boolean = false;
-
   constructor(name: string = 'sword', isUsed: boolean = false) {
     this.name = name;
     this.isUsed = isUsed;
@@ -25,14 +24,11 @@ export class Sword implements Item {
   do() {
     console.log(`${this.name} is being used!`);
     this.isUsed = true;
+    this.before = false;
   }
 
   beforeUse() {
     this.before = true;
-  }
-
-  swing() {
-    console.log(`${this.name} is swung!`);
   }
 }
 
@@ -42,6 +38,7 @@ export class Shield implements Item {
   info: string = '攻击范围：0；免疫弓箭、药水等';
   isUsed: boolean;
   before: boolean = false;
+  attackRange: number = 0;
 
   constructor(name: string = 'shield', isUsed: boolean = false) {
     this.name = name;
@@ -50,15 +47,11 @@ export class Shield implements Item {
 
   do() {
     console.log(`${this.name} is being used!`);
+    this.before = false;
     this.isUsed = true;
-
   }
   beforeUse() {
     this.before = true;
-  }
-
-  block() {
-    console.log(`${this.name} is blocking!`);
   }
 }
 
@@ -68,6 +61,7 @@ export class Bow implements Item {
   info: string = '攻击范围：1.5';
   isUsed: boolean;
   before: boolean = false;
+  attackRange: number = 1.5;
 
   constructor(name: string = 'bow', isUsed: boolean = false) {
     this.name = name;
@@ -76,15 +70,12 @@ export class Bow implements Item {
 
   do() {
     console.log(`${this.name} is being used!`);
+    this.before = false;
     this.isUsed = true;
 
   }
   beforeUse() {
     this.before = true;
-  }
-
-  shoot() {
-    console.log(`${this.name} is shooting!`);
   }
 }
 
@@ -99,8 +90,7 @@ interface Flower extends Item {
 interface Potion extends Item {
 }
 
-interface Spell extends Item {
-
+export interface Spell extends Item {
 }
 
 export class InfectPotion implements Potion {
@@ -117,8 +107,8 @@ export class InfectPotion implements Potion {
 
   do() {
     console.log(`${this.name} is being used!`);
+    this.before = false;
     this.isUsed = true;
-
   }
   beforeUse() {
     this.before = true;
@@ -132,6 +122,7 @@ export class TimeBomb implements Bomb {
   isUsed: boolean;
   before: boolean = false;
   liveTime: number = 2;
+  attackRange: number = 1;
 
   constructor(name: string = 'timeBomb', isUsed: boolean = false) {
     this.name = name;
@@ -140,6 +131,7 @@ export class TimeBomb implements Bomb {
 
   do() {
     console.log(`${this.name} is being used!`);
+    this.before = false;
     this.isUsed = true;
 
   }
@@ -155,6 +147,7 @@ export class XFlower implements Flower {
   isUsed: boolean;
   before: boolean = false;
   growthTime: number = 5;
+  attackRange: number = 0;
 
   constructor(name: string = 'xFlower', isUsed: boolean = false) {
     this.name = name;
@@ -163,6 +156,7 @@ export class XFlower implements Flower {
 
   do() {
     console.log(`${this.name} is being used!`);
+    this.before = false;
     this.isUsed = true;
 
   }
@@ -178,19 +172,19 @@ export class FreezeSpell implements Spell {
   isUsed: boolean;
   before: boolean = false;
   duration: number = 10;
+  attackRange: number = 1.5;
 
-  constructor(name: string = '冻结术', isUsed: boolean = false) {
+  constructor(name: string = 'freezeSpell', isUsed: boolean = false) {
     this.name = name;
     this.isUsed = isUsed;
   }
 
   do() {
     console.log(`${this.name} is being used!`);
+    this.before = false;
     this.isUsed = true;
-
   }
   beforeUse() {
     this.before = true;
   }
 }
-

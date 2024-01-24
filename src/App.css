@@ -1,11 +1,19 @@
 :root {
   --square-color: #885727;
   --square-bomb-color: #ff0909;
-  --square-current-color: rgb(255, 128, 0), transparent;
+  --square-current-color: rgb(117, 114, 114);
   --square-growth-black-color: #0c4204;
+  --square-growth-black-opacity: 0.9;
   --square-growth-white-color: #20f708;
+  --square-growth-white-opacity: 0.9;
+  --square-frozen-color: #70c8dc;
+  --square-frozen-opacity: 0.8;
   --piece-color: #FFFFFF, transparent;
   --piece-winner-color: #2c09c9;
+  --piece-white-frozen-opacity: 0.9;
+  --piece-black-frozen-opacity: 0.9;
+  --piece-white-frozen-background: linear-gradient(45deg, #615ceb, #5cdad5);
+  --piece-black-frozen-background: linear-gradient(45deg, #20046f, #0f7e7a);
 }
 
 .App {
@@ -75,7 +83,8 @@
 
 .square-bomb {
   background: var(--square-bomb-color);
-  border: 1px solid #0f0e0e;
+  /* border: 1px solid #0f0e0e; */
+  border: none;
   float: left;
   font-size: 30px;
   font-weight: bold;
@@ -94,7 +103,8 @@
 
 .square-growth-black {
   background: var(--square-growth-black-color);
-  border: 1px solid #0f0e0e;
+  /* border: 1px solid #0f0e0e; */
+  border: none;
   float: left;
   font-size: 30px;
   font-weight: bold;
@@ -105,6 +115,7 @@
   padding: 0;
   text-align: center;
   width: 34px;
+  opacity: var(--square-growth-black-opacity);
 }
 
 .square-growth-black:hover {
@@ -113,7 +124,8 @@
 
 .square-growth-white {
   background: var(--square-growth-white-color);
-  border: 1px solid #0f0e0e;
+  /* border: 1px solid #0f0e0e; */
+  border: none;
   float: left;
   font-size: 30px;
   font-weight: bold;
@@ -124,6 +136,7 @@
   padding: 0;
   text-align: center;
   width: 34px;
+  opacity: var(--square-growth-white-opacity);
 }
 
 .square-growth-white:hover {
@@ -132,7 +145,8 @@
 
 .square-current-piece {
   background: var(--square-current-color);
-  border: 1px solid #0f0e0e;
+  /* border: 1px solid #0f0e0e; */
+  border: none;
   float: left;
   font-size: 30px;
   font-weight: bold;
@@ -143,6 +157,23 @@
   padding: 0;
   text-align: center;
   width: 34px;
+}
+
+.square-frozen {
+  background: var(--square-frozen-color);
+  /* border: 1px solid #0f0e0e; */
+  border: none;
+  float: left;
+  font-size: 30px;
+  font-weight: bold;
+  line-height: 34px;
+  height: 34px;
+  margin-right: -1px;
+  margin-top: -1px;
+  padding: 0;
+  text-align: center;
+  width: 34px;
+  opacity: var(--square-frozen-opacity);
 }
 
 .piece-blank {
@@ -152,6 +183,18 @@
   border-radius: 50%;
   display: block;
   margin: 1px;
+}
+
+.piece-bomb {
+  width: 100%;
+  height: 100%;
+  background-color: var(--piece-color);
+  background-image: url('/public/picture/bomb.png');
+  background-size: cover;
+  /* 让背景图片占满整个元素 */
+  background-position: center;
+  /* 将背景图片居中显示*/
+  display: block;
 }
 
 .piece-black {
@@ -164,6 +207,18 @@
   margin: 1px;
 }
 
+.piece-black-frozen {
+  width: 90%;
+  height: 90%;
+  background-color: black;
+  border-radius: 50%;
+  border-color: gray;
+  display: block;
+  margin: 1px;
+  opacity: var(--piece-black-frozen-opacity);
+  background: var(--piece-black-frozen-background);
+}
+
 .piece-white {
   width: 90%;
   height: 90%;
@@ -172,6 +227,18 @@
   border-color: gray;
   display: block;
   margin: 1px;
+}
+
+.piece-white-frozen {
+  width: 90%;
+  height: 90%;
+  background-color: white;
+  border-radius: 50%;
+  border-color: gray;
+  display: block;
+  margin: 1px;
+  opacity: var(--piece-white-frozen--opacity);
+  background: var(--piece-white-frozen-background);
 }
 
 .piece-winner {
@@ -199,6 +266,20 @@
   margin: 1px;
 }
 
+.piece-black-can-not-be-destroyed-frozen {
+  width: 90%;
+  height: 90%;
+  background-color: black;
+  border-radius: 50%;
+  border-width: 3px;
+  border-style: solid;
+  border-color: gold;
+  display: block;
+  margin: 1px;
+  opacity: var(--piece-black-frozen--opacity);
+  background: var(--piece-black-frozen-background);
+}
+
 .piece-white-can-not-be-destroyed {
   width: 90%;
   height: 90%;
@@ -209,6 +290,20 @@
   border-color: gold;
   display: block;
   margin: 1px;
+}
+
+.piece-white-can-not-be-destroyed-frozen {
+  width: 90%;
+  height: 90%;
+  background-color: white;
+  border-radius: 50%;
+  border-width: 3px;
+  border-style: solid;
+  border-color: gold;
+  display: block;
+  margin: 1px;
+  opacity: var(--piece-white-frozen-opacity);
+  background: var(--piece-white-frozen-background);
 }
 
 .board-row:after {
