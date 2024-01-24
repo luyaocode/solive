@@ -88,10 +88,10 @@ const freezeSpell = new FreezeSpell();
 
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
 const weights = {
-  sword: 60,
-  shield: 60,
-  bow: 40,
-  infectPotion: 20,
+  sword: 40,
+  shield: 50,
+  bow: 30,
+  infectPotion: 10,
   timeBomb: 20,
   xFlower: 30,
   freezeSpell: 30,
@@ -563,6 +563,9 @@ class Piece {
       this.setSquareStyle(item, '');
     }
     else if (this.growthTime === 0) {
+      if (this.status.frozen) {
+        return;
+      }
       if (this.type === '') {
         this.setType(this.willBe);
         checkArray.push([this.x, this.y]);
@@ -771,14 +774,12 @@ function haveValidPiece(item, lastClick, i, j, board, statusObj) {
     for (const arr of arrayToCheck) {
       let x = arr[0];
       let y = arr[1];
-      if (x >= 0 && x < Board_Height && y >= 0 && y < Board_Width && board[x][y].type !== board[i][j].type && board[x][y].liveTime < 0) {
-        if (board[x][y].type === '') {
-          if (board[x][y].status.frozen) {
-            result = true;
-            break;
-          }
+      if (x >= 0 && x < Board_Height && y >= 0 && y < Board_Width && board[x][y].liveTime < 0) {
+        if (board[x][y].status.frozen) {
+          result = true;
+          break;
         }
-        else {
+        else if (board[x][y].type !== board[i][j].type && board[x][y].type != '') {
           result = true;
           break;
         }
@@ -790,14 +791,12 @@ function haveValidPiece(item, lastClick, i, j, board, statusObj) {
     for (const arr of arrayToCheck) {
       let x = arr[0];
       let y = arr[1];
-      if (x >= 0 && x < Board_Height && y >= 0 && y < Board_Width && board[x][y].type !== board[i][j].type && board[x][y].canBeDestroyed && board[x][y].liveTime < 0) {
-        if (board[x][y].type === '') {
-          if (board[x][y].status.frozen) {
-            result = true;
-            break;
-          }
+      if (x >= 0 && x < Board_Height && y >= 0 && y < Board_Width && board[x][y].liveTime < 0) {
+        if (board[x][y].status.frozen) {
+          result = true;
+          break;
         }
-        else {
+        else if (board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].canBeDestroyed) {
           result = true;
           break;
         }
@@ -849,7 +848,12 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
       openModal('太远了，打不到！');
     }
     else if (board[i][j].type === '') {
-      openModal('糟糕，没有击中目标！');
+      if (board[i][j].status.frozen) {
+        openModal('敲碎了冰块');
+      } else {
+        openModal('糟糕，没有击中目标！');
+
+      }
     }
     else if (board[i][j].type === board[r][c].type) {
       if (board[i][j].status.frozen) {
@@ -874,7 +878,12 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
       openModal('太远了，打不到！');
     }
     else if (board[i][j].type === '') {
-      openModal('糟糕，箭射偏了！');
+      if (board[i][j].status.frozen) {
+        openModal('击碎了冰块');
+      } else {
+        openModal('糟糕，箭射偏了！');
+
+      }
     }
     else if (board[i][j].type === board[r][c].type) {
       if (board[i][j].status.frozen) {
@@ -911,7 +920,13 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     }
     else if (board[i][j].type === board[r][c].type) {
       isObjectValid = false;
-      openModal('不能侵蚀同类棋子');
+
+      if (board[i][j].status.frozen) {
+        openModal('目标被冻结，不能侵蚀');
+      } else {
+        openModal('不能侵蚀同类棋子');
+      }
+
     }
     else if (!board[i][j].canBeDestroyed) {
       isHitValid = false;
