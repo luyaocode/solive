@@ -90,11 +90,11 @@ let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
 const weights = {
   sword: 20,
   shield: 0,
-  bow: 20,
+  bow: 0,
   infectPotion: 0,
   timeBomb: 0,
-  xFlower: 10,
-  freezeSpell: 0,
+  xFlower: 0,
+  freezeSpell: 30,
 };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
@@ -789,7 +789,7 @@ function haveValidPiece(item, lastClick, i, j, board, statusObj) {
           result = true;
           break;
         }
-        else if (board[x][y].type !== board[i][j].type && board[x][y].type != '') {
+        else if (board[x][y].type !== board[i][j].type && board[x][y].type !== '') {
           result = true;
           break;
         }
@@ -1280,12 +1280,10 @@ function calculateWinner(board, x, y) {
       while (i <= 4) {
         const newX = x + i * dx;
         const newY = y + i * dy;
-        if (newX >= 0 && newX < Board_Width && newY >= 0 && newY < Board_Height && board[newY][newX].type === currentType) {
+        if (newX >= 0 && newX < Board_Width && newY >= 0 && newY < Board_Height && board[newY][newX].type === currentType && !board[newY][newX].status.frozen) {
           // 判断特殊效果
-          if (!board[newY][newX].status.frozen) {
-            count += 1;
-            coordinates.push([newY, newX]);
-          }
+          count += 1;
+          coordinates.push([newY, newX]);
         } else {
           break;
         }
