@@ -87,25 +87,25 @@ const xFlower = new XFlower();
 const freezeSpell = new FreezeSpell();
 
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
-const weights = {
-  sword: 20,
-  shield: 18,
-  bow: 15,
-  infectPotion: 14,
-  timeBomb: 11,
-  xFlower: 9,
-  freezeSpell: 13,
-};
-
 // const weights = {
-//   sword: 10,
-//   shield: 0,
-//   bow: 0,
-//   infectPotion: 0,
-//   timeBomb: 0,
-//   xFlower: 10,
-//   freezeSpell: 10,
+//   sword: 20,
+//   shield: 18,
+//   bow: 15,
+//   infectPotion: 14,
+//   timeBomb: 13,
+//   xFlower: 9,
+//   freezeSpell: 11,
 // };
+
+const weights = {
+  sword: 10,
+  shield: 0,
+  bow: 0,
+  infectPotion: 10,
+  timeBomb: 10,
+  xFlower: 10,
+  freezeSpell: 10,
+};
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
   const randomValue = Math.random() * totalWeight;
@@ -428,9 +428,6 @@ class Piece {
     this.handleSound(item, piece);
     if (board === null) {
       return;
-    }
-    if (this.status.frozen) {
-      this.status.frozen = false;
     }
     else if (byBomb) {
       // 炸花
@@ -982,6 +979,7 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
       openModal('糟糕，没有侵蚀目标！');
     }
     else if (board[i][j].type === board[r][c].type) {
+      isObjectValid = false;
       openModal('不能侵蚀同类棋子');
     }
     else if (!board[i][j].canBeDestroyed) {

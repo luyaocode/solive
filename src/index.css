@@ -9,6 +9,32 @@ body {
   background: radial-gradient(circle, #d666ff, #3b9cab, #fffacc);
   overflow-y: hidden;
   /* 隐藏Y轴滚动条 */
+  /* background: radial-gradient(rgba(255, 255, 255, 0.5), transparent); */
+  /* 创建一个径向渐变背景 */
+  animation: shakeAnimation 20s infinite alternate;
+  /* 定义动画效果 */
+}
+
+@keyframes shakeAnimation {
+  0% {
+    transform: translate(-2px, -2px);
+  }
+
+  25% {
+    transform: translate(2px, 2px);
+  }
+
+  50% {
+    transform: translate(-2px, -2px);
+  }
+
+  75% {
+    transform: translate(2px, 2px);
+  }
+
+  100% {
+    transform: translate(-2px, -2px);
+  }
 }
 
 h1 {
