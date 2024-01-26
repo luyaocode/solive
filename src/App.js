@@ -730,7 +730,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
           <VolumeControlButton />
         </div>
       </div>
-      <div className="board">
+      <div className="board-row">
         {board.map((row, rowIndex) => (
           <div key={rowIndex} className="board-row">
             {row.map((cell, colIndex) => renderCell(cell, rowIndex, colIndex))}

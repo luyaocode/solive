@@ -7,6 +7,8 @@ body {
   margin: 20px;
   padding: 0;
   background: radial-gradient(circle, #d666ff, #3b9cab, #fffacc);
+  overflow-y: hidden;
+  /* 隐藏Y轴滚动条 */
 }
 
 h1 {

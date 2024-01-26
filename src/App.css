@@ -63,18 +63,17 @@
   /* 让背景图片占满整个元素 */
   background-position: center;
   /* 将背景图片居中显示*/
-  border: 1px solid #0f0e0e;
   border: none;
   float: left;
   font-size: 30px;
   font-weight: bold;
-  line-height: 34px;
-  height: 34px;
+  line-height: 30px;
   margin-right: -1px;
   margin-top: -1px;
   padding: 0;
   text-align: center;
-  width: 34px;
+  width: 30px;
+  height: 30px;
 }
 
 .square:hover {
@@ -88,13 +87,13 @@
   float: left;
   font-size: 30px;
   font-weight: bold;
-  line-height: 34px;
-  height: 34px;
+  line-height: 30px;
+  height: 30px;
   margin-right: -1px;
   margin-top: -1px;
   padding: 0;
   text-align: center;
-  width: 34px;
+  width: 30px;
 }
 
 .square-bomb:hover {
@@ -108,13 +107,13 @@
   float: left;
   font-size: 30px;
   font-weight: bold;
-  line-height: 34px;
-  height: 34px;
+  line-height: 30px;
+  height: 30px;
   margin-right: -1px;
   margin-top: -1px;
   padding: 0;
   text-align: center;
-  width: 34px;
+  width: 30px;
   opacity: var(--square-growth-black-opacity);
 }
 
@@ -129,13 +128,13 @@
   float: left;
   font-size: 30px;
   font-weight: bold;
-  line-height: 34px;
-  height: 34px;
+  line-height: 30px;
+  height: 30px;
   margin-right: -1px;
   margin-top: -1px;
   padding: 0;
   text-align: center;
-  width: 34px;
+  width: 30px;
   opacity: var(--square-growth-white-opacity);
 }
 
@@ -150,13 +149,13 @@
   float: left;
   font-size: 30px;
   font-weight: bold;
-  line-height: 34px;
-  height: 34px;
+  line-height: 30px;
+  height: 30px;
   margin-right: -1px;
   margin-top: -1px;
   padding: 0;
   text-align: center;
-  width: 34px;
+  width: 30px;
 }
 
 .square-frozen {
@@ -166,13 +165,13 @@
   float: left;
   font-size: 30px;
   font-weight: bold;
-  line-height: 34px;
-  height: 34px;
+  line-height: 30px;
+  height: 30px;
   margin-right: -1px;
   margin-top: -1px;
   padding: 0;
   text-align: center;
-  width: 34px;
+  width: 30px;
   opacity: var(--square-frozen-opacity);
 }
 
@@ -308,14 +307,6 @@
 
 .piece-name {
   font-size: 1.5em;
-}
-
-.board {
-  background:
-    linear-gradient(45deg, #8B4513 25%, transparent 25%, transparent 75%, #8B4513 75%, #8B4513),
-    linear-gradient(45deg, #8B4513 25%, transparent 25%, transparent 75%, #8B4513 75%, #8B4513);
-  background-size: 40px 40px;
-  /* 控制木纹纹理的大小 */
 }
 
 .board-row:after {
