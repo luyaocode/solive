@@ -10,6 +10,20 @@ root.render(
     <Game />
   </React.StrictMode>
 );
+window.addEventListener("orientationchange", function () {
+  var orientation = window.orientation;
+  switch (orientation) {
+    case 90:
+    case -90:
+      // 横屏
+      document.body.style.transform = "rotate(0deg)";
+      break;
+    default:
+      // 竖屏
+      document.body.style.transform = "rotate(90deg)";
+      break;
+  }
+});
 
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))

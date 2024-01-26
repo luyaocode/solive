@@ -620,7 +620,7 @@ function deepClonePiece(piece) {
 
 function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   setGameOver, selectedItem, selectedItemHistory, gameStart, setGameStart,
-  openModal, playSound }) {
+  openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton, VolumeControlButton }) {
   const [lastClick, setLastClick] = useState([null, null]);
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const renderCell = (cellValue, rowIndex, colIndex) => {
@@ -712,16 +712,25 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   }
   let nextPiece = xIsNext ? '●' : '○';
   let currentItem = selectedItemHistory[currentMove];
-  let nextPieceStatus = '下一回合行动棋子: ' + (nextPiece);
+  let nextPieceStatus = '下一回合行动棋子: ';
   let isUsedStatus = currentItem.isUsed ? '已使用' : '未使用';
-  let currentItemStatus = '当前道具: ' + (currentItem.cname) + '(' + (isUsedStatus) + ')';
-  let nextItemStatus = '下一个道具: ' + (selectedItem.cname);
+  let currentItemStatus = '当前道具: ';
+  let nextItemStatus = '下一个道具: ';
   return (
     <>
-      <div className="status">{nextPieceStatus}</div>
-      <div className="status" title={selectedItem.info}>{nextItemStatus}</div>
-      <div className="status" title={currentItem.info}>{currentItemStatus}</div>
-      <div className="board-row">
+      <div className='game-info'>
+        <div className="status">{nextPieceStatus}<span class='piece-name'>{nextPiece}</span><span class='span-blank'></span>
+          {nextItemStatus}<span class='item-name' title={currentItem.info}>{selectedItem.cname}</span></div>
+        <div className="status" title={currentItem.info}>{currentItemStatus}<span class='item-name' title={currentItem.info}>{selectedItem.cname}</span> {isUsedStatus}</div>
+        <div className="button-container">
+          <UndoButton />
+          <RedoButton />
+          <RestartButton />
+          <SwitchSoundButton />
+          <VolumeControlButton />
+        </div>
+      </div>
+      <div className="board">
         {board.map((row, rowIndex) => (
           <div key={rowIndex} className="board-row">
             {row.map((cell, colIndex) => renderCell(cell, rowIndex, colIndex))}
@@ -1234,17 +1243,15 @@ function Game() {
           currentMove={currentMove} onPlay={handlePlay} gameOver={gameOver}
           setGameOver={setGameOver} selectedItem={selectedItem} selectedItemHistory={selectedItemHistory}
           gameStart={gameStart} setGameStart={setGameStart} openModal={openModal}
-          playSound={playSound}
+          playSound={playSound} UndoButton={UndoButton} RedoButton={RedoButton}
+          RestartButton={RestartButton} SwitchSoundButton={SwitchSoundButton}
+          VolumeControlButton={VolumeControlButton}
         />
       </div>
-      <div className="game-info">
-        <UndoButton />
-        <RedoButton />
-        <RestartButton />
-        <SwitchSoundButton />
-        <VolumeControlButton />
-        <ol>{moves}</ol>
-      </div>
+      {/* <div className="game-info"> */}
+
+      {/* <ol>{moves}</ol> */}
+      {/* </div> */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal">

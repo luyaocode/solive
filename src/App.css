@@ -306,23 +306,76 @@
   background: var(--piece-white-frozen-background);
 }
 
+.piece-name {
+  font-size: 1.5em;
+}
+
+.board {
+  background:
+    linear-gradient(45deg, #8B4513 25%, transparent 25%, transparent 75%, #8B4513 75%, #8B4513),
+    linear-gradient(45deg, #8B4513 25%, transparent 25%, transparent 75%, #8B4513 75%, #8B4513);
+  background-size: 40px 40px;
+  /* 控制木纹纹理的大小 */
+}
+
 .board-row:after {
   clear: both;
   content: '';
   display: table;
 }
 
+.item-name {
+  text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5);
+  /* 设置文字阴影 */
+  /* 如果浏览器支持，你也可以尝试使用 text-stroke */
+  -webkit-text-stroke: 1px rgb(111, 75, 75);
+  /* 设置文字描边 */
+  -moz-text-stroke: 1px rgb(96, 61, 61);
+  -ms-text-stroke: 1px rgb(81, 47, 47);
+  -o-text-stroke: 1px rgb(88, 44, 36);
+  font-size: 1em;
+}
+
+.span-blank {
+  margin-right: 100px;
+}
+
 .status {
-  margin-bottom: 10px;
+  margin-bottom: 5px;
+}
+
+.button-container {
+  display: flex;
+  align-items: center;
+}
+
+.button-container>* {
+  margin-right: 10px;
+  /* 设置按钮之间的间距 */
 }
 
 .game {
   display: flex;
-  flex-direction: row;
+  justify-content: center;
+  /* 水平居中 */
+  align-items: center;
+  /* 垂直居中 */
+  width: 100%;
+  height: 100vh;
+  /* 如果希望填满视口 */
 }
 
 .game-info {
-  margin-left: 20px;
+  border: 2px solid #ccc;
+  background-color: rgba(255, 255, 255, 0.5);
+  /* 设置背景颜色并添加透明度 */
+  backdrop-filter: blur(10px);
+  /* 添加背景模糊效果 */
+  border-radius: 10px;
+  /* 设置边框圆角 */
+  padding: 10px;
+  /* 内边距 */
+  margin-bottom: 10px;
 }
 
 /* Modal */
