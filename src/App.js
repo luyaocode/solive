@@ -720,8 +720,8 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     <>
       <div className='game-info'>
         <div className="status">{nextPieceStatus}<span class='piece-name'>{nextPiece}</span><span class='span-blank'></span>
-          {nextItemStatus}<span class='item-name' title={currentItem.info}>{selectedItem.cname}</span></div>
-        <div className="status" title={currentItem.info}>{currentItemStatus}<span class='item-name' title={currentItem.info}>{selectedItem.cname}</span> {isUsedStatus}</div>
+          {nextItemStatus}<span class='item-name' title={selectedItem.info}>{selectedItem.cname}</span></div>
+        <div className="status" title={currentItem.info}>{currentItemStatus}<span class='item-name' title={currentItem.info}>{currentItem.cname}</span> {isUsedStatus}</div>
         <div className="button-container">
           <UndoButton />
           <RedoButton />
