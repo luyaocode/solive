@@ -88,12 +88,12 @@ const freezeSpell = new FreezeSpell();
 
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
 const weights = {
-  sword: 20,
-  shield: 0,
-  bow: 0,
-  infectPotion: 0,
-  timeBomb: 0,
-  xFlower: 0,
+  sword: 30,
+  shield: 50,
+  bow: 30,
+  infectPotion: 10,
+  timeBomb: 10,
+  xFlower: 20,
   freezeSpell: 30,
 };
 function getItem(weights) {
