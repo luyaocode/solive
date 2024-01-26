@@ -88,14 +88,24 @@ const freezeSpell = new FreezeSpell();
 
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
 const weights = {
-  sword: 30,
-  shield: 50,
-  bow: 30,
-  infectPotion: 10,
-  timeBomb: 10,
-  xFlower: 20,
-  freezeSpell: 30,
+  sword: 20,
+  shield: 18,
+  bow: 15,
+  infectPotion: 14,
+  timeBomb: 11,
+  xFlower: 9,
+  freezeSpell: 13,
 };
+
+// const weights = {
+//   sword: 10,
+//   shield: 0,
+//   bow: 0,
+//   infectPotion: 0,
+//   timeBomb: 0,
+//   xFlower: 10,
+//   freezeSpell: 10,
+// };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
   const randomValue = Math.random() * totalWeight;
@@ -419,7 +429,10 @@ class Piece {
     if (board === null) {
       return;
     }
-    if (byBomb) {
+    if (this.status.frozen) {
+      this.status.frozen = false;
+    }
+    else if (byBomb) {
       // 炸花
       if (this.growthTime > 0) {
         if (this.type === '' && this.liveTime === 0) {
@@ -493,9 +506,15 @@ class Piece {
 
   infect(item, piece, board) {
     this.handleSound(item, piece);
-    if (this.type === '') {
+    if (this.status.frozen) {
       item.isUsed = true;
       return;
+    }
+    else {
+      if (this.type === '') {
+        item.isUsed = true;
+        return;
+      }
     }
     if (this.canBeInfected) {
       this.setType(piece.type);
@@ -619,7 +638,7 @@ function deepClonePiece(piece) {
 }
 
 function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
-  setGameOver, selectedItem, selectedItemHistory, gameStart, setGameStart,
+  setGameOver, selectedItem, nextSelItem, selectedItemHistory, gameStart, setGameStart,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton, VolumeControlButton }) {
   const [lastClick, setLastClick] = useState([null, null]);
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
@@ -710,18 +729,31 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     }
     checkArray = [];
   }
-  let nextPiece = xIsNext ? '●' : '○';
-  let currentItem = selectedItemHistory[currentMove];
+  let currentPiece = xIsNext ? '●' : '○';
+  let nextPiece = xIsNext ? '○' : '●';
+  // let currentItem = selectedItemHistory[currentMove];
+  let currentItem = selectedItem;
+
   let nextPieceStatus = '下一回合行动棋子: ';
+  let currentPieceStatus = '当前回合行动棋子: ';
   let isUsedStatus = currentItem.isUsed ? '已使用' : '未使用';
+  if (currentItem.isUsed) {
+    root.style.setProperty('--item-used-status-span-color', 'red');
+  }
+  else {
+    root.style.setProperty('--item-used-status-span-color', 'green');
+  }
   let currentItemStatus = '当前道具: ';
-  let nextItemStatus = '下一个道具: ';
+  let nextItemStatus = '下个道具: ';
   return (
     <>
       <div className='game-info'>
-        <div className="status">{nextPieceStatus}<span class='piece-name'>{nextPiece}</span><span class='span-blank'></span>
-          {nextItemStatus}<span class='item-name' title={selectedItem.info}>{selectedItem.cname}</span></div>
-        <div className="status" title={currentItem.info}>{currentItemStatus}<span class='item-name' title={currentItem.info}>{currentItem.cname}</span> {isUsedStatus}</div>
+        <div className="status">{currentPieceStatus}<span className='piece-name'>{currentPiece}</span><span className='span-blank'></span>
+          {currentItemStatus}<span className='item-name' title={currentItem.info}>{currentItem.cname}</span>
+          <span className='item-used-status-span'>{isUsedStatus}</span></div>
+        <div className="status">{nextPieceStatus}<span className='piece-name'>{nextPiece}</span><span className='span-blank'></span>
+          {nextItemStatus}<span className='item-name' title={nextSelItem.info}>{nextSelItem.cname}</span></div>
+
         <div className="button-container">
           <UndoButton />
           <RedoButton />
@@ -776,6 +808,9 @@ function playSound(audioName) {
  */
 function haveValidPiece(item, lastClick, i, j, board, statusObj) {
   let result = false;
+  if (item.isUsed) {
+    return false;
+  }
   if (!(item instanceof FreezeSpell) && board[i][j].status.frozen) {
     if (item instanceof TimeBomb) {
       result = true;
@@ -830,9 +865,14 @@ function haveValidPiece(item, lastClick, i, j, board, statusObj) {
     for (const arr of arrayToCheck) {
       let x = arr[0];
       let y = arr[1];
-      if (x >= 0 && x < Board_Height && y >= 0 && y < Board_Width && board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].canBeInfected && board[x][y].liveTime < 0) {
-        result = true;
-        break;
+      if (x >= 0 && x < Board_Height && y >= 0 && y < Board_Width && board[x][y].liveTime < 0) {
+        if (board[x][y].status.frozen) {
+          continue;
+        }
+        if (board[x][y].type !== board[i][j].type && board[x][y].type !== '' && board[x][y].canBeInfected) {
+          result = true;
+          break;
+        }
       }
     }
   }
@@ -934,18 +974,15 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     if (!isRangeValid) {
       openModal('太远了，无法侵蚀！');
     }
+    if (board[i][j].status.frozen) {
+      isObjectValid = false;
+      openModal('无法侵蚀冰块！');
+    }
     else if (board[i][j].type === '') {
       openModal('糟糕，没有侵蚀目标！');
     }
     else if (board[i][j].type === board[r][c].type) {
-      isObjectValid = false;
-
-      if (board[i][j].status.frozen) {
-        openModal('目标被冻结，不能侵蚀');
-      } else {
-        openModal('不能侵蚀同类棋子');
-      }
-
+      openModal('不能侵蚀同类棋子');
     }
     else if (!board[i][j].canBeDestroyed) {
       isHitValid = false;
@@ -1046,7 +1083,9 @@ function VolumeControlButton() {
   );
 };
 
-function Game() {
+function Game({ setRestart }) {
+  // 外部组件
+  setRestart(false);
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalInfo, setModalInfo] = useState('');
@@ -1059,15 +1098,18 @@ function Game() {
   const currentBoard = history[currentMove];
   const [gameOver, setGameOver] = useState(false);
   const [selectedItem, setSelectedItem] = useState(items[Math.floor(Math.random() * items.length)]);
+  const [nextSelItem, setNextSelItem] = useState(items[Math.floor(Math.random() * items.length)]);
   const [selectedItemHistory, setSelectedItemHistory] = useState([selectedItem]);
   const [xIsNext, setIsNext] = useState(true);
 
   function pickRandomItem() {
     if (selectedItem.isUsed) {
       items = items.filter(item => item !== selectedItem);
-      const randomIndex = Math.floor(Math.random() * items.length);
-      const randomItem = items[randomIndex];
-      setSelectedItem(randomItem);
+      // const randomIndex = Math.floor(Math.random() * items.length);
+      // const randomItem = items[randomIndex];
+      setSelectedItem(nextSelItem);
+      const nextRandomItem = items[Math.floor(Math.random() * items.length)];
+      setNextSelItem(nextRandomItem);
     }
     const nextItemHistory = [...selectedItemHistory.slice(0, currentMove + 1), selectedItem];
     setSelectedItemHistory(nextItemHistory);
@@ -1125,7 +1167,7 @@ function Game() {
       }
     }
     // 后处理事件
-    let statusObj = { pieceStatus: {} };
+    let statusObj = { pieceStatus: InitPieceStatus };
     let haveValid = haveValidPiece(selectedItem, lastClick, i, j, nextBoard, statusObj);
     let bombed = false;
     nextBoard.forEach((row) => { row.forEach((cell) => { cell.liveTime -= 1; if (cell.liveTime === 0) { bombed = true; cell.bomb(null, nextBoard, bombed); } }) })
@@ -1145,16 +1187,12 @@ function Game() {
         selectedItem.isUsed = true;
       }
       else if (!haveValid) {
+        if (!selectedItem.isUsed) {
+          openModal('没有有效目标，已为您自动跳过！');
+        }
         setIsNext(!xIsNext);
         selectedItem.before = false;
         selectedItem.isUsed = true;
-        if (statusObj.pieceStatus.frozen) {
-
-        }
-        else {
-          openModal('没有有效目标，已为您自动跳过！');
-
-        }
       }
     }
     pickRandomItem();
@@ -1208,8 +1246,10 @@ function Game() {
       const initItemHistory = [...selectedItemHistory.slice(0, 1)];
       setSelectedItemHistory(initItemHistory);
       setSelectedItem(items[Math.floor(Math.random() * items.length)]);
+      setNextSelItem(items[Math.floor(Math.random() * items.length)]);
       setGameOver(false);
       setIsNext(true);
+      setRestart(true);
     }
     return (
       <Button onClick={onButtonClick}>{description}</Button>
@@ -1217,7 +1257,7 @@ function Game() {
   }
 
   const openModal = (info, time = 500) => {
-    setModalOpen(true);
+    // setModalOpen(true); 取消弹窗，后续改为状态
     setModalInfo(info);
     // 在打开弹窗后的3000毫秒（3秒）后，调用closeModal函数
     timeoutIdRef.current = setTimeout(() => {
@@ -1241,17 +1281,13 @@ function Game() {
       <div className="game-board">
         <Board xIsNext={xIsNext} board={currentBoard} setBoard={setBoard}
           currentMove={currentMove} onPlay={handlePlay} gameOver={gameOver}
-          setGameOver={setGameOver} selectedItem={selectedItem} selectedItemHistory={selectedItemHistory}
+          setGameOver={setGameOver} selectedItem={selectedItem} nextSelItem={nextSelItem} selectedItemHistory={selectedItemHistory}
           gameStart={gameStart} setGameStart={setGameStart} openModal={openModal}
           playSound={playSound} UndoButton={UndoButton} RedoButton={RedoButton}
           RestartButton={RestartButton} SwitchSoundButton={SwitchSoundButton}
           VolumeControlButton={VolumeControlButton}
         />
       </div>
-      {/* <div className="game-info"> */}
-
-      {/* <ol>{moves}</ol> */}
-      {/* </div> */}
       {isModalOpen && (
         <div className="modal-overlay">
           <div className="modal">
@@ -1309,12 +1345,9 @@ function calculateWinner(board, x, y) {
     let coordinates2 = res2[1];
     let rest = [];
     if (count1 + count2 >= 4) {
-      let tem = [...coordinates1, ...coordinates2].slice(0, 4);
+      let tem = [...coordinates1.reverse(), ...coordinates2].slice(0, 4);
       tem.push([y, x]);
       rest.push(currentType, tem);
-      if (tem.length > 5) {
-        tem = tem.slice(1);
-      }
     }
     else {
       rest.push(null, [null, null]);

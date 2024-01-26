@@ -1,7 +1,7 @@
 :root {
   --square-color: #885727;
   --square-bomb-color: #ff0909;
-  --square-current-color: rgb(117, 114, 114);
+  --square-current-color: rgb(148, 244, 178);
   --square-growth-black-color: #0c4204;
   --square-growth-black-opacity: 0.9;
   --square-growth-white-color: #20f708;
@@ -14,6 +14,8 @@
   --piece-black-frozen-opacity: 0.9;
   --piece-white-frozen-background: linear-gradient(45deg, #615ceb, #5cdad5);
   --piece-black-frozen-background: linear-gradient(45deg, #20046f, #0f7e7a);
+
+  --item-used-status-span-color: green;
 }
 
 .App {
@@ -327,6 +329,11 @@
   font-size: 1em;
 }
 
+.item-used-status-span {
+  color: var(--item-used-status-span-color);
+  margin-left: 6px;
+}
+
 .span-blank {
   margin-right: 100px;
 }
@@ -352,7 +359,7 @@
   align-items: center;
   /* 垂直居中 */
   width: 100%;
-  height: 100vh;
+  /* height: 100vh; */
   /* 如果希望填满视口 */
 }
 
@@ -398,4 +405,19 @@
   right: 10px;
   font-size: 18px;
   cursor: pointer;
+}
+
+.game-container {
+  display: flex;
+  justify-content: center;
+  /* 水平居中 */
+  align-items: center;
+  /* 垂直居中 */
+  height: 100vh;
+  /* 填满整个视口高度 */
+}
+
+/*计时器*/
+.timer {
+  color: red;
 }

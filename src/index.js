@@ -1,30 +1,13 @@
 import React from 'react';
 import ReactDOM from 'react-dom/client';
 import './index.css';
-import Game from './App';
+import ChaosGomoku from './ChaosGomoku.jsx'
 import reportWebVitals from './reportWebVitals';
 
 const root = ReactDOM.createRoot(document.getElementById('root'));
 root.render(
-  <React.StrictMode>
-    <Game />
-  </React.StrictMode>
+  <ChaosGomoku />
 );
-window.addEventListener("orientationchange", function () {
-  var orientation = window.orientation;
-  switch (orientation) {
-    case 90:
-    case -90:
-      // 横屏
-      document.body.style.transform = "rotate(0deg)";
-      break;
-    default:
-      // 竖屏
-      document.body.style.transform = "rotate(90deg)";
-      break;
-  }
-});
-
 // If you want to start measuring performance in your app, pass a function
 // to log results (for example: reportWebVitals(console.log))
 // or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
