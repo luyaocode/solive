@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function Timer({ isRestart }) {
+function Timer({ isRestart, round, totalRound }) {
     const [seconds, setSeconds] = useState(0);
     const [isActive, setIsActive] = useState(true);
     useEffect(() => {
@@ -32,8 +32,10 @@ function Timer({ isRestart }) {
     }
     return (
         <div className="timer">
-            <h1>开局时间: {hour}:{minute}:{second}</h1>
+            <span>开局时间: {hour}:{minute}:{second}</span><span className='span-blank'></span>
+            <span>当前回合: {round}/{totalRound}</span>
         </div>
+
     );
 }
 

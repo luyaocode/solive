@@ -419,5 +419,12 @@
 
 /*计时器*/
 .timer {
+  display: flex;
+  justify-content: center;
+  /* 水平居中 */
+  align-items: center;
   color: red;
+  font-weight: bold;
+  font-size: large;
+  margin-bottom: 10px;
 }

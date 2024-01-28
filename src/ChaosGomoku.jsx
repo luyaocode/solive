@@ -5,10 +5,16 @@ import Game from './App.js'
 
 function ChaosGomoku() {
     const [isRestart, setRestart] = useState(false);
+    const [round, setRound] = useState(0);
+    const [totalRound, setTotalRound] = useState(0);
+    const [roundMoveArr, setRoundMoveArr] = useState([]);
+
     return (
         <React.StrictMode className='game-container'>
-            <Timer isRestart={isRestart} />
-            <Game setRestart={setRestart} />
+            <Timer isRestart={isRestart} round={round} totalRound={totalRound} />
+            <Game setRestart={setRestart} round={round} setRound={setRound}
+                roundMoveArr={roundMoveArr} setRoundMoveArr={setRoundMoveArr}
+                totalRound={totalRound} setTotalRound={setTotalRound} />
         </React.StrictMode>
     );
 }

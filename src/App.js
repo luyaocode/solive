@@ -87,25 +87,25 @@ const xFlower = new XFlower();
 const freezeSpell = new FreezeSpell();
 
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
-// const weights = {
-//   sword: 20,
-//   shield: 18,
-//   bow: 15,
-//   infectPotion: 14,
-//   timeBomb: 13,
-//   xFlower: 9,
-//   freezeSpell: 11,
-// };
-
 const weights = {
-  sword: 10,
-  shield: 0,
-  bow: 0,
-  infectPotion: 10,
-  timeBomb: 10,
-  xFlower: 10,
-  freezeSpell: 10,
+  sword: 20,
+  shield: 18,
+  bow: 15,
+  infectPotion: 14,
+  timeBomb: 13,
+  xFlower: 9,
+  freezeSpell: 11,
 };
+
+// const weights = {
+//   sword: 10,
+//   shield: 0,
+//   bow: 0,
+//   infectPotion: 10,
+//   timeBomb: 10,
+//   xFlower: 10,
+//   freezeSpell: 10,
+// };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
   const randomValue = Math.random() * totalWeight;
@@ -122,11 +122,14 @@ function getItem(weights) {
   return selectedElement;
 }
 
-let items = [];
-for (let i = 0; i < 19; i++) {
-  for (let j = 0; j < 19; j++) {
-    const item = _.cloneDeep(getItem(weights));
-    items.push(item);
+let items;
+function createItem() {
+  items = [];
+  for (let i = 0; i < 19; i++) {
+    for (let j = 0; j < 19; j++) {
+      const item = _.cloneDeep(getItem(weights));
+      items.push(item);
+    }
   }
 }
 
@@ -1081,9 +1084,11 @@ function VolumeControlButton() {
   );
 };
 
-function Game({ setRestart }) {
+function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound }) {
   // 外部组件
   setRestart(false);
+
+  createItem();
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalInfo, setModalInfo] = useState('');
@@ -1099,6 +1104,8 @@ function Game({ setRestart }) {
   const [nextSelItem, setNextSelItem] = useState(items[Math.floor(Math.random() * items.length)]);
   const [selectedItemHistory, setSelectedItemHistory] = useState([selectedItem]);
   const [xIsNext, setIsNext] = useState(true);
+  const [isUndo, setIsUndo] = useState(false);
+  const [isRedo, setIsRedo] = useState(false);
 
   function pickRandomItem() {
     if (selectedItem.isUsed) {
@@ -1114,6 +1121,10 @@ function Game({ setRestart }) {
   };
 
   function handlePlay(lastClick, setLastClick, nextBoard, i, j) {
+    // 重置悔棋、还原标志
+    setIsUndo(false);
+    setIsRedo(false);
+
     if (!selectedItem.isUsed && selectedItem.before) {
       // 判断二次选中棋子合法性
       let isValid = validateLoc(selectedItem, lastClick, i, j, currentBoard, openModal, closeModal);
@@ -1201,12 +1212,39 @@ function Game({ setRestart }) {
     setLastClick([i, j]);
   }
 
-  function jumpTo(nextMove) {
-    if (nextMove < 0 || nextMove > history.length - 1) {
-      return;
+  function jumpTo(nextRound, isUndo, isRedo) {
+    if (isUndo) {
+      if (nextRound < 1) {
+        return;
+      }
+      setIsUndo(true);
+      setIsNext(!xIsNext);
+      const lastMove = roundMoveArr[nextRound - 1];
+      setCurrentMove(lastMove);
+      setRound(round - 1);
+      setSelectedItem(selectedItemHistory[lastMove]);
+      for (const [index, item] of selectedItemHistory.entries()) {
+        if (index >= lastMove) {
+          item.isUsed = false;
+        }
+      }
     }
-    setCurrentMove(nextMove);
-    setSelectedItem(selectedItemHistory[nextMove]);
+    else if (isRedo) {
+      if (nextRound > roundMoveArr.length) {
+        return;
+      }
+      setIsRedo(true);
+      setIsNext(!xIsNext);
+      const nextMove = roundMoveArr[nextRound - 1];
+      setCurrentMove(nextMove);
+      setRound(round + 1);
+      setSelectedItem(selectedItemHistory[nextMove]);
+      for (const [index, item] of selectedItemHistory.entries()) {
+        if (index >= nextMove) {
+          item.isUsed = false;
+        }
+      }
+    }
   }
 
   const moves = history.map((board, move) => {
@@ -1222,16 +1260,18 @@ function Game({ setRestart }) {
   });
 
   const UndoButton = () => {
-    let description = "悔棋"
+    let description = "悔棋";
+    const lastRound = round - 1;
     return (
-      <Button onClick={() => jumpTo(currentMove - 1)}>{description}</Button>
+      <Button onClick={() => jumpTo(lastRound, true)}>{description}</Button>
     );
   }
 
   const RedoButton = () => {
-    let description = "还原"
+    let description = "还原";
+    const nextRound = round + 1;
     return (
-      <Button onClick={() => jumpTo(currentMove + 1)}>{description}</Button>
+      <Button onClick={() => jumpTo(nextRound, false, true)}>{description}</Button>
     );
   }
 
@@ -1248,6 +1288,8 @@ function Game({ setRestart }) {
       setGameOver(false);
       setIsNext(true);
       setRestart(true);
+      setRound(1);
+      createItem();
     }
     return (
       <Button onClick={onButtonClick}>{description}</Button>
@@ -1269,10 +1311,17 @@ function Game({ setRestart }) {
 
   // 使用 useEffect 来清除定时器，确保在组件卸载时不会触发关闭
   useEffect(() => {
+    if (isUndo || isRedo) {
+      return;
+    }
+    setRound(round + 1);
+    setTotalRound(round + 1);
+    const tempArr = [...roundMoveArr.slice(0, round + 1), currentMove];
+    setRoundMoveArr(tempArr);
     return () => {
       clearTimeout(timeoutIdRef.current);
     };
-  }, []);
+  }, [xIsNext]);
 
   return (
     <div className="game">
