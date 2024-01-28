@@ -76,7 +76,7 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 if (isMobile) {
   Board_Width = 12;
   Board_Height = 12;
-  root.style.setProperty('--square-size', Square_Size_Mobile);
+  // root.style.setProperty('--square-size', Square_Size_Mobile);
 } else {
   Board_Width = 18;
   Board_Height = 18;
