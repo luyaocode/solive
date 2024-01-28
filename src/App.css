@@ -340,6 +340,8 @@
 }
 
 .status {
+  margin-left: 10px;
+  margin-right: 10px;
   margin-bottom: 5px;
 }
 
@@ -349,7 +351,8 @@
 }
 
 .button-container>* {
-  margin-right: 10px;
+  margin-left: 5px;
+  margin-right: 5px;
   /* 设置按钮之间的间距 */
 }
 
@@ -385,7 +388,7 @@
   /* 设置边框圆角 */
   padding: 5px;
   /* 内边距 */
-  margin-bottom: 10px;
+  margin-bottom: 5px;
 }
 
 /* Modal */
