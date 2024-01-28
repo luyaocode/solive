@@ -68,8 +68,19 @@ let _isMute = false;
 let _volume = 100;
 
 // 其他
-const Board_Width = 18;
-const Board_Height = 18;
+let Board_Width;
+let Board_Height;
+const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+if (isMobile) {
+  Board_Width = 12;
+  Board_Height = 12;
+} else {
+  Board_Width = 18;
+  Board_Height = 18;
+}
+
+// const Board_Width = 18;
+// const Board_Height = 18;
 
 // 状态
 const InitPieceStatus = {
