@@ -68,23 +68,21 @@ let _isMute = false;
 let _volume = 100;
 
 // 其他
-const Square_Size_Mobile = '1.66em';
 const Square_Size_Pc = '1.39em';
+// 获取设备的屏幕分辨率
+const screenWidth = window.screen.width;
+const screenHeight = window.screen.height;
+const square_width = Math.floor(screenWidth / (1.39 * 24));
 let Board_Width;
 let Board_Height;
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 if (isMobile) {
-  Board_Width = 13;
-  Board_Height = 13;
-  // root.style.setProperty('--square-size', Square_Size_Mobile);
+  Board_Width = square_width;
+  Board_Height = square_width;
 } else {
   Board_Width = 18;
   Board_Height = 18;
-  root.style.setProperty('--square-size', Square_Size_Pc);
 }
-
-// const Board_Width = 18;
-// const Board_Height = 18;
 
 // 状态
 const InitPieceStatus = {
