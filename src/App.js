@@ -68,15 +68,19 @@ let _isMute = false;
 let _volume = 100;
 
 // 其他
+const Square_Size_Mobile = '1.66em';
+const Square_Size_Pc = '1.39em';
 let Board_Width;
 let Board_Height;
 const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
 if (isMobile) {
   Board_Width = 12;
   Board_Height = 12;
+  root.style.setProperty('--square-size', Square_Size_Mobile);
 } else {
   Board_Width = 18;
   Board_Height = 18;
+  root.style.setProperty('--square-size', Square_Size_Pc);
 }
 
 // const Board_Width = 18;
