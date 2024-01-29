@@ -11,10 +11,10 @@
   --square-frozen-opacity: 0.8;
   --piece-color: #FFFFFF, transparent;
   --piece-winner-color: #2c09c9;
-  --piece-white-frozen-opacity: 0.9;
-  --piece-black-frozen-opacity: 0.9;
-  --piece-white-frozen-background: linear-gradient(45deg, #615ceb, #5cdad5);
-  --piece-black-frozen-background: linear-gradient(45deg, #20046f, #0f7e7a);
+  --piece-white-frozen-opacity: 0.8;
+  --piece-black-frozen-opacity: 0.8;
+  --piece-white-frozen-background: linear-gradient(45deg, #827fbe, #a0e1df);
+  --piece-black-frozen-background: linear-gradient(45deg, #432499, #105957);
 
   --item-used-status-span-color: green;
 }
@@ -244,12 +244,12 @@
 }
 
 .piece-winner {
-  width: 100%;
-  height: 100%;
+  width: 90%;
+  height: 90%;
   background-color: var(--piece-winner-color);
   border-radius: 50%;
   border-color: rgb(232, 6, 6);
-  border-width: 2px;
+  border-width: 3px;
   /* 设置边框宽度为5像素，根据需要调整 */
   border-style: solid;
   /* 设置边框样式为实线，根据需要调整 */
@@ -366,7 +366,7 @@
   /* height: 100vh; */
   /* 如果希望填满视口 */
   margin-top: 0px;
-  margin-bottom: 10px;
+  margin-bottom: 5px;
   /* margin-left: 20px;
   margin-right: 20px; */
 }
@@ -442,4 +442,63 @@
   font-weight: bold;
   font-size: large;
   margin-bottom: 10px;
+}
+
+/*游戏操作日志*/
+.gamelog-button {
+  border: 2px solid #ccc;
+  color: rgb(255, 255, 255);
+  background-color: rgba(150, 138, 138, 0.5);
+  /* 设置背景颜色并添加透明度 */
+  backdrop-filter: blur(10px);
+  /* 添加背景模糊效果 */
+  border-radius: 10px;
+  /* 设置边框圆角 */
+  padding: 5px;
+  /* 内边距 */
+  margin-bottom: 5px;
+  width: 70vh;
+  margin-left: 20px;
+  margin-right: 20px;
+  margin-top: 0px;
+}
+
+.gamelog-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+}
+
+.gamelog-modal {
+  background: #ada5a5;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 90%;
+  max-height: 90%;
+  text-align: left;
+  position: relative;
+  overflow-y: auto;
+  /* 添加垂直滚动条 */
+}
+
+.gamelog-modal-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 18px;
+  cursor: pointer;
+}
+
+.gamelog-black-piece {
+  color: red;
+}
+
+.gamelog-white-piece {
+  color: blue;
 }

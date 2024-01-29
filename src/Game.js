@@ -1,4 +1,4 @@
-import './App.css';
+import './Game.css';
 import { useState, useEffect, useRef } from 'react';
 import { Howl } from 'howler';
 import { Button } from 'antd';
@@ -55,7 +55,7 @@ const BGM = '背景音乐';
 const VOLUME = '音量';
 const OPEN = '开启';
 const CLOSE = '关闭';
-const RESTART_GAME = '重新开始';
+const RESTART_GAME = '再来一局';
 const OPEN_SOUND = OPEN + SOUND;
 const CLOSE_SOUND = CLOSE + SOUND;
 const OPEN_BGM = OPEN + BGM;
@@ -90,6 +90,8 @@ const InitPieceStatus = {
   frozenTime: 0,//总冻结时常
   attachSeed: false,//是否种子
   growthTime: 0,//生成所需时间
+  attachBomb: false,//是否绑定炸弹
+  liveTime: 0,//自爆需要时间
 }
 
 // 道具
@@ -102,25 +104,25 @@ const xFlower = new XFlower();
 const freezeSpell = new FreezeSpell();
 
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
-const weights = {
-  sword: 20,
-  shield: 18,
-  bow: 15,
-  infectPotion: 14,
-  timeBomb: 13,
-  xFlower: 9,
-  freezeSpell: 11,
-};
-
 // const weights = {
-//   sword: 0,
-//   shield: 0,
-//   bow: 0,
-//   infectPotion: 0,
-//   timeBomb: 0,
-//   xFlower: 10,
-//   freezeSpell: 0,
+//   sword: 20,
+//   shield: 18,
+//   bow: 15,
+//   infectPotion: 14,
+//   timeBomb: 13,
+//   xFlower: 9,
+//   freezeSpell: 11,
 // };
+
+const weights = {
+  sword: 10,
+  shield: 10,
+  bow: 10,
+  infectPotion: 10,
+  timeBomb: 10,
+  xFlower: 10,
+  freezeSpell: 10,
+};
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
   const randomValue = Math.random() * totalWeight;
@@ -137,9 +139,11 @@ function getItem(weights) {
   return selectedElement;
 }
 
-let items;
+let items = [];
 function createItem() {
-  items = [];
+  if (items.length > 0) {
+    return;
+  }
   for (let i = 0; i < 19; i++) {
     for (let j = 0; j < 19; j++) {
       const item = _.cloneDeep(getItem(weights));
@@ -148,10 +152,11 @@ function createItem() {
   }
 }
 
-let checkArray = []
+let checkArray = [];// 判定胜利棋子数组
 
-class Piece {
-  constructor(type = '', willBe = '', canBeDestroyed = true, canBeInfected = true, liveTime = -1, growthTime = -1, x = -1, y = -1, status) {
+export class Piece {
+  constructor(type = '', willBe = '', canBeDestroyed = true, canBeInfected = true, liveTime = -1, growthTime = -1, x = -1, y = -1, status,
+    gameLog, setGameLog) {
     this.type = type;
     this.willBe = willBe;
     this.canBeDestroyed = canBeDestroyed;
@@ -265,7 +270,7 @@ class Piece {
         }
       }
     }
-    else if (this.type === '炸') {
+    else if (this.status.attachBomb) {
       this.style = 'piece-bomb';
     }
     else {
@@ -351,7 +356,7 @@ class Piece {
     else if (item instanceof FreezeSpell) {
       this.useFreezeSpell(item, board);
     }
-    item.do();
+    item.isUsed = true;
   }
 
   useFreezeSpell(item, board) {
@@ -478,6 +483,12 @@ class Piece {
       item.isUsed = true;
     }
     if (byBomb) {
+      if (this.status.frozen) {
+        this.status.frozen = false;
+        this.status.frozenTime = 0;
+        this.setSquareStyle();
+        this.setStyle();
+      }
       if (this.growthTime > 0) {
         if (this.status.frozen) {
           this.status.frozen = false;
@@ -623,7 +634,7 @@ class Piece {
       }
     }
     item.isUsed = true;
-    this.setType('炸');
+    this.status.attachBomb = true;
     this.setSquareStyle();
     this.setStyle();
   }
@@ -631,12 +642,21 @@ class Piece {
   bomb(item, board, byBomb) {
     this.destroy(item, board, null, byBomb);
     this.liveTime = -1;
+    if (this.status.attachBomb) {
+      this.status.attachBomb = false;
+    }
     this.setSquareStyle(undefined, Init_Square_Style);
     this.setStyle();
   }
 
   attachSeed(item, board) {
     this.handleSound(item);
+    if (this.status.frozen) {
+      item.isUsed = true;
+      this.status.attachSeed = true;
+      this.setStyle();
+      return;
+    }
     const r = this.x;
     const c = this.y;
     const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
@@ -662,12 +682,18 @@ class Piece {
   }
 
   grow(item) {
+    let grown = false;
     if (this.growthTime > 0) {
       this.setSquareStyle();
     }
     else if (this.growthTime === 0) {
+      grown = true;
+      if (this.status.attachSeed) {
+        this.attachSeed = false;
+      }
+      this.growthTime = -1;
       if (this.status.frozen) {
-        return;
+        return grown;
       }
       if (this.type === '') {
         this.setType(this.willBe);
@@ -675,6 +701,7 @@ class Piece {
       }
       this.setSquareStyle();
     }
+    return grown;
   }
 
   beforeUse(item) {
@@ -714,7 +741,8 @@ function deepClonePiece(piece) {
 
 function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   setGameOver, selectedItem, nextSelItem, selectedItemHistory, gameStart, setGameStart,
-  openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton, VolumeControlButton }) {
+  openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton,
+  VolumeControlButton, logAction }) {
   const [lastClick, setLastClick] = useState([null, null]);
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
@@ -734,7 +762,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     }
 
     if (gameOver) {
-      openModal("游戏已结束！");
+      openModal("游戏已结束！再来一局吧", 3000);
       return;
     }
     if (board[i][j].type !== '') {
@@ -770,7 +798,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     const nextBoard = deepCloneBoard(board);
     if (selectedItem.name === 'timeBomb') {
       if (board[i][j].liveTime > 0) {
-        openModal('不能在此放置炸弹！');
+        // openModal('不能在此放置炸弹！');
         return;
       }
       if (xIsNext) {
@@ -797,12 +825,14 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
       if (winnerInfo[0]) {
         openModal(winnerInfo[0] + '胜利！', 60000);
         setGameOver(true);
+        logAction(nextBoard[i][j], nextBoard[i][j], selectedItem, true);
         for (const arr of winnerInfo[1]) {
           const x = arr[0];
           const y = arr[1];
           nextBoard[x][y].setWinnerPiece();
         }
         playSound(Win);
+        break;
       }
     }
     checkArray = [];
@@ -982,65 +1012,65 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     const arrayToCheck = [[r, c + 1], [r, c - 1], [r + 1, c], [r - 1, c]];
     isRangeValid = arrayToCheck.some(([a, b]) => (a === i && b === j));
     if (!isRangeValid) {
-      openModal('太远了，打不到！');
+      // openModal('太远了，打不到！');
     }
     else if (board[i][j].type === '') {
       if (board[i][j].status.frozen) {
-        openModal('敲碎了冰块');
+        // openModal('敲碎了冰块');
       } else {
-        openModal('糟糕，没有击中目标！');
+        // openModal('糟糕，没有击中目标！');
 
       }
     }
     else if (board[i][j].type === board[r][c].type) {
       if (board[i][j].status.frozen) {
-        openModal('敲碎了冰块');
+        // openModal('敲碎了冰块');
       }
       else {
         isObjectValid = false;
-        openModal('不能攻击同类棋子');
+        // openModal('不能攻击同类棋子');
       }
     }
     else if (!board[i][j].canBeDestroyed) {
-      openModal('给予敌方装甲致命一击！');
+      // openModal('给予敌方装甲致命一击！');
     }
     else {
-      openModal('轻轻一击');
+      // openModal('轻轻一击');
     }
   }
   else if (item.name === 'bow') {
     const arrayToCheck = [[r, c + 1], [r, c - 1], [r + 1, c], [r - 1, c], [r - 1, c - 1], [r - 1, c + 1], [r + 1, c - 1], [r + 1, c + 1]];
     isRangeValid = arrayToCheck.some(([a, b]) => (a === i && b === j));
     if (!isRangeValid) {
-      openModal('太远了，打不到！');
+      // openModal('太远了，打不到！');
     }
     else if (board[i][j].type === '') {
       if (board[i][j].status.frozen) {
-        openModal('击碎了冰块');
+        // openModal('击碎了冰块');
       } else {
-        openModal('糟糕，箭射偏了！');
+        // openModal('糟糕，箭射偏了！');
       }
     }
     else if (board[i][j].type === board[r][c].type) {
       if (board[i][j].status.frozen) {
-        openModal('击碎了冰块');
+        // openModal('击碎了冰块');
       } else {
         isObjectValid = false;
-        openModal('不能打同类！');
+        // openModal('不能打同类！');
       }
     }
     else if (!board[i][j].canBeDestroyed) {
       if (board[i][j].status.frozen) {
-        openModal('击碎了冰块');
+        // openModal('击碎了冰块');
       } else {
         // isHitValid = false;
-        openModal('未能击穿敌方装甲！');
+        // openModal('未能击穿敌方装甲！');
         const currPiece = board[r][c];
         board[i][j].handleSound(item, board, currPiece);
       }
     }
     else {
-      openModal('轻轻一击');
+      // openModal('轻轻一击');
     }
   }
   else if (item.name === 'shield') {
@@ -1049,27 +1079,27 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     const arrayToCheck = [[r, c + 1], [r, c - 1], [r + 1, c], [r - 1, c]];
     isRangeValid = arrayToCheck.some(([a, b]) => (a === i && b === j));
     if (!isRangeValid) {
-      openModal('太远了，无法侵蚀！');
+      // openModal('太远了，无法侵蚀！');
     }
     if (board[i][j].status.frozen) {
       isObjectValid = false;
-      openModal('无法侵蚀冰块！');
+      // openModal('无法侵蚀冰块！');
     }
     else if (board[i][j].type === '') {
-      openModal('糟糕，没有侵蚀目标！');
+      // openModal('糟糕，没有侵蚀目标！');
     }
     else if (board[i][j].type === board[r][c].type) {
       isObjectValid = false;
-      openModal('不能侵蚀同类棋子');
+      // openModal('不能侵蚀同类棋子');
     }
     else if (!board[i][j].canBeDestroyed) {
       isHitValid = false;
-      openModal('目标具有护盾，不能被侵蚀！');
+      // openModal('目标具有护盾，不能被侵蚀！');
       const currPiece = board[r][c];
       board[i][j].handleSound(item, board, currPiece);
     }
     else {
-      openModal('侵蚀成功！');
+      // openModal('侵蚀成功！');
     }
   }
   else if (item.name === 'timeBomb') {
@@ -1077,10 +1107,10 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     isHitValid = true;
     if (board[i][j].type !== '') {
       isObjectValid = false;
-      openModal('此处已有棋子，不能在此放置炸弹！');
+      // openModal('此处已有棋子，不能在此放置炸弹！');
     }
     else {
-      openModal('炸弹放置成功！');
+      // openModal('炸弹放置成功！');
     }
   }
   return isRangeValid && isObjectValid && isHitValid;
@@ -1161,7 +1191,9 @@ function VolumeControlButton() {
   );
 };
 
-function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound }) {
+function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound,
+  gameLog, setGameLog }) {
+  // 生产道具
   createItem();
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
@@ -1194,6 +1226,19 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
     setSelectedItemHistory(nextItemHistory);
   };
 
+  function logAction(srcPiece, tarPiece, item, isGameOver) {
+    if (isGameOver) {
+      const actionInfo = srcPiece.type + ' 胜利！';
+      setGameLog([...gameLog, [actionInfo, srcPiece, tarPiece, selectedItem]]);
+    }
+    else {
+      item.srcPiece = srcPiece;
+      item.tarPiece = tarPiece;
+      const actionInfo = item.do();
+      setGameLog([...gameLog, [actionInfo, srcPiece, tarPiece, selectedItem]]);
+    }
+  }
+
   function handlePlay(lastClick, setLastClick, nextBoard, i, j) {
     // 重置悔棋、还原标志
     setIsUndo(false);
@@ -1203,6 +1248,7 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
       // 判断二次选中棋子合法性
       let isValid = validateLoc(selectedItem, lastClick, i, j, currentBoard, openModal, closeModal);
       if (isValid === true) {
+        logAction(nextBoard[lastClick[0]][lastClick[1]], nextBoard[i][j], selectedItem);
         doItem(selectedItem, nextBoard, i, j, lastClick);
         setIsNext(!xIsNext);
       }
@@ -1219,6 +1265,7 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
     if (_.isEqual(lastClick, [null, null])) {
       nextBoard[i][j].useItem(selectedItem, nextBoard);
       setIsNext(!xIsNext);
+      logAction(nextBoard[i][j], nextBoard[i][j], selectedItem);
     }
     if (_.isEqual(lastClick, [i, j])) {
       if (nextBoard[i][j] !== '') {
@@ -1229,22 +1276,25 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
       nextBoard[i][j].useItem(selectedItem, nextBoard);
       setIsNext(!xIsNext);
       playSound(Take_Shield);
-
+      logAction(nextBoard[i][j], nextBoard[i][j], selectedItem);
     }
     else if (selectedItem.name === 'timeBomb') {
       nextBoard[i][j].useItem(selectedItem, nextBoard);
       setIsNext(!xIsNext);
+      logAction(nextBoard[i][j], nextBoard[i][j], selectedItem);
     }
     else if (selectedItem.name === 'xFlower') {
       nextBoard[i][j].useItem(selectedItem, nextBoard);
       setIsNext(!xIsNext);
+      logAction(nextBoard[i][j], nextBoard[i][j], selectedItem);
     }
     else if (selectedItem instanceof FreezeSpell) {
       nextBoard[i][j].useItem(selectedItem, nextBoard);
       setIsNext(!xIsNext);
+      logAction(nextBoard[i][j], nextBoard[i][j], selectedItem);
     }
     else {
-      if (!selectedItem.before) {
+      if (!selectedItem.before && !selectedItem.isUsed) {
         nextBoard[i][j].beforeUse(selectedItem);
         playSound(Place_Piece);
       }
@@ -1253,6 +1303,9 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
     let statusObj = { pieceStatus: InitPieceStatus };
     let haveValid = haveValidPiece(selectedItem, lastClick, i, j, nextBoard, statusObj);
     if (!haveValid) {
+      if (selectedItem.before) {
+        logAction(nextBoard[i][j], nextBoard[i][j], selectedItem);
+      }
       selectedItem.isUsed = true;
     }
     let bombed = false;
@@ -1279,10 +1332,8 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
         }
         if (cell.growthTime >= 0) {
           grew = true;
-          cell.grow(null);
-          if (cell.growthTime === 0) {
+          if (cell.grow(null)) {
             grown = true;
-            cell.growthTime = -1;
           }
         }
       })
@@ -1298,7 +1349,7 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
       }
       else if (!haveValid) {
         if (!selectedItem.isUsed) {
-          openModal('没有有效目标，已为您自动跳过！');
+          // openModal('没有有效目标，已为您自动跳过！');
         }
         setIsNext(!xIsNext);
         selectedItem.before = false;
@@ -1399,9 +1450,9 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
   }
 
   const openModal = (info, time = 500) => {
-    // setModalOpen(true); 取消弹窗，后续改为状态
+    // return;//暂时屏蔽弹窗
+    setModalOpen(true);
     setModalInfo(info);
-    // 在打开弹窗后的3000毫秒（3秒）后，调用closeModal函数
     timeoutIdRef.current = setTimeout(() => {
       closeModal();
     }, time);
@@ -1413,6 +1464,13 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
 
   // 使用 useEffect 来清除定时器，确保在组件卸载时不会触发关闭
   useEffect(() => {
+    const timeoutId = timeoutIdRef.current;
+    return () => {
+      clearTimeout(timeoutId);
+    };
+  }, []);
+
+  useEffect(() => {
     if (isUndo || isRedo) {
       return;
     }
@@ -1420,9 +1478,6 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
     setTotalRound(round + 1);
     const tempArr = [...roundMoveArr.slice(0, round + 1), currentMove];
     setRoundMoveArr(tempArr);
-    return () => {
-      clearTimeout(timeoutIdRef.current);
-    };
   }, [xIsNext]);
 
   return (
@@ -1434,7 +1489,7 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
           gameStart={gameStart} setGameStart={setGameStart} openModal={openModal}
           playSound={playSound} UndoButton={UndoButton} RedoButton={RedoButton}
           RestartButton={RestartButton} SwitchSoundButton={SwitchSoundButton}
-          VolumeControlButton={VolumeControlButton}
+          VolumeControlButton={VolumeControlButton} logAction={logAction}
         />
       </div>
       {isModalOpen && (
