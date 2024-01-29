@@ -17,6 +17,8 @@
   --piece-black-frozen-background: linear-gradient(45deg, #432499, #105957);
 
   --item-used-status-span-color: green;
+
+  --gamelog-button-width: 70vh;
 }
 
 .App {
@@ -457,10 +459,9 @@
   padding: 5px;
   /* 内边距 */
   margin-bottom: 5px;
-  width: 70vh;
+  width: var(--gamelog-button-width);
   margin-left: 20px;
   margin-right: 20px;
-  margin-top: 0px;
 }
 
 .gamelog-modal-overlay {

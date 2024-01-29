@@ -79,6 +79,7 @@ const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/
 if (isMobile) {
   Board_Width = square_width;
   Board_Height = square_width;
+  root.style.setProperty('--gamelog-button-width', '45vh');
 } else {
   Board_Width = 18;
   Board_Height = 18;
@@ -104,25 +105,25 @@ const xFlower = new XFlower();
 const freezeSpell = new FreezeSpell();
 
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
-// const weights = {
-//   sword: 20,
-//   shield: 18,
-//   bow: 15,
-//   infectPotion: 14,
-//   timeBomb: 13,
-//   xFlower: 9,
-//   freezeSpell: 11,
-// };
-
 const weights = {
-  sword: 10,
-  shield: 10,
-  bow: 10,
-  infectPotion: 10,
-  timeBomb: 10,
-  xFlower: 10,
-  freezeSpell: 10,
+  sword: 20,
+  shield: 18,
+  bow: 15,
+  infectPotion: 14,
+  timeBomb: 13,
+  xFlower: 9,
+  freezeSpell: 11,
 };
+
+// const weights = {
+//   sword: 10,
+//   shield: 10,
+//   bow: 10,
+//   infectPotion: 10,
+//   timeBomb: 10,
+//   xFlower: 10,
+//   freezeSpell: 10,
+// };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
   const randomValue = Math.random() * totalWeight;
@@ -155,8 +156,7 @@ function createItem() {
 let checkArray = [];// 判定胜利棋子数组
 
 export class Piece {
-  constructor(type = '', willBe = '', canBeDestroyed = true, canBeInfected = true, liveTime = -1, growthTime = -1, x = -1, y = -1, status,
-    gameLog, setGameLog) {
+  constructor(type = '', willBe = '', canBeDestroyed = true, canBeInfected = true, liveTime = -1, growthTime = -1, x = -1, y = -1, status) {
     this.type = type;
     this.willBe = willBe;
     this.canBeDestroyed = canBeDestroyed;
