@@ -95,7 +95,7 @@ function GameLog({ isRestart, gameLog, setGameLog }) {
             {isModalOpen && (
                 <div className="gamelog-modal-overlay" onClick={handleCloseModalOutside}>
                     <div className="gamelog-modal">
-                        <span class="gamelog-modal-close-btn" onClick={closeModal}>X</span>
+                        <span className="gamelog-modal-close-btn" onClick={closeModal}>X</span>
                         <p>本局记录：</p>
                         <p>{allInfo}</p>
                     </div>

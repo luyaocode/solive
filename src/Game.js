@@ -234,6 +234,9 @@ export class Piece {
     if (style) {
       this.style = style;
     }
+    else if (this.status.attachBomb) {
+      this.style = 'piece-bomb';
+    }
     else if (this.type === '●') {
       if (!this.canBeDestroyed) {
         if (this.status.frozen) {
@@ -269,9 +272,6 @@ export class Piece {
           this.style = 'piece-white';
         }
       }
-    }
-    else if (this.status.attachBomb) {
-      this.style = 'piece-bomb';
     }
     else {
       this.style = 'piece-blank';
