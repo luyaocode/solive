@@ -11,8 +11,8 @@ function ChaosGomoku() {
 
     return (
         <React.StrictMode className='game-container'>
-            <Timer isRestart={isRestart} round={round} totalRound={totalRound} />
-            <Game setRestart={setRestart} round={round} setRound={setRound}
+            <Timer isRestart={isRestart} setRestart={setRestart} round={round} totalRound={totalRound} />
+            <Game isRestart={isRestart} setRestart={setRestart} round={round} setRound={setRound}
                 roundMoveArr={roundMoveArr} setRoundMoveArr={setRoundMoveArr}
                 totalRound={totalRound} setTotalRound={setTotalRound} />
         </React.StrictMode>

@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 
-function Timer({ isRestart, round, totalRound }) {
+function Timer({ isRestart, setRestart, round, totalRound }) {
     const [seconds, setSeconds] = useState(0);
     const [isActive, setIsActive] = useState(true);
     useEffect(() => {
@@ -14,6 +14,7 @@ function Timer({ isRestart, round, totalRound }) {
         }
         if (isRestart) {
             setSeconds(0);
+            setRestart(false);
         }
         return () => clearInterval(interval);
     }, [isActive, isRestart]);

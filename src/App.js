@@ -1097,7 +1097,7 @@ function VolumeControlButton() {
   );
 };
 
-function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound }) {
+function Game({ isRestart, setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound }) {
   // 外部组件
   setRestart(false);
 
@@ -1243,7 +1243,7 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
       }
     }
     else if (isRedo) {
-      if (nextRound > roundMoveArr.length) {
+      if (nextRound > roundMoveArr.length || nextRound > totalRound) {
         return;
       }
       setIsRedo(true);
@@ -1299,9 +1299,10 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
       setSelectedItem(items[Math.floor(Math.random() * items.length)]);
       setNextSelItem(items[Math.floor(Math.random() * items.length)]);
       setGameOver(false);
-      setIsNext(true);
       setRestart(true);
+      setIsNext(true);
       setRound(1);
+      setTotalRound(1);
       createItem();
     }
     return (
