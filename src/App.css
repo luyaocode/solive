@@ -2,10 +2,10 @@
   --square-size: 1.39em;
   --square-color: #885727;
   --square-bomb-color: #ff0909;
-  --square-current-color: rgb(148, 244, 178);
+  --square-current-color: rgb(230, 200, 69);
   --square-growth-black-color: #0c4204;
   --square-growth-black-opacity: 0.9;
-  --square-growth-white-color: #20f708;
+  --square-growth-white-color: #2dcd55;
   --square-growth-white-opacity: 0.9;
   --square-frozen-color: #70c8dc;
   --square-frozen-opacity: 0.8;

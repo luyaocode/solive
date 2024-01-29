@@ -87,7 +87,9 @@ if (isMobile) {
 // 状态
 const InitPieceStatus = {
   frozen: false,//冻结
-  frozenTime: 0,//冻结时常
+  frozenTime: 0,//总冻结时常
+  attachSeed: false,//是否种子
+  growthTime: 0,//生成所需时间
 }
 
 // 道具
@@ -111,13 +113,13 @@ const weights = {
 };
 
 // const weights = {
-//   sword: 10,
+//   sword: 0,
 //   shield: 0,
 //   bow: 0,
-//   infectPotion: 10,
-//   timeBomb: 10,
+//   infectPotion: 0,
+//   timeBomb: 0,
 //   xFlower: 10,
-//   freezeSpell: 10,
+//   freezeSpell: 0,
 // };
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
@@ -196,7 +198,6 @@ class Piece {
 
   setLiveTime(item) {
     this.liveTime = item.liveTime;
-    this.setSquareStyle(item);
   }
 
   setGrowthTime(item, type, growthTime) {
@@ -274,8 +275,25 @@ class Piece {
 
   setSquareStyle(item, squareStyle) {
     if (item === undefined && squareStyle === undefined) {
-      if (this.status.frozen) {
+      if (this.liveTime > 0) {
+        this.squareStyle = Square_Bomb_Style;
+      }
+      else if (this.status.frozen) {
         this.squareStyle = Square_Frozen;
+      }
+      else if (this.growthTime > 0) {
+        if (this.willBe === '●') {
+          this.squareStyle = Square_Growth_Black_Style;
+        }
+        else if (this.willBe === '○') {
+          this.squareStyle = Square_Growth_White_Style;
+        }
+      }
+      else if (this.growthTime === 0) {
+        this.squareStyle = Init_Square_Style;
+      }
+      else {
+        this.squareStyle = Init_Square_Style;
       }
       return;
     }
@@ -287,14 +305,15 @@ class Piece {
       this.squareStyle = squareStyle;
       return;
     }
-    if (this.type !== '') {
+    if (this.type !== '') { //后处理走这里
       this.squareStyle = Square_Current_Piece_Style;
+      if (!this.canBeDestroyed && item instanceof Bow) { // 攻击失败
+        this.squareStyle = Init_Square_Style;
+      }
     }
     else if (item !== null && item.isUsed) {
       this.squareStyle = Init_Square_Style;
-    }
-    if (this.growthTime > 0) {
-      if (!this.status.frozen) {
+      if (this.growthTime > 0) {
         if (this.willBe === '●') {
           this.squareStyle = Square_Growth_Black_Style;
         }
@@ -305,6 +324,16 @@ class Piece {
     }
     else if (this.liveTime > 0) {
       this.squareStyle = Square_Bomb_Style;
+    }
+    else if (this.growthTime > 0) {
+      if (!this.status.frozen) {
+        if (this.willBe === '●') {
+          this.squareStyle = Square_Growth_Black_Style;
+        }
+        else if (this.willBe === '○') {
+          this.squareStyle = Square_Growth_White_Style;
+        }
+      }
     }
   }
   useItem(item, board) {
@@ -445,43 +474,17 @@ class Piece {
     if (board === null) {
       return;
     }
-    else if (byBomb) {
-      // 炸花
-      if (this.growthTime > 0) {
-        if (this.type === '' && this.liveTime === 0) {
-          this.setSquareStyle(null);
-          if (this.status.frozen) {
-            this.status.frozen = false;
-          }
-          return;
-        }
-        else {
-          const r = this.x;
-          const c = this.y;
-          const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
-          for (const arr of arrayToCheck) {
-            const tr = arr[0];
-            const tc = arr[1];
-            if (tr >= 0 && tr < Board_Height && tc >= 0 && tc < Board_Width) {
-              if (board[tr][tc].growthTime > 0) {
-                board[tr][tc].setGrowthTime(null, '', -1);
-              }
-            }
-          }
-        }
-      }
-      this.setType('');
-      if (this.status.frozen) {
-        this.status.frozen = false;
-      }
+    if (item) {
+      item.isUsed = true;
     }
-    else {
-      // 攻击花朵
+    if (byBomb) {
       if (this.growthTime > 0) {
-        if (this.type === '') {
-          this.setSquareStyle(null);
+        if (this.status.frozen) {
+          this.status.frozen = false;
         }
-        else {
+        if (this.status.attachSeed) {
+          this.status.attachSeed = false;
+          this.status.growthTime = 0;
           const r = this.x;
           const c = this.y;
           const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
@@ -492,26 +495,62 @@ class Piece {
               if (board[tr][tc].growthTime > 0) {
                 board[tr][tc].setGrowthTime(null, '', -1);
               }
+              this.setType('');
             }
           }
-        }
-      }
-      if (this.status.frozen) {
-        this.status.frozen = false;
-      }
-      else {
-        if (this.growthTime > 0) {
-
         }
         else {
           this.setType('');
-
+        }
+      }
+      else { // 攻击普通单位
+        this.setType('');
+      }
+    }
+    else {
+      if (this.status.frozen) {
+        this.status.frozen = false;
+        this.status.frozenTime = 0;
+        this.setSquareStyle();
+        this.setStyle();
+        return;
+      }
+      // 攻击花朵
+      if (this.growthTime > 0) {
+        if (this.status.attachSeed) {
+          this.status.attachSeed = false;
+          this.status.growthTime = 0;
+          const r = this.x;
+          const c = this.y;
+          const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
+          for (const arr of arrayToCheck) {
+            const tr = arr[0];
+            const tc = arr[1];
+            if (tr >= 0 && tr < Board_Height && tc >= 0 && tc < Board_Width) {
+              if (board[tr][tc].growthTime > 0) {
+                board[tr][tc].setGrowthTime(null, '', -1);
+              }
+            }
+          }
+          this.setType('');
+        }
+        else {
+          if (this.type !== '') {
+            if (this.canBeDestroyed || item instanceof Sword) {
+              this.setType('');
+            }
+          }
+        }
+      }
+      else { //攻击普通单位
+        if (this.type !== '') {
+          if (this.canBeDestroyed || item instanceof Sword) {
+            this.setType('');
+          }
         }
       }
     }
-    if (item !== null) {
-      item.isUsed = true;
-    }
+
     this.setSquareStyle();
     this.setStyle();
   }
@@ -529,23 +568,40 @@ class Piece {
         return;
       }
     }
-    if (this.canBeInfected) {
-      this.setType(piece.type);
-    }
+    // 侵蚀花朵
     if (this.growthTime > 0) {
-      const r = this.x;
-      const c = this.y;
-      const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
-      for (const arr of arrayToCheck) {
-        const tr = arr[0];
-        const tc = arr[1];
-        if (tr >= 0 && tr < Board_Height && tc >= 0 && tc < Board_Width) {
-          if (board[tr][tc].growthTime > 0) {
-            board[tr][tc].setGrowthTime(null, this.type, -1);
+      if (this.status.attachSeed) {
+        this.status.attachSeed = false;
+        this.status.growthTime = 0;
+        const r = this.x;
+        const c = this.y;
+        const arrayToCheck = [[r, c], [r - 1, c - 1], [r + 1, c + 1], [r + 1, c - 1], [r - 1, c + 1]];
+        for (const arr of arrayToCheck) {
+          const tr = arr[0];
+          const tc = arr[1];
+          if (tr >= 0 && tr < Board_Height && tc >= 0 && tc < Board_Width) {
+            if (board[tr][tc].growthTime > 0) {
+              board[tr][tc].setGrowthTime(null, '', -1);
+            }
           }
+        }
+        if (this.canBeInfected) {
+          this.setType(piece.type);
+        }
+      }
+      else {
+        if (this.canBeInfected) {
+          this.setType(piece.type);
         }
       }
     }
+    else { //攻击普通单位
+      if (this.canBeInfected) {
+        this.setType(piece.type);
+      }
+    }
+    this.setSquareStyle();
+    this.setStyle();
     item.isUsed = true;
   }
 
@@ -563,15 +619,18 @@ class Piece {
         } else if (board[tr][tc].liveTime < item.liveTime) {
           board[tr][tc].setLiveTime(item);
         }
+        board[tr][tc].setSquareStyle();
       }
     }
     item.isUsed = true;
     this.setType('炸');
+    this.setSquareStyle();
     this.setStyle();
   }
 
   bomb(item, board, byBomb) {
     this.destroy(item, board, null, byBomb);
+    this.liveTime = -1;
     this.setSquareStyle(undefined, Init_Square_Style);
     this.setStyle();
   }
@@ -597,12 +656,14 @@ class Piece {
       }
     }
     item.isUsed = true;
+    this.status.attachSeed = true;
+    this.status.growthTime = item.growthTime;
     this.setStyle();
   }
 
   grow(item) {
     if (this.growthTime > 0) {
-      this.setSquareStyle(item, '');
+      this.setSquareStyle();
     }
     else if (this.growthTime === 0) {
       if (this.status.frozen) {
@@ -612,6 +673,7 @@ class Piece {
         this.setType(this.willBe);
         checkArray.push([this.x, this.y]);
       }
+      this.setSquareStyle();
     }
   }
 
@@ -654,11 +716,14 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   setGameOver, selectedItem, nextSelItem, selectedItemHistory, gameStart, setGameStart,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton, VolumeControlButton }) {
   const [lastClick, setLastClick] = useState([null, null]);
+
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const renderCell = (cellValue, rowIndex, colIndex) => {
+    const key = [rowIndex, colIndex];
     return (
-      <Square piece={cellValue} onSquareClick={() => handleClick(rowIndex, colIndex)} squareStyle={squareStyle}
-        playSound={playSound} />
+      <Square key={key}
+        piece={cellValue} onSquareClick={() => handleClick(rowIndex, colIndex)}
+        squareStyle={squareStyle} playSound={playSound} />
     );
   };
 
@@ -954,7 +1019,6 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
         openModal('击碎了冰块');
       } else {
         openModal('糟糕，箭射偏了！');
-
       }
     }
     else if (board[i][j].type === board[r][c].type) {
@@ -969,7 +1033,7 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
       if (board[i][j].status.frozen) {
         openModal('击碎了冰块');
       } else {
-        isHitValid = false;
+        // isHitValid = false;
         openModal('未能击穿敌方装甲！');
         const currPiece = board[r][c];
         board[i][j].handleSound(item, board, currPiece);
@@ -1097,10 +1161,7 @@ function VolumeControlButton() {
   );
 };
 
-function Game({ isRestart, setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound }) {
-  // 外部组件
-  setRestart(false);
-
+function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound }) {
   createItem();
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
@@ -1191,14 +1252,41 @@ function Game({ isRestart, setRestart, round, setRound, roundMoveArr, setRoundMo
     // 后处理事件
     let statusObj = { pieceStatus: InitPieceStatus };
     let haveValid = haveValidPiece(selectedItem, lastClick, i, j, nextBoard, statusObj);
+    if (!haveValid) {
+      selectedItem.isUsed = true;
+    }
     let bombed = false;
-    nextBoard.forEach((row) => { row.forEach((cell) => { cell.liveTime -= 1; if (cell.liveTime === 0) { bombed = true; cell.bomb(null, nextBoard, bombed); } }) })
+    nextBoard.forEach((row) => {
+      row.forEach((cell) => {
+        if (selectedItem.isUsed) {
+          cell.liveTime -= 1;
+        }
+        if (cell.liveTime === 0) {
+          bombed = true;
+          cell.bomb(null, nextBoard, bombed);
+        }
+      })
+    });
     if (bombed) {
       playSound(Bomb_Bomb);
     }
     let grew = false;
     let grown = false;
-    nextBoard.forEach((row) => { row.forEach((cell) => { cell.growthTime -= 1; if (cell.growthTime >= 0) { grew = true; cell.grow(null); if (cell.growthTime === 0) { grown = true; } } }) })
+    nextBoard.forEach((row) => {
+      row.forEach((cell) => {
+        if (selectedItem.isUsed) {
+          cell.growthTime -= 1;
+        }
+        if (cell.growthTime >= 0) {
+          grew = true;
+          cell.grow(null);
+          if (cell.growthTime === 0) {
+            grown = true;
+            cell.growthTime = -1;
+          }
+        }
+      })
+    });
     if (grown) {
       playSound(Flower_Full_Grown);
     }
@@ -1217,8 +1305,8 @@ function Game({ isRestart, setRestart, round, setRound, roundMoveArr, setRoundMo
         selectedItem.isUsed = true;
       }
     }
-    pickRandomItem();
     nextBoard[i][j].setSquareStyle(selectedItem);
+    pickRandomItem();
     const nextHistory = [...history.slice(0, currentMove + 1), nextBoard];
     setHistory(nextHistory);
     setCurrentMove(nextHistory.length - 1);
