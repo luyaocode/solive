@@ -20,6 +20,13 @@ const Square_Growth_White_Style = 'square-growth-white';
 const Square_Frozen = 'square-frozen';
 const Piece_Winner_Style = 'piece-winner';
 
+const Piece_Black_With_Sword = 'piece-black-with-sword';
+const Piece_Black_With_Bow = 'piece-black-with-bow';
+const Piece_Black_With_InfectPotion = 'piece-black-with-infectPotion';
+const Piece_White_With_Sword = 'piece-white-with-sword';
+const Piece_White_With_Bow = 'piece-white-with-bow';
+const Piece_White_With_InfectPotion = 'piece-white-with-infectPotion';
+
 // 音效
 const Win = 'win.mp3';
 const Failure = 'failure.mp3';
@@ -86,7 +93,18 @@ if (isMobile) {
 }
 
 // 状态
+const Item = {
+  NONE: 0,
+  SWORD: 1,
+  SHIELD: 2,
+  BOW: 3,
+  INFECT_POTION: 4,
+  BOMB: 5,
+  XFLOWER: 6,
+  FREEZE_SPELL: 7,
+}
 const InitPieceStatus = {
+  withItem: Item.NONE,
   frozen: false,//冻结
   frozenTime: 0,//总冻结时常
   attachSeed: false,//是否种子
@@ -105,25 +123,25 @@ const xFlower = new XFlower();
 const freezeSpell = new FreezeSpell();
 
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
-const weights = {
-  sword: 20,
-  shield: 18,
-  bow: 15,
-  infectPotion: 14,
-  timeBomb: 13,
-  xFlower: 9,
-  freezeSpell: 11,
-};
-
 // const weights = {
-//   sword: 10,
-//   shield: 10,
-//   bow: 10,
-//   infectPotion: 10,
-//   timeBomb: 10,
-//   xFlower: 10,
-//   freezeSpell: 10,
+//   sword: 20,
+//   shield: 18,
+//   bow: 15,
+//   infectPotion: 14,
+//   timeBomb: 13,
+//   xFlower: 9,
+//   freezeSpell: 11,
 // };
+
+const weights = {
+  sword: 10,
+  shield: 10,
+  bow: 10,
+  infectPotion: 10,
+  timeBomb: 10,
+  xFlower: 10,
+  freezeSpell: 10,
+};
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
   const randomValue = Math.random() * totalWeight;
@@ -251,7 +269,23 @@ export class Piece {
           this.style = 'piece-black-frozen';
         }
         else {
-          this.style = 'piece-black';
+          switch (this.status.withItem) {
+            case Item.SWORD: {
+              this.style = Piece_Black_With_Sword;
+              break;
+            }
+            case Item.BOW: {
+              this.style = Piece_Black_With_Bow;
+              break;
+            } case Item.INFECT_POTION: {
+              this.style = Piece_Black_With_InfectPotion;
+              break;
+            }
+            default: {
+              this.style = 'piece-black';
+              break;
+            }
+          }
         }
       }
     }
@@ -269,7 +303,23 @@ export class Piece {
           this.style = 'piece-white-frozen';
         }
         else {
-          this.style = 'piece-white';
+          switch (this.status.withItem) {
+            case Item.SWORD: {
+              this.style = Piece_White_With_Sword;
+              break;
+            }
+            case Item.BOW: {
+              this.style = Piece_White_With_Bow;
+              break;
+            } case Item.INFECT_POTION: {
+              this.style = Piece_White_With_InfectPotion;
+              break;
+            }
+            default: {
+              this.style = 'piece-white';
+              break;
+            }
+          }
         }
       }
     }
@@ -311,7 +361,7 @@ export class Piece {
       return;
     }
     if (this.type !== '') { //后处理走这里
-      this.squareStyle = Square_Current_Piece_Style;
+      // this.squareStyle = Square_Current_Piece_Style; 使用棋子阴影表示道具使用状态
       if (!this.canBeDestroyed && item instanceof Bow) { // 攻击失败
         this.squareStyle = Init_Square_Style;
       }
@@ -707,6 +757,16 @@ export class Piece {
   beforeUse(item) {
     if (this.type !== '') {
       item.beforeUse();
+      if (item instanceof Sword) {
+        this.status.withItem = Item.SWORD;
+      }
+      else if (item instanceof Bow) {
+        this.status.withItem = Item.BOW;
+      }
+      else if (item instanceof InfectPotion) {
+        this.status.withItem = Item.INFECT_POTION;
+      }
+      this.setStyle();
     }
   }
 }
@@ -1126,10 +1186,12 @@ function doItem(item, board, i, j, lastClick) {
     }
     case 'sword':
     case 'bow': {
+      currPiece.status.withItem = Item.NONE;
       board[i][j].destroy(item, board, currPiece);
       break;
     }
     case 'infectPotion': {
+      currPiece.status.withItem = Item.NONE;
       board[i][j].infect(item, currPiece, board);
       break;
     }
@@ -1145,6 +1207,7 @@ function doItem(item, board, i, j, lastClick) {
       break;
     }
   }
+  currPiece.setStyle();
 }
 
 function SwitchSoundButton() {
@@ -1305,6 +1368,9 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
     if (!haveValid) {
       if (selectedItem.before) {
         logAction(nextBoard[i][j], nextBoard[i][j], selectedItem);
+        // 清除棋子持有道具状态
+        nextBoard[i][j].status.withItem = Item.NONE;
+        nextBoard[i][j].setStyle();
       }
       selectedItem.isUsed = true;
     }

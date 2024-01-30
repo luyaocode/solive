@@ -2,7 +2,7 @@
   --square-size: 1.39em;
   --square-color: #885727;
   --square-bomb-color: #ff0909;
-  --square-current-color: rgb(9, 255, 0);
+  --square-current-color: #885727;
   --square-growth-black-color: #0c4204;
   --square-growth-black-opacity: 0.9;
   --square-growth-white-color: #2dcd55;
@@ -15,7 +15,27 @@
   --piece-black-frozen-opacity: 0.8;
   --piece-white-frozen-background: linear-gradient(45deg, #827fbe, #a0e1df);
   --piece-black-frozen-background: linear-gradient(45deg, #432499, #105957);
-
+  --piece-black-box-shadow: 0 0 10px 5px rgba(0, 0, 0, 0.3),
+    /* 中间 */
+    10px 0 10px 5px rgba(0, 0, 0, 0.3),
+    /* 右 */
+    -10px 0 10px 5px rgba(0, 0, 0, 0.3),
+    /* 左 */
+    0 10px 10px 5px rgba(0, 0, 0, 0.3),
+    /* 下 */
+    0 -10px 10px 5px rgba(0, 0, 0, 0.3);
+  /* 上 */
+  /* 上 */
+  --piece-white-box-shadow: 0 0 10px 5px rgba(255, 255, 255, 0.3),
+    /* 中间 */
+    10px 0 10px 5px rgba(255, 255, 255, 0.3),
+    /* 右 */
+    -10px 0 10px 5px rgba(255, 255, 255, 0.3),
+    /* 左 */
+    0 10px 10px 5px rgba(255, 255, 255, 0.3),
+    /* 下 */
+    0 -10px 10px 5px rgba(255, 255, 255, 0.3);
+  /* 上 */
   --item-used-status-span-color: green;
 
   --gamelog-button-width: 70vh;
@@ -211,6 +231,48 @@
   margin: 1px;
 }
 
+.piece-black-with-sword {
+  background-image: url(/public/picture/sword.jpg);
+  background-size: cover;
+  filter: brightness(110%) contrast(110%) saturate(120%);
+
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  display: block;
+  margin: 1px;
+  border: 3px solid black;
+  box-shadow: var(--piece-black-box-shadow);
+}
+
+.piece-black-with-bow {
+  background-image: url(/public/picture/bow.png);
+  background-size: cover;
+  filter: brightness(110%) contrast(110%) saturate(120%);
+
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  display: block;
+  margin: 1px;
+  border: 3px solid black;
+  box-shadow: var(--piece-black-box-shadow);
+}
+
+.piece-black-with-infectPotion {
+  background-image: url(/public/picture/infectPotion.png);
+  background-size: cover;
+  filter: brightness(110%) contrast(110%) saturate(120%);
+
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  display: block;
+  margin: 1px;
+  border: 3px solid black;
+  box-shadow: var(--piece-black-box-shadow);
+}
+
 .piece-black-frozen {
   width: 90%;
   height: 90%;
@@ -231,6 +293,45 @@
   border-color: gray;
   display: block;
   margin: 1px;
+}
+
+.piece-white-with-sword {
+  background-image: url(/public/picture/sword.jpg);
+  background-size: cover;
+  filter: brightness(110%) contrast(110%) saturate(120%);
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  display: block;
+  margin: 1px;
+  border: 3px solid white;
+  box-shadow: var(--piece-white-box-shadow);
+}
+
+.piece-white-with-bow {
+  background-image: url(/public/picture/bow.png);
+  background-size: cover;
+  filter: brightness(110%) contrast(110%) saturate(120%);
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  display: block;
+  margin: 1px;
+  border: 3px solid white;
+  box-shadow: var(--piece-white-box-shadow);
+}
+
+.piece-white-with-infectPotion {
+  background-image: url(/public/picture/infectPotion.png);
+  background-size: cover;
+  filter: brightness(110%) contrast(110%) saturate(120%);
+  width: 90%;
+  height: 90%;
+  border-radius: 50%;
+  display: block;
+  margin: 1px;
+  border: 3px solid white;
+  box-shadow: var(--piece-white-box-shadow);
 }
 
 .piece-white-frozen {
