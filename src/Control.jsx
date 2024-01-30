@@ -1,7 +1,7 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Button } from 'antd';
 import './Game.css';
-import { Item } from './Item.ts';
+import { Howl } from 'howler';
 
 function Timer({ isRestart, setRestart, round, totalRound }) {
     const [seconds, setSeconds] = useState(0);
@@ -144,4 +144,45 @@ function ItemInfo({ item }) {
     );
 }
 
-export { Timer, GameLog, ItemInfo };
+function MusicPlayer({ audioSrc, isRestart }) {
+    const [isPlaying, setIsPlaying] = useState(true);
+    const [description, setDescription] = useState('暂停背景音乐');
+    const [volume, setVolume] = useState(0.15);
+    audioSrc = 'audio/bgm/cruising-down-8bit-lane.mp3';
+    const soundRef = useRef(null);
+
+    const playMusic = () => {
+        if (isPlaying) {
+            soundRef.current.pause();
+            setDescription('播放背景音乐');
+            setIsPlaying(false);
+        }
+        else {
+            soundRef.current.play();
+            setDescription('暂停背景音乐');
+            setIsPlaying(true);
+        }
+    };
+
+    useEffect(() => {
+        soundRef.current = new Howl({
+            src: [audioSrc],
+            volume: volume, // 使用传入的初始音量
+        });
+
+        if (soundRef.current) {
+            soundRef.current.play();
+        }
+        return () => {
+            if (soundRef.current) {
+                soundRef.current.stop();
+                soundRef.current.unload();
+            }
+        };
+    }, [volume, isRestart]);
+    return (
+        <button className="button-normal" onClick={playMusic}>{description}</button>
+    );
+};
+
+export { Timer, GameLog, ItemInfo, MusicPlayer };

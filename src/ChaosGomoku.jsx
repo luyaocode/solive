@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import './Game.css';
-import { Timer, GameLog } from './Control.jsx'
+import { Timer, GameLog, MusicPlayer } from './Control.jsx'
 import Game from './Game.js'
 
 function ChaosGomoku() {
@@ -16,7 +16,7 @@ function ChaosGomoku() {
             <Game setRestart={setRestart} round={round} setRound={setRound}
                 roundMoveArr={roundMoveArr} setRoundMoveArr={setRoundMoveArr}
                 totalRound={totalRound} setTotalRound={setTotalRound}
-                gameLog={gameLog} setGameLog={setGameLog} />
+                gameLog={gameLog} setGameLog={setGameLog} isRestart={isRestart} />
             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog} />
         </React.StrictMode>
     );

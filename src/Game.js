@@ -1,9 +1,8 @@
 import './Game.css';
 import { useState, useEffect, useRef } from 'react';
 import { Howl } from 'howler';
-import { Button } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
-import { ItemInfo } from './Control.jsx';
+import { ItemInfo, MusicPlayer } from './Control.jsx';
 
 import {
   Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
@@ -804,7 +803,7 @@ function deepClonePiece(piece) {
 function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   setGameOver, selectedItem, nextSelItem, selectedItemHistory, gameStart, setGameStart,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton,
-  VolumeControlButton, logAction }) {
+  VolumeControlButton, logAction, isRestart = { isRestart } }) {
   const [lastClick, setLastClick] = useState([null, null]);
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
@@ -938,6 +937,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
           <RestartButton />
           <SwitchSoundButton />
           <VolumeControlButton />
+          <MusicPlayer isRestart={isRestart} />
         </div>
       </div>
       <div className="board-row">
@@ -1273,7 +1273,7 @@ function VolumeControlButton() {
 };
 
 function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound,
-  gameLog, setGameLog }) {
+  gameLog, setGameLog, isRestart }) {
   // 生产道具
   createItem();
   // 消息弹窗
@@ -1574,6 +1574,7 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
           playSound={playSound} UndoButton={UndoButton} RedoButton={RedoButton}
           RestartButton={RestartButton} SwitchSoundButton={SwitchSoundButton}
           VolumeControlButton={VolumeControlButton} logAction={logAction}
+          isRestart={isRestart}
         />
       </div>
       {isModalOpen && (
