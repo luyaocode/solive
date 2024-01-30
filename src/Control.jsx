@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { Button } from 'antd';
+import './Game.css';
+import { Item } from './Item.ts';
 
 function Timer({ isRestart, setRestart, round, totalRound }) {
     const [seconds, setSeconds] = useState(0);
@@ -96,7 +98,7 @@ function GameLog({ isRestart, gameLog, setGameLog }) {
                 <div className="gamelog-modal-overlay" onClick={handleCloseModalOutside}>
                     <div className="gamelog-modal">
                         <span className="gamelog-modal-close-btn" onClick={closeModal}>X</span>
-                        <p>本局记录：</p>
+                        <h4>本局记录：</h4>
                         <p>{allInfo}</p>
                     </div>
                 </div>
@@ -105,6 +107,41 @@ function GameLog({ isRestart, gameLog, setGameLog }) {
     );
 }
 
+function ItemInfo({ item }) {
+    const [isModalOpen, setModalOpen] = useState(false);
 
+    const itemName = item.cname;
+    const itemInfo = item.info;
+    const onButtonClick = () => {
+        setModalOpen(true);
+    }
+    const closeModal = () => {
+        setModalOpen(false);
+    }
 
-export { Timer, GameLog };
+    const handleCloseModalOutside = (e) => {
+        if (e.target.classList.contains('item-info-overlay') ||
+            e.target.classList.contains('game-board')) {
+            setModalOpen(false);
+        }
+    };
+
+    return (
+        <>
+            <button className='item-name-button' onClick={onButtonClick}>
+                {itemName}
+            </button>
+            {isModalOpen && (
+                <div className="item-info-overlay" onClick={handleCloseModalOutside}>
+                    <div className="item-info">
+                        <span className="item-info-close-btn" onClick={closeModal}>X</span>
+                        <h4>{itemName}：</h4>
+                        <p>{itemInfo}</p>
+                    </div>
+                </div>
+            )}
+        </>
+    );
+}
+
+export { Timer, GameLog, ItemInfo };

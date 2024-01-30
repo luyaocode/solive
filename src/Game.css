@@ -421,36 +421,62 @@
   display: table;
 }
 
-.item-name {
+.item-name-button {
   text-shadow: 2px 2px 4px rgba(255, 255, 255, 0.5);
   /* 设置文字阴影 */
   /* 如果浏览器支持，你也可以尝试使用 text-stroke */
-  -webkit-text-stroke: 1px rgb(111, 75, 75);
+  -webkit-text-stroke: 1px var(--item-used-status-span-color);
   /* 设置文字描边 */
-  -moz-text-stroke: 1px rgb(96, 61, 61);
-  -ms-text-stroke: 1px rgb(81, 47, 47);
-  -o-text-stroke: 1px rgb(88, 44, 36);
+  -moz-text-stroke: 1px var(--item-used-status-span-color);
+  -ms-text-stroke: 1px var(--item-used-status-span-color);
+  -o-text-stroke: 1px var(--item-used-status-span-color);
   font-size: 1em;
 }
 
-.item-used-status-span {
+/* .item-used-status-span {
   color: var(--item-used-status-span-color);
   margin-left: 6px;
-}
+} */
 
 .span-blank {
   margin-right: 20px;
 }
 
-.status {
+.piece-status {
   margin-left: 10px;
   margin-right: 10px;
   margin-bottom: 5px;
+  font-weight: bold;
+}
+
+.button-normal {
+  display: inline-block;
+  padding: 5px 10px;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  color: #2b2a2a;
+  background-color: #d6c1c1;
+  /* 按钮背景色 */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+  /* 添加轻微阴影 */
+  transition: background-color 0.3s, color 0.3s;
+  /* 添加悬停效果过渡 */
+}
+
+/* 悬停效果 */
+.button-normal:hover {
+  background-color: #45a049;
 }
 
 .button-container {
   display: flex;
   align-items: center;
+  z-index: 999;
 }
 
 .button-container>* {
@@ -603,4 +629,41 @@
 
 .gamelog-white-piece {
   color: blue;
+}
+
+/* 道具详情弹窗 */
+.item-info-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  /* 使弹窗位于最顶层 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  /* 设置一个较高的 z-index 值 */
+}
+
+.item-info {
+  background: #ada5a5;
+  padding: 20px;
+  border-radius: 8px;
+  max-width: 90%;
+  max-height: 90%;
+  text-align: left;
+  position: relative;
+  overflow-y: auto;
+  /* 添加垂直滚动条 */
+  font-weight: normal;
+}
+
+.item-info-close-btn {
+  position: absolute;
+  top: 10px;
+  right: 10px;
+  font-size: 18px;
+  cursor: pointer;
 }

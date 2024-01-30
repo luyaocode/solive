@@ -3,6 +3,7 @@ import { useState, useEffect, useRef } from 'react';
 import { Howl } from 'howler';
 import { Button } from 'antd';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
+import { ItemInfo } from './Control.jsx';
 
 import {
   Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
@@ -907,7 +908,14 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
 
   let nextPieceStatus = '下一回合行动棋子: ';
   let currentPieceStatus = '当前回合行动棋子: ';
-  let isUsedStatus = currentItem.isUsed ? '已使用' : '未使用';
+  // let isUsedStatus = currentItem.isUsed ? '已使用' : '未使用';
+  if (currentItem.isUsed) {
+    root.style.setProperty('--item-used-status-span-color', 'red');
+  }
+  else {
+    root.style.setProperty('--item-used-status-span-color', 'green');
+  }
+
   if (currentItem.isUsed) {
     root.style.setProperty('--item-used-status-span-color', 'red');
   }
@@ -919,12 +927,11 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   return (
     <>
       <div className='game-info'>
-        <div className="status">{currentPieceStatus}<span className='piece-name'>{currentPiece}</span><span className='span-blank'></span>
-          {currentItemStatus}<span className='item-name' title={currentItem.info}>{currentItem.cname}</span>
-          <span className='item-used-status-span'>{isUsedStatus}</span></div>
-        <div className="status">{nextPieceStatus}<span className='piece-name'>{nextPiece}</span><span className='span-blank'></span>
-          {nextItemStatus}<span className='item-name' title={nextSelItem.info}>{nextSelItem.cname}</span></div>
-
+        <div className="piece-status">{currentPieceStatus}<span className='piece-name'>{currentPiece}</span><span className='span-blank'></span>
+          {currentItemStatus}<ItemInfo item={currentItem} />
+        </div>
+        <div className="piece-status">{nextPieceStatus}<span className='piece-name'>{nextPiece}</span><span className='span-blank'></span>
+          {nextItemStatus}<ItemInfo item={nextSelItem} /></div>
         <div className="button-container">
           <UndoButton />
           <RedoButton />
@@ -1233,7 +1240,7 @@ function SwitchSoundButton() {
     }
   }
   return (
-    <Button onClick={onButtonClick}>{buttonStatus}</Button>
+    <button className='button-normal' onClick={onButtonClick}>{buttonStatus}</button>
   );
 }
 
@@ -1254,13 +1261,13 @@ function VolumeControlButton() {
   return (
     <div>
       <span>{VOLUME}</span>
-      <Button onClick={() => { handleVolumeChange(-VOLUME_PER_TIME) }}>
+      <button className='button-normal' onClick={() => { handleVolumeChange(-VOLUME_PER_TIME) }}>
         <MinusOutlined />
-      </Button>
+      </button>
       <span>{volume}</span>
-      <Button onClick={() => { handleVolumeChange(VOLUME_PER_TIME) }}>
+      <button className='button-normal' onClick={() => { handleVolumeChange(VOLUME_PER_TIME) }}>
         <PlusOutlined />
-      </Button>
+      </button>
     </div>
   );
 };
@@ -1492,7 +1499,7 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
     let description = "悔棋";
     const lastRound = round - 1;
     return (
-      <Button onClick={() => jumpTo(lastRound, true)}>{description}</Button>
+      <button className='button-normal' onClick={() => jumpTo(lastRound, true)}>{description}</button>
     );
   }
 
@@ -1500,7 +1507,7 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
     let description = "还原";
     const nextRound = round + 1;
     return (
-      <Button onClick={() => jumpTo(nextRound, false, true)}>{description}</Button>
+      <button className='button-normal' onClick={() => jumpTo(nextRound, false, true)}>{description}</button>
     );
   }
 
@@ -1522,7 +1529,7 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
       createItem();
     }
     return (
-      <Button onClick={onButtonClick}>{description}</Button>
+      <button className='button-normal' onClick={onButtonClick}>{description}</button>
     );
   }
 
