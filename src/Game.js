@@ -124,25 +124,25 @@ const xFlower = new XFlower();
 const freezeSpell = new FreezeSpell();
 
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
-const weights = {
-  sword: 20,
-  shield: 18,
-  bow: 15,
-  infectPotion: 14,
-  timeBomb: 13,
-  xFlower: 9,
-  freezeSpell: 11,
-};
-
 // const weights = {
-//   sword: 10,
-//   shield: 10,
-//   bow: 10,
-//   infectPotion: 10,
-//   timeBomb: 10,
-//   xFlower: 10,
-//   freezeSpell: 10,
+//   sword: 20,
+//   shield: 18,
+//   bow: 15,
+//   infectPotion: 14,
+//   timeBomb: 13,
+//   xFlower: 9,
+//   freezeSpell: 11,
 // };
+
+const weights = {
+  sword: 10,
+  shield: 10,
+  bow: 10,
+  infectPotion: 10,
+  timeBomb: 0,
+  xFlower: 0,
+  freezeSpell: 0,
+};
 function getItem(weights) {
   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
   const randomValue = Math.random() * totalWeight;
@@ -195,6 +195,7 @@ export class Piece {
   setType(type) {
     this.type = type;
     this.canBeDestroyed = true;
+    this.canBeInfected = true;
     this.setStyle();
   }
 
