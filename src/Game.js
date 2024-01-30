@@ -1611,7 +1611,8 @@ function calculateWinner(board, x, y) {
       while (i <= 4) {
         const newX = x + i * dx;
         const newY = y + i * dy;
-        if (newX >= 0 && newX < Board_Width && newY >= 0 && newY < Board_Height && board[newY][newX].type === currentType && !board[newY][newX].status.frozen) {
+        if (newX >= 0 && newX < Board_Width && newY >= 0 && newY < Board_Height && board[newY][newX].type === currentType &&
+          !board[newY][newX].status.frozen && !board[newY][newX].status.attachBomb) {
           // 判断特殊效果
           count += 1;
           coordinates.push([newY, newX]);
