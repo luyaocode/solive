@@ -28,6 +28,7 @@ const Piece_White_With_Bow = 'piece-white-with-bow';
 const Piece_White_With_InfectPotion = 'piece-white-with-infectPotion';
 
 // 音效
+const Error_Target = 'error-target.mp3';
 const Win = 'win.mp3';
 const Failure = 'failure.mp3';
 const Place_Piece = 'place-piece.mp3';
@@ -827,6 +828,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     }
     if (board[i][j].type !== '') {
       if (!selectedItem.before) {
+        playSound(Error_Target);
         return;
       }
     }
@@ -859,6 +861,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     if (selectedItem.name === 'timeBomb') {
       if (board[i][j].liveTime > 0) {
         // openModal('不能在此放置炸弹！');
+        playSound(Error_Target);
         return;
       }
       if (xIsNext) {
@@ -1072,7 +1075,8 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     const arrayToCheck = [[r, c + 1], [r, c - 1], [r + 1, c], [r - 1, c]];
     isRangeValid = arrayToCheck.some(([a, b]) => (a === i && b === j));
     if (!isRangeValid) {
-      // openModal('太远了，打不到！');
+      // openModal('目标超出攻击范围！');
+      playSound(Error_Target);
     }
     else if (board[i][j].type === '') {
       if (board[i][j].status.frozen) {
@@ -1088,6 +1092,7 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
       }
       else {
         isObjectValid = false;
+        playSound(Error_Target);
         // openModal('不能攻击同类棋子');
       }
     }
@@ -1103,6 +1108,7 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     isRangeValid = arrayToCheck.some(([a, b]) => (a === i && b === j));
     if (!isRangeValid) {
       // openModal('太远了，打不到！');
+      playSound(Error_Target);
     }
     else if (board[i][j].type === '') {
       if (board[i][j].status.frozen) {
@@ -1117,6 +1123,7 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
       } else {
         isObjectValid = false;
         // openModal('不能打同类！');
+        playSound(Error_Target);
       }
     }
     else if (!board[i][j].canBeDestroyed) {
@@ -1140,10 +1147,12 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     isRangeValid = arrayToCheck.some(([a, b]) => (a === i && b === j));
     if (!isRangeValid) {
       // openModal('太远了，无法侵蚀！');
+      playSound(Error_Target);
     }
     if (board[i][j].status.frozen) {
       isObjectValid = false;
       // openModal('无法侵蚀冰块！');
+      playSound(Error_Target);
     }
     else if (board[i][j].type === '') {
       // openModal('糟糕，没有侵蚀目标！');
@@ -1151,6 +1160,7 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     else if (board[i][j].type === board[r][c].type) {
       isObjectValid = false;
       // openModal('不能侵蚀同类棋子');
+      playSound(Error_Target);
     }
     else if (!board[i][j].canBeDestroyed) {
       isHitValid = false;
@@ -1167,7 +1177,8 @@ function validateLoc(item, lastClick, i, j, board, openModal, closeModal) {
     isHitValid = true;
     if (board[i][j].type !== '') {
       isObjectValid = false;
-      // openModal('此处已有棋子，不能在此放置炸弹！');
+      openModal('不能在棋子上放置炸弹！');
+      playSound(Error_Target);
     }
     else {
       // openModal('炸弹放置成功！');
