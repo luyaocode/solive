@@ -147,7 +147,7 @@ function ItemInfo({ item }) {
 function MusicPlayer({ audioSrc, isRestart }) {
     const [isPlaying, setIsPlaying] = useState(true);
     const [description, setDescription] = useState('暂停背景音乐');
-    const [volume, setVolume] = useState(0.15);
+    const [volume, setVolume] = useState(0.3);
     const audioSrc1 = 'audio/bgm/cruising-down-8bit-lane.mp3';
     const audioSrc2 = 'audio/bgm/after_the_rain.mp3';
     const soundRef = useRef(null);
