@@ -148,7 +148,8 @@ function MusicPlayer({ audioSrc, isRestart }) {
     const [isPlaying, setIsPlaying] = useState(true);
     const [description, setDescription] = useState('暂停背景音乐');
     const [volume, setVolume] = useState(0.15);
-    audioSrc = 'audio/bgm/cruising-down-8bit-lane.mp3';
+    const audioSrc1 = 'audio/bgm/cruising-down-8bit-lane.mp3';
+    const audioSrc2 = 'audio/bgm/after_the_rain.mp3';
     const soundRef = useRef(null);
 
     const playMusic = () => {
@@ -165,11 +166,18 @@ function MusicPlayer({ audioSrc, isRestart }) {
     };
 
     useEffect(() => {
+        let src;
+        if (Math.random() < 0.5) {
+            src = audioSrc1;
+        }
+        else {
+            src = audioSrc2;
+        }
         soundRef.current = new Howl({
-            src: [audioSrc],
-            volume: volume, // 使用传入的初始音量
+            src: [src],
+            volume: volume,
+            loop: true,
         });
-
         if (soundRef.current) {
             soundRef.current.play();
         }
