@@ -7,7 +7,6 @@ import {
     Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
     , FreezeSpell
 } from './Item.ts';
-import Modal from 'react-modal';
 
 import _ from 'lodash';
 
@@ -213,24 +212,24 @@ const timeBomb = new TimeBomb();
 const xFlower = new XFlower();
 const freezeSpell = new FreezeSpell();
 let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
-const weights = {
-    sword: 20,
-    shield: 18,
-    bow: 15,
-    infectPotion: 14,
-    timeBomb: 13,
-    xFlower: 9,
-    freezeSpell: 11,
-};
 // const weights = {
-//   sword: 10,
-//   shield: 10,
-//   bow: 0,
-//   infectPotion: 0,
-//   timeBomb: 10,
-//   xFlower: 10,
-//   freezeSpell: 0,
+//     sword: 20,
+//     shield: 18,
+//     bow: 15,
+//     infectPotion: 14,
+//     timeBomb: 13,
+//     xFlower: 9,
+//     freezeSpell: 11,
 // };
+const weights = {
+    sword: 10,
+    shield: 0,
+    bow: 0,
+    infectPotion: 0,
+    timeBomb: 10,
+    xFlower: 0,
+    freezeSpell: 0,
+};
 function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, setItemsLoaded }) {
     useEffect(() => {
         let timerId;

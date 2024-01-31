@@ -114,64 +114,6 @@ const InitPieceStatus = {
   liveTime: 0,//自爆需要时间
 }
 
-// 道具
-// const sword = new Sword();
-// const shield = new Shield();
-// const bow = new Bow();
-// const infectPotion = new InfectPotion();
-// const timeBomb = new TimeBomb();
-// const xFlower = new XFlower();
-// const freezeSpell = new FreezeSpell();
-
-// let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
-// const weights = {
-//   sword: 20,
-//   shield: 18,
-//   bow: 15,
-//   infectPotion: 14,
-//   timeBomb: 13,
-//   xFlower: 9,
-//   freezeSpell: 11,
-// };
-
-// // const weights = {
-// //   sword: 10,
-// //   shield: 10,
-// //   bow: 0,
-// //   infectPotion: 0,
-// //   timeBomb: 10,
-// //   xFlower: 10,
-// //   freezeSpell: 0,
-// // };
-// function getItem(weights) {
-//   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-//   const randomValue = Math.random() * totalWeight;
-//   let selectedElement;
-//   let cumulativeWeight = 0;
-//   for (const element of its) {
-//     cumulativeWeight += weights[element.name];
-
-//     if (randomValue <= cumulativeWeight) {
-//       selectedElement = element;
-//       break;
-//     }
-//   }
-//   return selectedElement;
-// }
-
-// let items = [];
-// function createItem() {
-//   if (items.length > 0) {
-//     return;
-//   }
-//   for (let i = 0; i < 19; i++) {
-//     for (let j = 0; j < 19; j++) {
-//       const item = _.cloneDeep(getItem(weights));
-//       items.push(item);
-//     }
-//   }
-// }
-
 let checkArray = [];// 判定胜利棋子数组
 
 export class Piece {
@@ -1616,7 +1558,7 @@ function calculateWinner(board, x, y) {
   if (x < 0 || x >= Board_Width || y < 0 || y >= Board_Height || x === undefined || y === undefined) {
     return false;
   }
-  if (board[y][x].status.frozen) {
+  if (board[y][x].status.frozen || board[y][x].status.attachBomb) {
     return false;
   }
   const directions = [
