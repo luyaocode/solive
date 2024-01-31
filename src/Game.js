@@ -105,6 +105,7 @@ const Item = {
   FREEZE_SPELL: 7,
 }
 const InitPieceStatus = {
+  bombCount: 0,
   withItem: Item.NONE,
   frozen: false,//冻结
   frozenTime: 0,//总冻结时常
@@ -164,6 +165,9 @@ export class Piece {
   }
 
   setLiveTime(item) {
+    if (this.liveTime > 0) {
+      this.status.bombCount += 1;
+    }
     this.liveTime = item.liveTime;
   }
 
@@ -634,12 +638,17 @@ export class Piece {
   }
 
   bomb(item, board, byBomb) {
+    if (this.status.bombCount === 0) {
+      this.liveTime = -1;
+    }
+    if (this.status.bombCount > 0) {
+      this.status.bombCount -= 1;
+    }
     this.destroy(item, board, null, byBomb);
-    this.liveTime = -1;
     if (this.status.attachBomb) {
       this.status.attachBomb = false;
     }
-    this.setSquareStyle(undefined, Init_Square_Style);
+    this.setSquareStyle();
     this.setStyle();
   }
 
@@ -1342,7 +1351,7 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
         if (selectedItem.isUsed) {
           cell.liveTime -= 1;
         }
-        if (cell.liveTime === 0) {
+        if (cell.liveTime === 0 || cell.status.bombCount > 0) {
           bombed = true;
           cell.bomb(null, nextBoard, bombed);
         }
