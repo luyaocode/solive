@@ -1248,12 +1248,12 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
 
   function pickRandomItem() {
     if (selectedItem.isUsed) {
-      let temp = items.filter(item => item !== selectedItem);
+      let temp = items.filter(item => item !== selectedItem && !item.isUsed);
       setItems(temp);
       // const randomIndex = Math.floor(Math.random() * items.length);
       // const randomItem = items[randomIndex];
       setSelectedItem(nextSelItem);
-      const nextRandomItem = items[Math.floor(Math.random() * items.length)];
+      const nextRandomItem = temp[Math.floor(Math.random() * items.length)];
       setNextSelItem(nextRandomItem);
     }
     const nextItemHistory = [...selectedItemHistory.slice(0, currentMove + 1), selectedItem];
