@@ -395,13 +395,13 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen }) {
             </div>
             <div className="menu-items">
                 <div className="menu-item">
-                    <img src="item1.jpg" alt="Item 1" />
+                    {/* <img src="item1.jpg" alt="Item 1" /> */}
                     <h2>单机</h2>
                     <p>模式介绍：...</p>
                     <button onClick={() => onButtonClick(GameMode.MODE_SIGNAL)}>开始游戏</button>
                 </div>
                 <div className="menu-item">
-                    <img src="item2.jpg" alt="Item 2" />
+                    {/* <img src="item2.jpg" alt="Item 2" /> */}
                     <h2>联机</h2>
                     <p>模式介绍：...</p>
                     <button onClick={() => onButtonClick(GameMode.MODE_MATCH)}>匹配模式</button>

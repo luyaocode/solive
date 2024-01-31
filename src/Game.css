@@ -930,6 +930,7 @@
 
 .menu-item {
   width: 300px;
+  margin-top: 10px;
   margin-bottom: 20px;
   margin-right: 20px;
   margin-left: 20px;
@@ -963,6 +964,7 @@
 
 .menu-item button {
   margin-top: 20px;
+  margin-left: 10px;
   margin-right: 10px;
   padding: 10px 20px;
   background-color: #007bff;
