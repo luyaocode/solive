@@ -755,8 +755,7 @@ function deepClonePiece(piece) {
 function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   setGameOver, selectedItem, nextSelItem, selectedItemHistory, gameStart, setGameStart,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton,
-  VolumeControlButton, logAction, isRestart = { isRestart } }) {
-  const [lastClick, setLastClick] = useState([null, null]);
+  VolumeControlButton, logAction, isRestart, lastClick, setLastClick }) {
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const renderCell = (cellValue, rowIndex, colIndex) => {
@@ -1245,6 +1244,8 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
   const [isUndo, setIsUndo] = useState(false);
   const [isRedo, setIsRedo] = useState(false);
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
+  const [isSkipModalOpen, setSkipModalOpen] = useState(false);
+  const [lastClick, setLastClick] = useState([null, null]);
 
   function pickRandomItem() {
     if (selectedItem.isUsed) {
@@ -1487,13 +1488,36 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
   const ExitButton = () => {
     let description = "退出";
     function onButtonClick() {
-      // setGameMode(GameMode.MODE_NONE);
-      // setRestart(true);
       setConfirmModalOpen(true);
     }
     return (
       <button className='button-normal' onClick={onButtonClick}>{description}</button>
     );
+  }
+
+  const SkipButton = () => {
+    let description = "跳过";
+    function onButtonClick() {
+      setSkipModalOpen(true);
+    }
+    return (
+      <button className='button-normal' onClick={onButtonClick}>{description}</button>
+    );
+  }
+
+  function skipRound() {
+    const r = lastClick[0];
+    const c = lastClick[1];
+    const currPiece = currentBoard[r][c];
+    logAction(currPiece, currPiece, selectedItem);
+    if (selectedItem instanceof Sword || selectedItem instanceof Bow || selectedItem instanceof InfectPotion) {
+      currPiece.status.withItem = Item.NONE;
+      currPiece.setStyle();
+      currPiece.setSquareStyle();
+    }
+    pickRandomItem();
+    setIsNext(!xIsNext);
+    setSkipModalOpen(false);
   }
 
   function exitGame() {
@@ -1534,7 +1558,10 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
 
   return (
     <div className="game">
-      <ExitButton />
+      <div className='side-button-container'>
+        <ExitButton />
+        <SkipButton />
+      </div>
       <div className="game-board">
         <Board xIsNext={xIsNext} board={currentBoard} setBoard={setBoard}
           currentMove={currentMove} onPlay={handlePlay} gameOver={gameOver}
@@ -1543,7 +1570,7 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
           playSound={playSound} UndoButton={UndoButton} RedoButton={RedoButton}
           RestartButton={RestartButton} SwitchSoundButton={SwitchSoundButton}
           VolumeControlButton={VolumeControlButton} logAction={logAction}
-          isRestart={isRestart}
+          isRestart={isRestart} lastClick={lastClick} setLastClick={setLastClick}
         />
       </div>
       {isModalOpen && (
@@ -1558,6 +1585,9 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
       )}
       {isConfirmModalOpen && (
         <ConfirmModal modalInfo='确定退出游戏吗？' onOkBtnClick={exitGame} OnCancelBtnClick={() => setConfirmModalOpen(false)} />
+      )}
+      {isSkipModalOpen && (
+        <ConfirmModal modalInfo='确定跳过本回合吗？' onOkBtnClick={skipRound} OnCancelBtnClick={() => setSkipModalOpen(false)} />
       )}
     </div>
   );
