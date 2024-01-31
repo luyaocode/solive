@@ -49,6 +49,11 @@ body {
   }
 }
 
+/* 在小屏幕上应用不同的样式 */
+@media (max-width: 400px) {
+  /* * {} */
+}
+
 h1 {
   margin-top: 0;
   font-size: 22px;

@@ -38,7 +38,7 @@ export class Sword implements Item {
       info = this.srcPiece.type + ' 使用了 ' + this.cname + '，敲碎了冰块';;
     }
     else if (this.srcPiece.type === this.tarPiece.type) {
-      info = this.srcPiece.type + ' 对自己使用了 ' + this.cname + '，但是没有效果';
+      info = this.srcPiece.type + ' 使用了 ' + this.cname + '，但是没有目标';
     }
     else if (this.tarPiece.type === '') {
       info = this.srcPiece.type + ' 对地面使用了 ' + this.cname + '，但是没有效果';
@@ -115,7 +115,7 @@ export class Bow implements Item {
       info = this.srcPiece.type + ' 使用了 ' + this.cname + '，敲碎了冰块';;
     }
     else if (this.srcPiece.type === this.tarPiece.type) {
-      info = this.srcPiece.type + ' 对自己使用了 ' + this.cname + '，但是没有效果';
+      info = this.srcPiece.type + ' 使用了 ' + this.cname + '，但是没有目标';
     }
     else if (this.tarPiece.type === '') {
       info = this.srcPiece.type + ' 对地面使用了 ' + this.cname + '，但是没有效果';
@@ -176,7 +176,7 @@ export class InfectPotion implements Potion {
       info = this.srcPiece.type + ' 被冰冻，不能使用道具';
     }
     else if (this.srcPiece.type === this.tarPiece.type) {
-      info = this.srcPiece.type + ' 对自己使用了 ' + this.cname + '，但是没有效果';
+      info = this.srcPiece.type + ' 使用了 ' + this.cname + '，但是没有目标';
     }
     else if (this.tarPiece.type === '') {
       info = this.srcPiece.type + ' 对地面使用了 ' + this.cname + '，但是没有效果';
@@ -234,7 +234,7 @@ export class XFlower implements Flower {
   info: string = '攻击范围：0；放置一颗种子，5回合之后长成一朵花；可放置于任意空白区域';
   isUsed: boolean;
   before: boolean = false;
-  growthTime: number = 5;
+  growthTime: number = 6;
   attackRange: number = 0;
   srcPiece: Piece;
   tarPiece: Piece;

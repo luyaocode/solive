@@ -1,7 +1,8 @@
-import React, { useState, useEffect } from 'react';
+import React, { useEffect, useState } from 'react';
 import './Game.css';
-import { Timer, GameLog, MusicPlayer } from './Control.jsx'
+import { Timer, GameLog, ItemManager, StartModal, Menu } from './Control.jsx'
 import Game from './Game.js'
+import { GameMode } from './ConstDefine.jsx'
 
 function ChaosGomoku() {
     const [isRestart, setRestart] = useState(false);
@@ -9,15 +10,59 @@ function ChaosGomoku() {
     const [totalRound, setTotalRound] = useState(0);
     const [roundMoveArr, setRoundMoveArr] = useState([]);
     const [gameLog, setGameLog] = useState([[' ', null, null, null]]);
+    const [items, setItems] = useState([]);
+    const [itemsLoading, setItemsLoading] = useState(true);
+    const [itemsLoaded, setItemsLoaded] = useState(false);
+    const [pageLoaded, setPageLoaded] = useState(false);
+    const [timeDelay, setTimeDelay] = useState(0);
+    const [startModalOpen, setStartModalOpen] = useState(true);
+    const [gameMode, setGameMode] = useState(0);
+    useEffect(() => {
+        let delay;
+        if (window.performance && window.performance.timeOrigin) {
+            const pageOpenTime = window.performance.now();
+            delay = 2 + (pageOpenTime > 5000 ? (pageOpenTime > 10000 ? 10 : pageOpenTime / 1000) : pageOpenTime / 1000);
+        }
+        else {
+            delay = 3 + (Math.random() - 0.5) * 2;
+        }
+        setTimeDelay(delay);
+        setPageLoaded(true);
+    }, []);
 
+    useEffect(() => {
+        if (isRestart) {
+            setRound(0);
+            setTotalRound(0);
+            setItems([]);
+            setItemsLoaded(false);
+        }
+    }, [isRestart]);
     return (
         <React.StrictMode className='game-container'>
-            <Timer isRestart={isRestart} setRestart={setRestart} round={round} totalRound={totalRound} />
-            <Game setRestart={setRestart} round={round} setRound={setRound}
-                roundMoveArr={roundMoveArr} setRoundMoveArr={setRoundMoveArr}
-                totalRound={totalRound} setTotalRound={setTotalRound}
-                gameLog={gameLog} setGameLog={setGameLog} isRestart={isRestart} />
-            <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog} />
+            {gameMode === GameMode.MODE_NONE && (
+                <>
+                    <Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen} />
+                </>)
+            }
+            {gameMode !== GameMode.MODE_NONE && (
+                <>
+                    <ItemManager pageLoaded={pageLoaded} isRestart={isRestart} timeDelay={timeDelay} items={items} setItems={setItems} setItemsLoaded={setItemsLoaded} />
+                    {itemsLoading && itemsLoaded ? (
+                        <>
+                            <Timer isRestart={isRestart} setRestart={setRestart} round={round} totalRound={totalRound} />
+                            <Game items={items} setItems={setItems} setRestart={setRestart} round={round} setRound={setRound}
+                                roundMoveArr={roundMoveArr} setRoundMoveArr={setRoundMoveArr}
+                                totalRound={totalRound} setTotalRound={setTotalRound}
+                                gameLog={gameLog} setGameLog={setGameLog} isRestart={isRestart} setGameMode={setGameMode} GameMode={GameMode} />
+                            <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog} />
+                        </>
+                    ) : (
+                        startModalOpen &&
+                        <StartModal setStartModalOpen={setStartModalOpen} setItemsLoading={setItemsLoading} setGameMode={setGameMode} />
+                    )}
+                </>)}
+
         </React.StrictMode>
     );
 }

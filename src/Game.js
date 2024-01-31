@@ -2,7 +2,7 @@ import './Game.css';
 import { useState, useEffect, useRef } from 'react';
 import { Howl } from 'howler';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
-import { ItemInfo, MusicPlayer } from './Control.jsx';
+import { ItemInfo, MusicPlayer, ConfirmModal } from './Control.jsx';
 
 import {
   Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
@@ -115,62 +115,62 @@ const InitPieceStatus = {
 }
 
 // 道具
-const sword = new Sword();
-const shield = new Shield();
-const bow = new Bow();
-const infectPotion = new InfectPotion();
-const timeBomb = new TimeBomb();
-const xFlower = new XFlower();
-const freezeSpell = new FreezeSpell();
+// const sword = new Sword();
+// const shield = new Shield();
+// const bow = new Bow();
+// const infectPotion = new InfectPotion();
+// const timeBomb = new TimeBomb();
+// const xFlower = new XFlower();
+// const freezeSpell = new FreezeSpell();
 
-let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
-const weights = {
-  sword: 20,
-  shield: 18,
-  bow: 15,
-  infectPotion: 14,
-  timeBomb: 13,
-  xFlower: 9,
-  freezeSpell: 11,
-};
-
+// let its = [sword, shield, bow, infectPotion, timeBomb, xFlower, freezeSpell];
 // const weights = {
-//   sword: 10,
-//   shield: 10,
-//   bow: 10,
-//   infectPotion: 10,
-//   timeBomb: 0,
-//   xFlower: 0,
-//   freezeSpell: 0,
+//   sword: 20,
+//   shield: 18,
+//   bow: 15,
+//   infectPotion: 14,
+//   timeBomb: 13,
+//   xFlower: 9,
+//   freezeSpell: 11,
 // };
-function getItem(weights) {
-  const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-  const randomValue = Math.random() * totalWeight;
-  let selectedElement;
-  let cumulativeWeight = 0;
-  for (const element of its) {
-    cumulativeWeight += weights[element.name];
 
-    if (randomValue <= cumulativeWeight) {
-      selectedElement = element;
-      break;
-    }
-  }
-  return selectedElement;
-}
+// // const weights = {
+// //   sword: 10,
+// //   shield: 10,
+// //   bow: 0,
+// //   infectPotion: 0,
+// //   timeBomb: 10,
+// //   xFlower: 10,
+// //   freezeSpell: 0,
+// // };
+// function getItem(weights) {
+//   const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
+//   const randomValue = Math.random() * totalWeight;
+//   let selectedElement;
+//   let cumulativeWeight = 0;
+//   for (const element of its) {
+//     cumulativeWeight += weights[element.name];
 
-let items = [];
-function createItem() {
-  if (items.length > 0) {
-    return;
-  }
-  for (let i = 0; i < 19; i++) {
-    for (let j = 0; j < 19; j++) {
-      const item = _.cloneDeep(getItem(weights));
-      items.push(item);
-    }
-  }
-}
+//     if (randomValue <= cumulativeWeight) {
+//       selectedElement = element;
+//       break;
+//     }
+//   }
+//   return selectedElement;
+// }
+
+// let items = [];
+// function createItem() {
+//   if (items.length > 0) {
+//     return;
+//   }
+//   for (let i = 0; i < 19; i++) {
+//     for (let j = 0; j < 19; j++) {
+//       const item = _.cloneDeep(getItem(weights));
+//       items.push(item);
+//     }
+//   }
+// }
 
 let checkArray = [];// 判定胜利棋子数组
 
@@ -1273,10 +1273,9 @@ function VolumeControlButton() {
   );
 };
 
-function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound,
-  gameLog, setGameLog, isRestart }) {
-  // 生产道具
-  createItem();
+function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound,
+  gameLog, setGameLog, isRestart, setGameMode, GameMode }) {
+
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalInfo, setModalInfo] = useState('');
@@ -1294,10 +1293,12 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
   const [xIsNext, setIsNext] = useState(true);
   const [isUndo, setIsUndo] = useState(false);
   const [isRedo, setIsRedo] = useState(false);
+  const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
 
   function pickRandomItem() {
     if (selectedItem.isUsed) {
-      items = items.filter(item => item !== selectedItem);
+      let temp = items.filter(item => item !== selectedItem);
+      setItems(temp);
       // const randomIndex = Math.floor(Math.random() * items.length);
       // const randomItem = items[randomIndex];
       setSelectedItem(nextSelItem);
@@ -1526,12 +1527,27 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
       setRestart(true);
       setIsNext(true);
       setRound(1);
-      setTotalRound(1);
-      createItem();
     }
     return (
       <button className='button-normal' onClick={onButtonClick}>{description}</button>
     );
+  }
+
+  const ExitButton = () => {
+    let description = "退出";
+    function onButtonClick() {
+      // setGameMode(GameMode.MODE_NONE);
+      // setRestart(true);
+      setConfirmModalOpen(true);
+    }
+    return (
+      <button className='button-normal' onClick={onButtonClick}>{description}</button>
+    );
+  }
+
+  function exitGame() {
+    setGameMode(GameMode.MODE_NONE);
+    setRestart(true);
   }
 
   const openModal = (info, time = 500) => {
@@ -1567,6 +1583,7 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
 
   return (
     <div className="game">
+      <ExitButton />
       <div className="game-board">
         <Board xIsNext={xIsNext} board={currentBoard} setBoard={setBoard}
           currentMove={currentMove} onPlay={handlePlay} gameOver={gameOver}
@@ -1587,6 +1604,9 @@ function Game({ setRestart, round, setRound, roundMoveArr, setRoundMoveArr, tota
             <p>{modalInfo}</p>
           </div>
         </div>
+      )}
+      {isConfirmModalOpen && (
+        <ConfirmModal modalInfo='确定退出游戏吗？' onOkBtnClick={exitGame} OnCancelBtnClick={() => setConfirmModalOpen(false)} />
       )}
     </div>
   );

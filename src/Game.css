@@ -485,6 +485,20 @@
   /* 设置按钮之间的间距 */
 }
 
+.button-confirm-container {
+  display: flex;
+  justify-content: flex-end;
+  /* 将项目在主轴上居右对齐 */
+  z-index: 999;
+}
+
+.button-confirm-container>* {
+  margin-top: 10px;
+  margin-left: 10px;
+  margin-right: 10px;
+  /* 设置按钮之间的间距 */
+}
+
 .game {
   display: flex;
   justify-content: center;
@@ -668,5 +682,335 @@
   cursor: pointer;
 }
 
-/* 音乐播放器 */
-/* FloatingMusicPlayer.css */
+/* 开局弹窗 */
+.loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  flex-direction: column;
+  animation: fadeIn 0.5s ease;
+}
+
+.loading-spinner {
+  border: 4px solid rgba(255, 255, 255, 0.3);
+  border-radius: 50%;
+  border-top: 4px solid #ffffff;
+  width: 40px;
+  height: 40px;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% {
+    transform: rotate(0deg);
+  }
+
+  100% {
+    transform: rotate(360deg);
+  }
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+  }
+
+  to {
+    opacity: 1;
+  }
+}
+
+.cancel-button {
+  background-color: #ff5252;
+  color: #fff;
+  border: none;
+  padding: 10px 20px;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 16px;
+  margin-top: 10px;
+  transition: background-color 0.3s ease;
+}
+
+.cancel-button:hover {
+  background-color: #ff1744;
+}
+
+.loading-text {
+  font-size: 20px;
+  color: #fff;
+  margin-bottom: 20px;
+  animation: bounce 0.5s infinite alternate;
+}
+
+@keyframes bounce {
+  0% {
+    transform: translateY(0);
+  }
+
+  100% {
+    transform: translateY(-5px);
+  }
+}
+
+/* 菜单 */
+.menu-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 20px;
+  text-align: center;
+}
+
+.menu-header {
+  margin-top: 60px;
+  margin-bottom: 40px;
+}
+
+/* 炫酷标题1 */
+.menu-header h1 {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+  /* 设置 Sans-serif 字体族 */
+  font-size: 60px;
+  color: #ffffff;
+  text-shadow:
+    0 0 5px #00ffff,
+    0 0 10px #00ffff,
+    0 0 20px #00ffff,
+    0 0 40px #00ffff,
+    0 0 80px #00ffff,
+    0 0 160px #00ffff,
+    0 0 320px #00ffff,
+    0 0 640px #00ffff;
+  animation: swirl 3s infinite linear;
+}
+
+@keyframes swirl {
+  from {
+    transform: rotate(0deg);
+  }
+
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+
+/* 为每个字母应用不同的动画 */
+.menu-header h1 span {
+  display: inline-block;
+}
+
+/* 定义随机抖动动画 */
+@keyframes shake-x {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(-5px);
+  }
+}
+
+@keyframes shake-y {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* 应用动画到每个字母 */
+.menu-header h1 span[class^="letter-"] {
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.menu-header h1 span[class^="letter-"].letter-0 {
+  animation-name: shake-x;
+}
+
+.menu-header h1 span[class^="letter-"].letter-1 {
+  animation-name: shake-y;
+}
+
+.menu-header h1 span[class^="letter-"].letter-2 {
+  animation-name: shake-x;
+}
+
+.menu-header h1 span[class^="letter-"].letter-3 {
+  animation-name: shake-y;
+}
+
+.menu-header h1 span[class^="letter-"].letter-4 {
+  animation-name: shake-x;
+}
+
+/* 炫酷标题2 */
+.menu-header2 h1 {
+  font-family: 'Arial', sans-serif;
+  font-size: 48px;
+  color: #ffffff;
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+}
+
+/* 为每个字母应用不同的动画 */
+.menu-header2 h1 span {
+  display: inline-block;
+}
+
+/* 定义随机抖动动画 */
+@keyframes shake-x {
+
+  0%,
+  100% {
+    transform: translateX(0);
+  }
+
+  50% {
+    transform: translateX(-5px);
+  }
+}
+
+@keyframes shake-y {
+
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+
+  50% {
+    transform: translateY(-5px);
+  }
+}
+
+/* 应用动画到每个字母 */
+.menu-header2 h1 span[class^="letter-"] {
+  animation-timing-function: ease-in-out;
+  animation-iteration-count: infinite;
+}
+
+.menu-header2 h1 span[class^="letter-"].letter-0 {
+  animation-name: shake-x;
+}
+
+.menu-header2 h1 span[class^="letter-"].letter-1 {
+  animation-name: shake-y;
+}
+
+.menu-header2 h1 span[class^="letter-"].letter-2 {
+  animation-name: shake-x;
+}
+
+.menu-header2 h1 span[class^="letter-"].letter-3 {
+  animation-name: shake-y;
+}
+
+.menu-header2 h1 span[class^="letter-"].letter-4 {
+  animation-name: shake-x;
+}
+
+
+.menu-items {
+  display: flex;
+  justify-content: space-around;
+  flex-wrap: wrap;
+}
+
+.menu-item {
+  width: 300px;
+  margin-bottom: 20px;
+  margin-right: 20px;
+  margin-left: 20px;
+
+  padding: 20px;
+  background-color: #f0f0f0;
+  border-radius: 10px;
+  box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+  transition: transform 0.3s ease;
+}
+
+.menu-item:hover {
+  transform: scale(1.05);
+}
+
+
+.menu-item img {
+  width: 100%;
+  border-radius: 10px;
+}
+
+.menu-item h2 {
+  margin-top: 10px;
+  font-size: 24px;
+  color: #333;
+}
+
+.menu-item p {
+  color: #666;
+}
+
+.menu-item button {
+  margin-top: 20px;
+  margin-right: 10px;
+  padding: 10px 20px;
+  background-color: #007bff;
+  color: #fff;
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+}
+
+.menu-item button:hover {
+  background-color: #0056b3;
+}
+
+/* 菜单footer */
+.menu-footer {
+  border-top: 1px solid #ccc;
+  background-color: #ffffff, transparent;
+  color: #5d5656;
+  padding: 20px;
+  text-align: center;
+  /* 使用百分比宽度 */
+}
+
+.github-info {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.github-avatar {
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  margin-right: 10px;
+}
+
+.github-info p {
+  margin-bottom: 5px;
+}
+
+.github-info a {
+  color: #5c1a1a;
+  text-decoration: none;
+  transition: color 0.3s ease;
+  font-weight: bold;
+}
+
+.github-info a:hover {
+  color: #007bff;
+}
