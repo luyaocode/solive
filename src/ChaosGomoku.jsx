@@ -123,7 +123,8 @@ function ChaosGomoku() {
                                 socket={socket} pieceType={pieceType} lastStep={lastStep} seeds={seeds}
                                 deviceType={deviceType} roomDeviceType={roomDeviceType}
                             />
-                            <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog} />
+                            <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
+                                roomId={roomId} nickName={nickName} />
                         </>
                     ) : (
                         startModalOpen &&

@@ -45,14 +45,12 @@ function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
         <div className="timer">
             <span>开局时间: {hour}:{minute}:{second}</span><span className='span-blank'></span>
             <span>当前回合: {round}/{totalRound}</span><span className='span-blank'></span>
-            <span>房间号: {roomId}</span><span className='span-blank'></span>
-            <span>昵称: {nickName}</span>
         </div>
 
     );
 }
 
-function GameLog({ isRestart, gameLog, setGameLog }) {
+function GameLog({ isRestart, gameLog, setGameLog, roomId, nickName }) {
     const [isActive, setIsActive] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
 
@@ -103,6 +101,8 @@ function GameLog({ isRestart, gameLog, setGameLog }) {
     return (
         <>
             <Button className='gamelog-button' onClick={showAll}>{gameLog[gameLog.length - 1][0]}</Button>
+            <span>房间号: {roomId}</span><span className='span-blank'></span>
+            <span>昵称: {nickName}</span>
             {isModalOpen && (
                 <div className="gamelog-modal-overlay" onClick={handleCloseModalOutside}>
                     <div className="gamelog-modal">
