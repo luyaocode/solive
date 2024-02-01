@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button } from 'antd';
+import { Button, Input, Form, Space } from 'antd';
 import './Game.css';
 import { GameMode } from './ConstDefine.jsx'
 import { Howl } from 'howler';
@@ -9,8 +9,9 @@ import {
 } from './Item.ts';
 
 import _ from 'lodash';
+import { IeCircleFilled } from '@ant-design/icons';
 
-function Timer({ isRestart, setRestart, round, totalRound }) {
+function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
     const [seconds, setSeconds] = useState(0);
     const [isActive, setIsActive] = useState(true);
     useEffect(() => {
@@ -44,7 +45,9 @@ function Timer({ isRestart, setRestart, round, totalRound }) {
     return (
         <div className="timer">
             <span>开局时间: {hour}:{minute}:{second}</span><span className='span-blank'></span>
-            <span>当前回合: {round}/{totalRound}</span>
+            <span>当前回合: {round}/{totalRound}</span><span className='span-blank'></span>
+            <span>房间号: {roomId}</span><span className='span-blank'></span>
+            <span>昵称: {nickName}</span>
         </div>
 
     );
@@ -117,8 +120,6 @@ function GameLog({ isRestart, gameLog, setGameLog }) {
 function ItemInfo({ item }) {
     const [isModalOpen, setModalOpen] = useState(false);
 
-    const itemName = item.cname;
-    const itemInfo = item.info;
     const onButtonClick = () => {
         setModalOpen(true);
     }
@@ -133,17 +134,24 @@ function ItemInfo({ item }) {
         }
     };
 
+    let name, cname, info;
+    if (item) {
+        name = item.name;
+        cname = item.cname;
+        info = item.info;
+    }
+
     return (
         <>
             <button className='item-name-button' onClick={onButtonClick}>
-                {itemName}
+                {cname}
             </button>
             {isModalOpen && (
                 <div className="item-info-overlay" onClick={handleCloseModalOutside}>
                     <div className="item-info">
                         <span className="item-info-close-btn" onClick={closeModal}>X</span>
-                        <h4>{itemName}：</h4>
-                        <p>{itemInfo}</p>
+                        <h4>{name}：</h4>
+                        <p>{info}</p>
                     </div>
                 </div>
             )}
@@ -201,8 +209,8 @@ function MusicPlayer({ audioSrc, isRestart }) {
 };
 
 
-const ITEM_INIT_SIZE = 18 * 18;
-const ITEM_MIN_SIZE = 100;
+const ITEM_INIT_SIZE = 200;
+const ITEM_MIN_SIZE = 1;
 const ITEM_LOAD_PER_TIME = 100;
 const sword = new Sword();
 const shield = new Shield();
@@ -226,12 +234,16 @@ const weights = {
 //     shield: 0,
 //     bow: 0,
 //     infectPotion: 0,
-//     timeBomb: 10,
+//     timeBomb: 0,
 //     xFlower: 0,
 //     freezeSpell: 0,
 // };
-function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, setItemsLoaded }) {
+function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, setItemsLoaded,
+    seeds, gameMode }) {
     useEffect(() => {
+        if (gameMode === GameMode.MODE_ROOM || gameMode === GameMode.MODE_MATCH) {
+            return;
+        }
         let timerId;
         if (pageLoaded) {
             timerId = setTimeout(() => {
@@ -245,9 +257,23 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, setIte
         };
     }, [isRestart, pageLoaded]);
 
-    function getItem() {
+    useEffect(() => {
+        if (seeds.length > 0) {
+            createInitItems();
+            setItemsLoaded(true);
+        }
+    }, [seeds]);
+
+    function getItem(seed) {
         const totalWeight = Object.values(weights).reduce((sum, weight) => sum + weight, 0);
-        const randomValue = Math.random() * totalWeight;
+        // let random;
+        // if (gameMode === GameMode.MODE_ROOM || gameMode === GameMode.MODE_MATCH) {
+        //     random = seed;
+        // }
+        // else {
+        //     random = Math.random();
+        // }
+        const randomValue = seed * totalWeight;
         let selectedElement;
         let cumulativeWeight = 0;
         for (const element of its) {
@@ -263,27 +289,33 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, setIte
     function createInitItems() {
         let temp = [];
         for (let i = 0; i < ITEM_INIT_SIZE; i++) {
-            const item = _.cloneDeep(getItem());
+            const seed = seeds[i];
+            const item = _.cloneDeep(getItem(seed));
             temp.push(item);
         }
+        // for (let i = 0; i < temp.length; i++) {
+        //     let item = temp[i];
+        //     console.log(i + '：' + item.name);
+        // }
         setItems(temp);
     }
 
     function loadMoreItems() {
         let temp = [];
         for (let i = 0; i < ITEM_LOAD_PER_TIME; i++) {
-            const item = _.cloneDeep(getItem());
+            const seed = seeds[i];
+            const item = _.cloneDeep(getItem(seed));
             temp.push(item);
         }
         setItems(prevItems => [...prevItems, temp]);
     };
 
-    useEffect(() => {
-        if (items.length < ITEM_MIN_SIZE) {
-            loadMoreItems();
-        }
-    }, [items]);
-    return null;
+    // useEffect(() => {
+    //     if (items.length < ITEM_MIN_SIZE) {
+    //         // loadMoreItems();
+    //     }
+    // }, [items]);
+    // return null;
 }
 
 function StartModal({ setStartModalOpen, setItemsLoading, setGameMode }) {
@@ -379,14 +411,56 @@ function FancyTitle2({ text }) {
     );
 }
 
-function Menu({ setGameMode, setItemsLoading, setStartModalOpen }) {
+function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
+    socket, setNickName, setRoomId, setSeeds }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
-    function onButtonClick(mode) {
-        setGameMode(mode);
-        setItemsLoading(true);
-        setStartModalOpen(true);
+    const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
+
+    function generateSeeds() {
+        let seeds = [];
+        for (let i = 0; i < 20; i++) {
+            for (let j = 0; j < 20; j++) {
+                let randomValue;
+                do { randomValue = Math.floor(Math.random() * 100) / 100; }
+                while (randomValue == 1);
+                seeds.push(randomValue);
+            }
+        }
+        return seeds;
     }
+
+    function onButtonClick(mode) {
+        if (mode === GameMode.MODE_ROOM) {
+            setEnterRoomModalOpen(true);
+        }
+        else if (mode === GameMode.MODE_SIGNAL) {
+            const seeds = generateSeeds();
+            setSeeds(seeds);
+            setStartModalOpen(true);
+            setItemsLoading(true);
+            setGameMode(mode);
+        }
+        else {
+            setStartModalOpen(true);
+            setGameMode(mode);
+            setItemsLoading(true);
+        }
+    }
+
+    function enterRoom(roomId, nickName) {
+        sendMessage(roomId, nickName);
+        setItemsLoading(true);
+        setGameMode(GameMode.MODE_ROOM);
+    }
+
+    function sendMessage(roomId, nickName) {
+        // 向服务器发送加入房间的请求，附带房间 ID 和昵称
+        socket.emit('joinRoom', { roomId, nickName });
+        setNickName(nickName);
+        setRoomId(roomId);
+    }
+
     return (
         <div className="menu-container">
             <div>
@@ -409,6 +483,9 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen }) {
                 </div>
             </div>
             <Footer />
+            {enterRoomModalOpen && <EnterRoomModal modalInfo='请输入信息'
+                onOkBtnClick={enterRoom}
+                OnCancelBtnClick={() => setEnterRoomModalOpen(false)} />}
         </div>
     );
 }
@@ -429,6 +506,60 @@ function ConfirmModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
                     <Button onClick={OnCancelBtnClick}>取消</Button>
                 </div>
 
+            </div>
+        </div>
+    );
+}
+
+function EnterRoomModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
+    function closeModal() {
+        OnCancelBtnClick();
+    }
+
+    function onFinish(values) {
+        const { roomId, nickName } = values;
+        onOkBtnClick(roomId, nickName);
+    }
+    return (
+        <div className="modal-overlay">
+            <div className="modal">
+                <span className="close-button" onClick={closeModal}>
+                    &times;
+                </span>
+                <p>{modalInfo}</p>
+                <Form
+                    name="basic"
+                    onFinish={onFinish}
+                    labelCol={{ span: 6 }}
+                    wrapperCol={{ span: 18 }}
+                >
+                    <Form.Item
+                        label="房间号"
+                        name="roomId"
+                        rules={[{ required: true, message: '请输入房间号!' }]}
+                    >
+                        <Input placeholder="请输入房间号" />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="昵称"
+                        name="nickName"
+                        rules={[{ required: true, message: '请输入昵称!' }]}
+                    >
+                        <Input placeholder="请输入昵称" />
+                    </Form.Item>
+
+                    <Form.Item wrapperCol={{ span: 24 }} style={{ textAlign: 'right' }}>
+                        <Space size={10}>
+                            <Button type="primary" htmlType="submit">
+                                确定
+                            </Button>
+                            <Button type="primary" onClick={closeModal}>
+                                取消
+                            </Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
             </div>
         </div>
     );

@@ -8,6 +8,7 @@ import {
   Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
   , FreezeSpell
 } from './Item.ts'
+import { GameMode, Piece_Type_Black, Piece_Type_White } from './ConstDefine.jsx';
 const _ = require('lodash');
 const root = document.documentElement;
 
@@ -755,7 +756,8 @@ function deepClonePiece(piece) {
 function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   setGameOver, selectedItem, nextSelItem, selectedItemHistory, gameStart, setGameStart,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton,
-  VolumeControlButton, logAction, isRestart, lastClick, setLastClick }) {
+  VolumeControlButton, logAction, isRestart, lastClick, setLastClick,
+  socket, pieceType, lastStep, gameMode }) {
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const renderCell = (cellValue, rowIndex, colIndex) => {
@@ -767,7 +769,20 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     );
   };
 
-  function handleClick(i, j) {
+  function handleClick(i, j, isEnemyTurn) {
+    if (gameMode !== GameMode.MODE_SIGNAL) {
+      if (isEnemyTurn) {
+
+      }
+      else {
+        if ((pieceType === Piece_Type_Black && !xIsNext) ||
+          pieceType === Piece_Type_White && xIsNext) {
+          playSound(Error_Target);
+          return;
+        }
+      }
+    }
+
     // 预处理
     if (gameStart) {
       setGameStart(false);
@@ -850,7 +865,20 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
       }
     }
     checkArray = [];
+
+    // 发送消息
+    if (!isEnemyTurn) {
+      socket.emit('step', { i, j });
+    }
   }
+
+  useEffect(() => {
+    if (lastStep.length === 0) {
+      return;
+    }
+    handleClick(lastStep[0], lastStep[1], true);
+  }, [lastStep]);
+
   let currentPiece = xIsNext ? '●' : '○';
   let nextPiece = xIsNext ? '○' : '●';
   // let currentItem = selectedItemHistory[currentMove];
@@ -859,26 +887,26 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   let nextPieceStatus = '下一回合行动棋子: ';
   let currentPieceStatus = '当前回合行动棋子: ';
   // let isUsedStatus = currentItem.isUsed ? '已使用' : '未使用';
-  if (currentItem.isUsed) {
-    root.style.setProperty('--item-used-status-span-color', 'red');
-  }
-  else {
-    root.style.setProperty('--item-used-status-span-color', 'green');
-  }
+  // if (currentItem.isUsed) {
+  //   root.style.setProperty('--item-used-status-span-color', 'red');
+  // }
+  // else {
+  //   root.style.setProperty('--item-used-status-span-color', 'green');
+  // }
 
-  if (currentItem.isUsed) {
-    root.style.setProperty('--item-used-status-span-color', 'red');
-  }
-  else {
-    root.style.setProperty('--item-used-status-span-color', 'green');
-  }
+  // if (currentItem.isUsed) {
+  //   root.style.setProperty('--item-used-status-span-color', 'red');
+  // }
+  // else {
+  //   root.style.setProperty('--item-used-status-span-color', 'green');
+  // }
   let currentItemStatus = '当前道具: ';
   let nextItemStatus = '下个道具: ';
   return (
     <>
       <div className='game-info'>
         <div className="piece-status">{currentPieceStatus}<span className='piece-name'>{currentPiece}</span><span className='span-blank'></span>
-          {currentItemStatus}<ItemInfo item={currentItem} />
+          {currentItemStatus}<ItemInfo item={selectedItem} />
         </div>
         <div className="piece-status">{nextPieceStatus}<span className='piece-name'>{nextPiece}</span><span className='span-blank'></span>
           {nextItemStatus}<ItemInfo item={nextSelItem} /></div>
@@ -1224,7 +1252,8 @@ function VolumeControlButton() {
 };
 
 function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound,
-  gameLog, setGameLog, isRestart, setGameMode, GameMode }) {
+  gameLog, setGameLog, isRestart, gameMode, setGameMode, GameMode,
+  socket, pieceType, lastStep, seeds }) {
 
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
@@ -1237,8 +1266,16 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
   const [currentMove, setCurrentMove] = useState(0);
   const currentBoard = history[currentMove];
   const [gameOver, setGameOver] = useState(false);
-  const [selectedItem, setSelectedItem] = useState(items[Math.floor(Math.random() * items.length)]);
-  const [nextSelItem, setNextSelItem] = useState(items[Math.floor(Math.random() * items.length)]);
+  let random1, random2;
+  if (gameMode === GameMode.MODE_ROOM || gameMode === GameMode.MODE_MATCH) {
+    random1 = seeds[0];
+    random2 = seeds[1];
+  } else {
+    random1 = Math.random();
+    random2 = Math.random();
+  }
+  const [selectedItem, setSelectedItem] = useState(items[Math.floor(random1 * items.length)]);
+  const [nextSelItem, setNextSelItem] = useState(items[Math.floor(random2 * items.length)]);
   const [selectedItemHistory, setSelectedItemHistory] = useState([selectedItem]);
   const [xIsNext, setIsNext] = useState(true);
   const [isUndo, setIsUndo] = useState(false);
@@ -1249,12 +1286,21 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
 
   function pickRandomItem() {
     if (selectedItem.isUsed) {
-      let temp = items.filter(item => item !== selectedItem && !item.isUsed);
+      const temp = items.filter(item => item !== selectedItem && !item.isUsed && item !== undefined);
       setItems(temp);
       // const randomIndex = Math.floor(Math.random() * items.length);
       // const randomItem = items[randomIndex];
       setSelectedItem(nextSelItem);
-      const nextRandomItem = temp[Math.floor(Math.random() * items.length)];
+      let random;
+      if (gameMode === GameMode.MODE_ROOM || gameMode === GameMode.MODE_MATCH) {
+        random = seeds[round];
+      }
+      else {
+        random = Math.random();
+      }
+      const nextIndex = Math.floor(random * temp.length);
+      const nextRandomItem = temp[nextIndex];
+
       setNextSelItem(nextRandomItem);
     }
     const nextItemHistory = [...selectedItemHistory.slice(0, currentMove + 1), selectedItem];
@@ -1506,14 +1552,16 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
   }
 
   function skipRound() {
-    const r = lastClick[0];
-    const c = lastClick[1];
-    const currPiece = currentBoard[r][c];
-    logAction(currPiece, currPiece, selectedItem);
-    if (selectedItem instanceof Sword || selectedItem instanceof Bow || selectedItem instanceof InfectPotion) {
-      currPiece.status.withItem = Item.NONE;
-      currPiece.setStyle();
-      currPiece.setSquareStyle();
+    if (!_.isEqual(lastClick, [null, null])) {
+      const r = lastClick[0];
+      const c = lastClick[1];
+      const currPiece = currentBoard[r][c];
+      logAction(currPiece, currPiece, selectedItem);
+      if (selectedItem instanceof Sword || selectedItem instanceof Bow || selectedItem instanceof InfectPotion) {
+        currPiece.status.withItem = Item.NONE;
+        currPiece.setStyle();
+        currPiece.setSquareStyle();
+      }
     }
     pickRandomItem();
     setIsNext(!xIsNext);
@@ -1571,6 +1619,7 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
           RestartButton={RestartButton} SwitchSoundButton={SwitchSoundButton}
           VolumeControlButton={VolumeControlButton} logAction={logAction}
           isRestart={isRestart} lastClick={lastClick} setLastClick={setLastClick}
+          socket={socket} pieceType={pieceType} lastStep={lastStep} gameMode={gameMode}
         />
       </div>
       {isModalOpen && (
