@@ -57,7 +57,8 @@ function ChaosGomoku() {
             }
             {gameMode !== GameMode.MODE_NONE && (
                 <>
-                    <ItemManager pageLoaded={pageLoaded} isRestart={isRestart} timeDelay={timeDelay} items={items} setItems={setItems} setItemsLoaded={setItemsLoaded}
+                    <ItemManager pageLoaded={pageLoaded} isRestart={isRestart} timeDelay={timeDelay}
+                        items={items} setItems={setItems} setItemsLoaded={setItemsLoaded}
                         seeds={seeds} gameMode={gameMode} />
                     {itemsLoading && itemsLoaded ? (
                         <>
