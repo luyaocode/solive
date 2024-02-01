@@ -22,6 +22,10 @@ function ChaosGomoku() {
     const [startModalOpen, setStartModalOpen] = useState(true);
     const [gameMode, setGameMode] = useState(0);
     const [socket, setSocket] = useState(null);
+    // 联机部分
+    const [headCount, setHeadCount] = useState(0);
+    const [historyPeekUsers, setHistoryPeekUsers] = useState(0);
+
     const [nickName, setNickName] = useState();     // 昵称
     const [roomId, setRoomId] = useState();         // 房间号
     const [pieceType, setPieceType] = useState(Piece_Type_Black); // 己方棋子颜色
@@ -91,12 +95,14 @@ function ChaosGomoku() {
             <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
                 gameMode={gameMode} setDeviceType={setDeviceType} setRoomDeviceType={setRoomDeviceType}
                 setBoardWidth={setBoardWidth} setBoardHeight={setBoardHeight} setSynchronized={setSynchronized}
+                setHeadCount={setHeadCount} setHistoryPeekUsers={setHistoryPeekUsers}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
                     <Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
                         socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
-                        deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight} />
+                        deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}
+                        headCount={headCount} historyPeekUsers={historyPeekUsers} />
                 </>)
             }
             {gameMode !== GameMode.MODE_NONE && (

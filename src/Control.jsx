@@ -419,7 +419,8 @@ function FancyTitle2({ text }) {
 
 function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
     socket, setNickName, setRoomId, setSeeds,
-    deviceType, boardWidth, boardHeight }) {
+    deviceType, boardWidth, boardHeight,
+    headCount, historyPeekUsers }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
@@ -448,11 +449,21 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
             setItemsLoading(true);
             setGameMode(mode);
         }
+        else if (mode === GameMode.MODE_MATCH) {
+            matchRoom(mode);
+        }
         else {
             setStartModalOpen(true);
             setGameMode(mode);
             setItemsLoading(true);
         }
+    }
+
+    function matchRoom(mode) {
+        setStartModalOpen(true);
+        setGameMode(mode);
+        setItemsLoading(true);
+        socket.emit('matchRoom', deviceType, boardWidth, boardHeight);
     }
 
     function enterRoom(roomId, nickName) {
@@ -489,11 +500,21 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
                     <button onClick={() => onButtonClick(GameMode.MODE_ROOM)}>房间模式</button>
                 </div>
             </div>
-            <Space />
+            <SystemInfo headCount={headCount} historyPeekUsers={historyPeekUsers} />
             <Footer />
             {enterRoomModalOpen && <EnterRoomModal modalInfo='请输入信息'
                 onOkBtnClick={enterRoom}
                 OnCancelBtnClick={() => setEnterRoomModalOpen(false)} />}
+        </div>
+    );
+}
+
+function SystemInfo({ headCount, historyPeekUsers }) {
+
+    return (
+        <div className="highest-online-users">
+            <span className="count">{headCount}</span>
+            <span className="icon">🔥</span>
         </div>
     );
 }

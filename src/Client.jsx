@@ -4,7 +4,7 @@ import { GameMode, DeviceType } from './ConstDefine.jsx'
 
 function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
-    setSynchronized }) {
+    setSynchronized, setHeadCount, setHistoryPeekUsers }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -24,6 +24,7 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
         const deviceType = getDeviceType();
         setDeviceType(deviceType);
 
+        // 连接服务器
         let serverUrl;
         if (process.env.REACT_APP_ENV === 'dev') {
             serverUrl = process.env.REACT_APP_BACKEND_URL_DEV;
@@ -40,6 +41,14 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
             // 当从服务器接收到消息时触发
             socket.on('message', (data) => {
                 console.log('Server:', data);
+            });
+
+            socket.on('currentHeadCount', (data) => {
+                setHeadCount(data);
+            });
+
+            socket.on('historyPeekUsers', (data) => {
+                setHistoryPeekUsers(data);
             });
 
             socket.on('broadcast', (data) => {
