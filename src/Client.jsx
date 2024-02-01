@@ -4,7 +4,8 @@ import { GameMode, DeviceType } from './ConstDefine.jsx'
 
 function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
-    setSynchronized, setHeadCount, setHistoryPeekUsers }) {
+    setSynchronized, setHeadCount, setHistoryPeekUsers, setRoomId,
+    setNickName, setMatched }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -70,6 +71,12 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
                 setBoardHeight(bHeight);
                 setSynchronized(true);
                 console.log('Server[广播]:', '调整棋盘完成，采用模式:' + roomDType + '， ' + bWidth + ' x ' + bHeight);
+            });
+
+            socket.on('matchedRoomId', (data) => {
+                setRoomId(data);
+                setNickName(socket.id);
+                setMatched(true);
             });
 
             socket.on('step', ({ i, j }) => {

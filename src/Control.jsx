@@ -463,7 +463,7 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
         setStartModalOpen(true);
         setGameMode(mode);
         setItemsLoading(true);
-        socket.emit('matchRoom', deviceType, boardWidth, boardHeight);
+        socket.emit('matchRoom', { deviceType, boardWidth, boardHeight });
     }
 
     function enterRoom(roomId, nickName) {

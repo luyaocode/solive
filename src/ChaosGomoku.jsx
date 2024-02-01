@@ -34,6 +34,7 @@ function ChaosGomoku() {
     const [roomDeviceType, setRoomDeviceType] = useState(DeviceType.UNKNOWN);
     const [allIsOk, setAllIsOk] = useState(false);
     const [synchronized, setSynchronized] = useState(false); // 和对方同步
+    const [matched, setMatched] = useState(false); // 匹配是否成功
     useEffect(() => {
         let delay;
         if (window.performance && window.performance.timeOrigin) {
@@ -95,7 +96,8 @@ function ChaosGomoku() {
             <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
                 gameMode={gameMode} setDeviceType={setDeviceType} setRoomDeviceType={setRoomDeviceType}
                 setBoardWidth={setBoardWidth} setBoardHeight={setBoardHeight} setSynchronized={setSynchronized}
-                setHeadCount={setHeadCount} setHistoryPeekUsers={setHistoryPeekUsers}
+                setHeadCount={setHeadCount} setHistoryPeekUsers={setHistoryPeekUsers} setRoomId={setRoomId}
+                setNickName={setNickName} setMatched={setMatched}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
