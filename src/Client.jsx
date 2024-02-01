@@ -4,7 +4,7 @@ import './ConstDefine.jsx'
 
 function Client({ setSocket, setPieceType, setLastStep, setSeeds }) {
     useEffect(() => {
-        const socket = io.connect('ws://localhost:5000');
+        const socket = io.connect('ws://47.97.186.50:5000');
         // 当连接成功时触发
         setSocket(socket);
 
