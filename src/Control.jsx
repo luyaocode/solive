@@ -350,7 +350,7 @@ function Footer() {
                 <div className="github-info">
                     <img src={userData.avatar_url} alt="GitHub Avatar" className="github-avatar" />
                     <div>
-                        <a href="https://github.com/luyaocode/chaos-gomoku" target="_blank" rel="noopener noreferrer">Chaos Gomoku</a>
+                        <a href="https://github.com/luyaocode/chaos-gomoku" target="_blank" rel="noopener noreferrer">Github</a>
                     </div>
                 </div>
             )}
@@ -471,17 +471,18 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
                 <div className="menu-item">
                     {/* <img src="item1.jpg" alt="Item 1" /> */}
                     <h2>单机</h2>
-                    <p>模式介绍：...</p>
+                    {/* <p>模式介绍：...</p> */}
                     <button onClick={() => onButtonClick(GameMode.MODE_SIGNAL)}>开始游戏</button>
                 </div>
                 <div className="menu-item">
                     {/* <img src="item2.jpg" alt="Item 2" /> */}
                     <h2>联机</h2>
-                    <p>模式介绍：...</p>
+                    {/* <p>模式介绍：...</p> */}
                     <button onClick={() => onButtonClick(GameMode.MODE_MATCH)}>匹配模式</button>
                     <button onClick={() => onButtonClick(GameMode.MODE_ROOM)}>房间模式</button>
                 </div>
             </div>
+            <Space />
             <Footer />
             {enterRoomModalOpen && <EnterRoomModal modalInfo='请输入信息'
                 onOkBtnClick={enterRoom}
