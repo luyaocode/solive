@@ -48,6 +48,7 @@ function ChaosGomoku() {
     return (
         <React.StrictMode className='game-container'>
             <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
+                gameMode={gameMode}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>

@@ -1,10 +1,15 @@
 import React, { useEffect } from 'react';
 import io from 'socket.io-client';
-import './ConstDefine.jsx'
+import { GameMode } from './ConstDefine.jsx'
 
-function Client({ setSocket, setPieceType, setLastStep, setSeeds }) {
+function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode }) {
     useEffect(() => {
-        const socket = io.connect('ws://localhost:5000');
+        // if (gameMode === GameMode.MODE_NONE || gameMode === GameMode.MODE_SIGNAL ||
+        //     gameMode === undefined) {
+        //     return;
+        // }
+        const serverUrl = process.env.REACT_APP_BACKEND_URL;
+        const socket = io.connect(serverUrl);
         // 当连接成功时触发
         setSocket(socket);
 
