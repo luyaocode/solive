@@ -8,7 +8,7 @@ import {
   Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
   , FreezeSpell
 } from './Item.ts'
-import { GameMode, Piece_Type_Black, Piece_Type_White } from './ConstDefine.jsx';
+import { GameMode, Piece_Type_Black, Piece_Type_White, DeviceType } from './ConstDefine.jsx';
 const _ = require('lodash');
 const root = document.documentElement;
 
@@ -77,22 +77,28 @@ let _isMute = false;
 let _volume = 100;
 
 // 其他
-const Square_Size_Pc = '1.39em';
+const EventEmitter = require('events');
+const emitter = new EventEmitter();
+emitter.on('updateBoardWidth', (message) => {
+
+  this.setState({}); // 通过setState来更新组件状态，从而触发重新渲染
+});
+// const Square_Size_Pc = '1.39em';
 // 获取设备的屏幕分辨率
-const screenWidth = window.screen.width;
-const screenHeight = window.screen.height;
-const square_width = Math.floor(screenWidth / (1.39 * 24));
+// const screenWidth = window.screen.width;
+// const screenHeight = window.screen.height;
+// const square_width = Math.floor(screenWidth / (1.39 * 24));
 let Board_Width;
 let Board_Height;
-const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-if (isMobile) {
-  Board_Width = square_width;
-  Board_Height = square_width;
-  root.style.setProperty('--gamelog-button-width', '45vh');
-} else {
-  Board_Width = 18;
-  Board_Height = 18;
-}
+// const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+// if (isMobile) {
+//   Board_Width = square_width;
+//   Board_Height = square_width;
+//   root.style.setProperty('--gamelog-button-width', '45vh');
+// } else {
+//   Board_Width = 18;
+//   Board_Height = 18;
+// }
 
 // 状态
 const Item = {
@@ -931,11 +937,11 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
 }
 
 // 创建棋盘
-function createBoard(setGameStart) {
+function createBoard(width, height, setGameStart) {
   const board = [];
-  for (let i = 0; i < Board_Height; i++) {
+  for (let i = 0; i < height; i++) {
     const row = [];
-    for (let j = 0; j < Board_Width; j++) {
+    for (let j = 0; j < width; j++) {
       const piece = new Piece('', '', true, true, -1, -1, i, j, InitPieceStatus);
       row.push(piece);
     }
@@ -1251,9 +1257,9 @@ function VolumeControlButton() {
   );
 };
 
-function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound,
+function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound,
   gameLog, setGameLog, isRestart, gameMode, setGameMode, GameMode,
-  socket, pieceType, lastStep, seeds }) {
+  socket, pieceType, lastStep, seeds, deviceType, roomDeviceType }) {
 
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
@@ -1261,7 +1267,7 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
   const timeoutIdRef = useRef(null);
 
   const [gameStart, setGameStart] = useState(false);
-  const [board, setBoard] = useState(() => createBoard(setGameStart));
+  const [board, setBoard] = useState(() => createBoard(boardWidth, boardHeight, setGameStart));
   const [history, setHistory] = useState([board]);
   const [currentMove, setCurrentMove] = useState(0);
   const currentBoard = history[currentMove];
@@ -1585,6 +1591,30 @@ function Game({ items, setItems, setRestart, round, setRound, roundMoveArr, setR
   const closeModal = () => {
     setModalOpen(false);
   };
+
+  // 设置棋盘长宽
+  useEffect(() => {
+    let dType;
+    if (gameMode === GameMode.MODE_ROOM || gameMode === GameMode.MODE_MATCH) {
+      dType = roomDeviceType;
+    }
+    else if (gameMode === GameMode.MODE_SIGNAL) {
+      dType = deviceType;
+    }
+    switch (dType) {
+      case DeviceType.PC: {
+        break;
+      }
+      case DeviceType.MOBILE: {
+        root.style.setProperty('--gamelog-button-width', '45vh');
+        break;
+      }
+      default: break;
+    }
+    Board_Width = boardWidth;
+    Board_Height = boardHeight;
+
+  }, [boardWidth, boardHeight]);
 
   // 使用 useEffect 来清除定时器，确保在组件卸载时不会触发关闭
   useEffect(() => {

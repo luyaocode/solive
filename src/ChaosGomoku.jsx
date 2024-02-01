@@ -2,10 +2,12 @@ import React, { useEffect, useState } from 'react';
 import './Game.css';
 import { Timer, GameLog, ItemManager, StartModal, Menu } from './Control.jsx'
 import Game from './Game.js'
-import { GameMode, Piece_Type_Black } from './ConstDefine.jsx'
+import { GameMode, Piece_Type_Black, DeviceType } from './ConstDefine.jsx'
 import Client from './Client.jsx'
 
 function ChaosGomoku() {
+    const [boardWidth, setBoardWidth] = useState(0);
+    const [boardHeight, setBoardHeight] = useState(0);
     const [isRestart, setRestart] = useState(false);
     const [round, setRound] = useState(0);
     const [totalRound, setTotalRound] = useState(0);
@@ -24,6 +26,10 @@ function ChaosGomoku() {
     const [roomId, setRoomId] = useState();         // 房间号
     const [pieceType, setPieceType] = useState(Piece_Type_Black); // 己方棋子颜色
     const [lastStep, setLastStep] = useState([]); // 对方棋子下的位置
+    const [deviceType, setDeviceType] = useState(DeviceType.UNKNOWN);
+    const [roomDeviceType, setRoomDeviceType] = useState(DeviceType.UNKNOWN);
+    const [allIsOk, setAllIsOk] = useState(false);
+    const [synchronized, setSynchronized] = useState(false); // 和对方同步
     useEffect(() => {
         let delay;
         if (window.performance && window.performance.timeOrigin) {
@@ -45,31 +51,69 @@ function ChaosGomoku() {
             setItemsLoaded(false);
         }
     }, [isRestart]);
+
+    useEffect(() => {
+        const screenWidth = window.screen.width;
+        // const screenHeight = window.screen.height;
+        const square_width = Math.floor(screenWidth / (1.39 * 24));
+        switch (deviceType) {
+            case DeviceType.MOBILE: {
+                setBoardWidth(square_width);
+                setBoardHeight(square_width);
+                break;
+            }
+            case DeviceType.PC: {
+                setBoardWidth(18);
+                setBoardHeight(18);
+                break;
+            }
+            default: break;
+        }
+    }, [deviceType]);
+
+    useEffect(() => {
+        if (gameMode === GameMode.MODE_SIGNAL) {
+            if (boardWidth !== 0 && boardHeight !== 0) {
+                setAllIsOk(true);
+            }
+        }
+    }, [gameMode]);
+
+    useEffect(() => {
+        if (synchronized) {
+            setAllIsOk(true);
+
+        }
+    }, [synchronized]);
+
     return (
         <React.StrictMode className='game-container'>
             <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
-                gameMode={gameMode}
+                gameMode={gameMode} setDeviceType={setDeviceType} setRoomDeviceType={setRoomDeviceType}
+                setBoardWidth={setBoardWidth} setBoardHeight={setBoardHeight} setSynchronized={setSynchronized}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
                     <Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
-                        socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds} />
+                        socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
+                        deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight} />
                 </>)
             }
             {gameMode !== GameMode.MODE_NONE && (
                 <>
                     <ItemManager pageLoaded={pageLoaded} isRestart={isRestart} timeDelay={timeDelay}
-                        items={items} setItems={setItems} setItemsLoaded={setItemsLoaded}
+                        items={items} setItems={setItems} itemsLoaded={itemsLoaded} setItemsLoaded={setItemsLoaded}
                         seeds={seeds} gameMode={gameMode} />
-                    {itemsLoading && itemsLoaded ? (
+                    {itemsLoading && allIsOk && itemsLoaded ? (
                         <>
                             <Timer isRestart={isRestart} setRestart={setRestart} round={round} totalRound={totalRound}
                                 nickName={nickName} roomId={roomId} />
-                            <Game items={items} setItems={setItems} setRestart={setRestart} round={round} setRound={setRound}
+                            <Game boardWidth={boardWidth} boardHeight={boardHeight} items={items} setItems={setItems} setRestart={setRestart} round={round} setRound={setRound}
                                 roundMoveArr={roundMoveArr} setRoundMoveArr={setRoundMoveArr}
                                 totalRound={totalRound} setTotalRound={setTotalRound}
                                 gameLog={gameLog} setGameLog={setGameLog} isRestart={isRestart} gameMode={gameMode} setGameMode={setGameMode} GameMode={GameMode}
                                 socket={socket} pieceType={pieceType} lastStep={lastStep} seeds={seeds}
+                                deviceType={deviceType} roomDeviceType={roomDeviceType}
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog} />
                         </>

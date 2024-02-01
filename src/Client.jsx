@@ -1,14 +1,36 @@
 import React, { useEffect } from 'react';
 import io from 'socket.io-client';
-import { GameMode } from './ConstDefine.jsx'
+import { GameMode, DeviceType } from './ConstDefine.jsx'
 
-function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode }) {
+function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
+    setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
+    setSynchronized }) {
+
+    function getDeviceType() {
+        const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
+        if (isMobile) {
+            return DeviceType.MOBILE;
+        }
+        else {
+            return DeviceType.PC;
+        }
+    }
+
     useEffect(() => {
         // if (gameMode === GameMode.MODE_NONE || gameMode === GameMode.MODE_SIGNAL ||
         //     gameMode === undefined) {
         //     return;
         // }
-        const serverUrl = process.env.REACT_APP_BACKEND_URL;
+        const deviceType = getDeviceType();
+        setDeviceType(deviceType);
+
+        let serverUrl;
+        if (process.env.REACT_APP_ENV === 'dev') {
+            serverUrl = process.env.REACT_APP_BACKEND_URL_DEV;
+        }
+        else if (process.env.REACT_APP_ENV === 'prod') {
+            serverUrl = process.env.REACT_APP_BACKEND_URL;
+        }
         const socket = io.connect(serverUrl);
         // 当连接成功时触发
         setSocket(socket);
@@ -31,6 +53,14 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode }) {
             socket.on('setItemSeed', (seeds) => {
                 setSeeds(seeds);
                 console.log('Server[广播]:', '道具已经生成');
+            });
+
+            socket.on('setRoomDeviceType', ({ roomDType, bWidth, bHeight }) => {
+                setRoomDeviceType(roomDType);
+                setBoardWidth(bWidth);
+                setBoardHeight(bHeight);
+                setSynchronized(true);
+                console.log('Server[广播]:', '调整棋盘完成，采用模式:' + roomDType + '， ' + bWidth + ' x ' + bHeight);
             });
 
             socket.on('step', ({ i, j }) => {

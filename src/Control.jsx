@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Input, Form, Space } from 'antd';
 import './Game.css';
-import { GameMode } from './ConstDefine.jsx'
+import { GameMode, GlobalCtx } from './ConstDefine.jsx'
 import { Howl } from 'howler';
 import {
     Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
@@ -9,7 +9,6 @@ import {
 } from './Item.ts';
 
 import _ from 'lodash';
-import { IeCircleFilled } from '@ant-design/icons';
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
     const [seconds, setSeconds] = useState(0);
@@ -210,7 +209,7 @@ function MusicPlayer({ audioSrc, isRestart }) {
 
 
 const ITEM_INIT_SIZE = 200;
-const ITEM_MIN_SIZE = 1;
+const ITEM_MIN_SIZE = 10;
 const ITEM_LOAD_PER_TIME = 100;
 const sword = new Sword();
 const shield = new Shield();
@@ -238,7 +237,7 @@ const weights = {
 //     xFlower: 0,
 //     freezeSpell: 0,
 // };
-function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, setItemsLoaded,
+function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsLoaded, setItemsLoaded,
     seeds, gameMode }) {
     useEffect(() => {
         if (gameMode === GameMode.MODE_ROOM || gameMode === GameMode.MODE_MATCH) {
@@ -307,15 +306,22 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, setIte
             const item = _.cloneDeep(getItem(seed));
             temp.push(item);
         }
+        // for (let i = 0; i < temp.length; i++) {
+        //     let item = temp[i];
+        //     console.log('more:' + i + '：' + item.name);
+        // }
         setItems(prevItems => [...prevItems, temp]);
     };
 
-    // useEffect(() => {
-    //     if (items.length < ITEM_MIN_SIZE) {
-    //         // loadMoreItems();
-    //     }
-    // }, [items]);
-    // return null;
+    useEffect(() => {
+        if (!itemsLoaded) {
+            return;
+        }
+        if (items.length < ITEM_MIN_SIZE) {
+            loadMoreItems();
+        }
+    }, [items]);
+    return null;
 }
 
 function StartModal({ setStartModalOpen, setItemsLoading, setGameMode }) {
@@ -412,7 +418,8 @@ function FancyTitle2({ text }) {
 }
 
 function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
-    socket, setNickName, setRoomId, setSeeds }) {
+    socket, setNickName, setRoomId, setSeeds,
+    deviceType, boardWidth, boardHeight }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
@@ -456,7 +463,7 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
 
     function sendMessage(roomId, nickName) {
         // 向服务器发送加入房间的请求，附带房间 ID 和昵称
-        socket.emit('joinRoom', { roomId, nickName });
+        socket.emit('joinRoom', { roomId, nickName, deviceType, boardWidth, boardHeight });
         setNickName(nickName);
         setRoomId(roomId);
     }
@@ -566,5 +573,7 @@ function EnterRoomModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
     );
 }
 
-
-export { Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal, Menu, ConfirmModal };
+export {
+    Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
+    Menu, ConfirmModal
+};

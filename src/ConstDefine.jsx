@@ -7,3 +7,9 @@ export const GameMode = {
 
 export const Piece_Type_Black = '●';
 export const Piece_Type_White = '○';
+
+export const DeviceType = {
+    UNKNOWN: 0,
+    MOBILE: 1,
+    PC: 2,
+}
