@@ -5,7 +5,8 @@ import { GameMode, DeviceType } from './ConstDefine.jsx'
 function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
     setSynchronized, setHeadCount, setHistoryPeekUsers, setRoomId,
-    setNickName, setMatched, setPlayerLeaveRoomModalOpen }) {
+    setNickName, setMatched, setJoined, setPlayerLeaveRoomModalOpen,
+    setPlayerDisconnectedModalOpen }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -76,7 +77,15 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
             socket.on('matchedRoomId', (data) => {
                 setRoomId(data);
                 setNickName(socket.id);
-                setMatched(true);
+                setTimeout(() => {
+                    setMatched(true);
+                }, 1000);
+            });
+
+            socket.on('joined', () => {
+                setTimeout(() => {
+                    setJoined(true);
+                }, 1000);
             });
 
             socket.on('step', ({ i, j }) => {
@@ -86,7 +95,12 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
             socket.on('playerLeaveRoom', (data) => {
                 console.log('Server:', data);
                 setPlayerLeaveRoomModalOpen(true);
-            })
+            });
+
+            socket.on('playerDisconnected', (data) => {
+                console.log('Server:', data);
+                setPlayerDisconnectedModalOpen(true);
+            });
         });
 
         // 监听连接关闭事件
@@ -97,6 +111,7 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
             socket.disconnect();
         };
     }, []);
+
     return null;
 }
 

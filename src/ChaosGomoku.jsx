@@ -35,7 +35,9 @@ function ChaosGomoku() {
     const [allIsOk, setAllIsOk] = useState(false);
     const [synchronized, setSynchronized] = useState(false); // 和对方同步
     const [matched, setMatched] = useState(false); // 匹配是否成功
+    const [joined, setJoined] = useState(false); // 进入房间是否成功
     const [isPlayerLeaveRoomModalOpen, setPlayerLeaveRoomModalOpen] = useState(false);
+    const [isPlayerDisconnectedModalOpen, setPlayerDisconnectedModalOpen] = useState(false);
 
     useEffect(() => {
         let delay;
@@ -89,20 +91,15 @@ function ChaosGomoku() {
         }
     }, [gameMode]);
 
-    useEffect(() => {
-        if (synchronized) {
-            setAllIsOk(true);
-
-        }
-    }, [synchronized]);
-
     return (
         <React.StrictMode className='game-container'>
             <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
                 gameMode={gameMode} setDeviceType={setDeviceType} setRoomDeviceType={setRoomDeviceType}
                 setBoardWidth={setBoardWidth} setBoardHeight={setBoardHeight} setSynchronized={setSynchronized}
                 setHeadCount={setHeadCount} setHistoryPeekUsers={setHistoryPeekUsers} setRoomId={setRoomId}
-                setNickName={setNickName} setMatched={setMatched} setPlayerLeaveRoomModalOpen={setPlayerLeaveRoomModalOpen}
+                setNickName={setNickName} setMatched={setMatched} setJoined={setJoined}
+                setPlayerLeaveRoomModalOpen={setPlayerLeaveRoomModalOpen}
+                setPlayerDisconnectedModalOpen={setPlayerDisconnectedModalOpen}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
@@ -128,13 +125,15 @@ function ChaosGomoku() {
                                 socket={socket} pieceType={pieceType} lastStep={lastStep} seeds={seeds}
                                 deviceType={deviceType} roomDeviceType={roomDeviceType}
                                 isPlayerLeaveRoomModalOpen={isPlayerLeaveRoomModalOpen} setPlayerLeaveRoomModalOpen={setPlayerLeaveRoomModalOpen}
+                                isPlayerDisconnectedModalOpen={isPlayerDisconnectedModalOpen} setPlayerDisconnectedModalOpen={setPlayerDisconnectedModalOpen}
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
                                 roomId={roomId} nickName={nickName} />
                         </>
                     ) : (
                         startModalOpen &&
-                        <StartModal setStartModalOpen={setStartModalOpen} setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} />
+                        <StartModal setStartModalOpen={setStartModalOpen} setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} matched={matched}
+                            joined={joined} setAllIsOk={setAllIsOk} />
                     )}
                 </>)}
 

@@ -324,26 +324,35 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
     return null;
 }
 
-function StartModal({ setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket }) {
-    let text;
+function StartModal({ setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket, matched,
+    joined, setAllIsOk }) {
+    const [isModalOpen, setModalOpen] = useState(false);
+    let text, text2;
     switch (gameMode) {
         case GameMode.MODE_SIGNAL:
             {
                 text = '正在加载棋盘...'
+                text2 = '加载成功';
                 break;
             }
         case GameMode.MODE_MATCH:
             {
                 text = '正在匹配...';
+                text2 = '匹配成功';
                 break;
             }
         case GameMode.MODE_ROOM:
             {
                 text = '正在进入房间...'
+                text2 = '进入成功';
                 break;
             }
+        default: {
+            break;
+        }
     }
     const [description, setDescription] = useState(text);
+    const [secondText, setSecondText] = useState(text2);
     function onCancelButtonClick() {
         setItemsLoading(false);
         setStartModalOpen(false);
@@ -357,12 +366,23 @@ function StartModal({ setStartModalOpen, setItemsLoading, gameMode, setGameMode,
         }
         setGameMode(GameMode.MODE_NONE);
     }
+
+    useEffect(() => {
+        if (matched || joined) {
+            setModalOpen(true);
+        }
+    }, [matched, joined]);
+
     return (
-        <div className="loading-overlay">
-            <div className="loading-spinner"></div>
-            <p className="loading-text">{description}</p>
-            <button className="cancel-button" onClick={onCancelButtonClick}>取消</button>
-        </div>
+        <>
+            <div className="loading-overlay">
+                <div className="loading-spinner"></div>
+                <p className="loading-text">{description}</p>
+                <button className="cancel-button" onClick={onCancelButtonClick}>取消</button>
+            </div>
+            {isModalOpen &&
+                <Modal modalInfo={secondText} setModalOpen={setModalOpen} timeDelay={1000} afterDelay={() => setAllIsOk(true)} />}
+        </>
     );
 }
 
@@ -587,6 +607,20 @@ function InfoModal({ modalInfo, setModalOpen }) {
     );
 }
 
+function Modal({ modalInfo, setModalOpen, timeDelay, afterDelay }) {
+    useEffect(() => {
+        const timer = setTimeout(() => { setModalOpen(false); afterDelay(); }, timeDelay);
+        return () => clearTimeout(timer);
+    });
+    return (
+        <div className="modal-overlay">
+            <div className="modal">
+                <p>{modalInfo}</p>
+            </div>
+        </div>
+    );
+}
+
 function EnterRoomModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
     function closeModal() {
         OnCancelBtnClick();
@@ -643,5 +677,5 @@ function EnterRoomModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
 
 export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
-    Menu, ConfirmModal, InfoModal
+    Menu, ConfirmModal, InfoModal, Modal
 };

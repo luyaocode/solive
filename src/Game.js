@@ -1260,7 +1260,8 @@ function VolumeControlButton() {
 function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound,
   gameLog, setGameLog, isRestart, gameMode, setGameMode, GameMode,
   socket, pieceType, lastStep, seeds, deviceType, roomDeviceType,
-  isPlayerLeaveRoomModalOpen, setPlayerLeaveRoomModalOpen }) {
+  isPlayerLeaveRoomModalOpen, setPlayerLeaveRoomModalOpen,
+  isPlayerDisconnectedModalOpen, setPlayerDisconnectedModalOpen }) {
 
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
@@ -1698,6 +1699,9 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
       )}
       {isPlayerLeaveRoomModalOpen && (
         <InfoModal modalInfo='对方离开了房间' setModalOpen={setPlayerLeaveRoomModalOpen} />
+      )}
+      {isPlayerDisconnectedModalOpen && (
+        <InfoModal modalInfo='对方断开连接' setModalOpen={setPlayerDisconnectedModalOpen} />
       )}
     </div>
   );
