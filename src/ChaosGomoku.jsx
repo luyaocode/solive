@@ -54,6 +54,9 @@ function ChaosGomoku() {
             setTotalRound(0);
             setItems([]);
             setItemsLoaded(false);
+            setAllIsOk(false);
+            setSynchronized(false);
+            setMatched(false);
         }
     }, [isRestart]);
 
@@ -128,7 +131,7 @@ function ChaosGomoku() {
                         </>
                     ) : (
                         startModalOpen &&
-                        <StartModal setStartModalOpen={setStartModalOpen} setItemsLoading={setItemsLoading} setGameMode={setGameMode} />
+                        <StartModal setStartModalOpen={setStartModalOpen} setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} />
                     )}
                 </>)}
 

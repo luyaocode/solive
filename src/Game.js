@@ -1534,20 +1534,24 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
     );
   }
 
+  const restartGame = () => {
+    const initBoardHistory = [...history.slice(0, 1)];
+    setHistory(initBoardHistory);
+    setCurrentMove(0);
+    const initItemHistory = [...selectedItemHistory.slice(0, 1)];
+    setSelectedItemHistory(initItemHistory);
+    setSelectedItem(items[Math.floor(Math.random() * items.length)]);
+    setNextSelItem(items[Math.floor(Math.random() * items.length)]);
+    setGameOver(false);
+    setRestart(true);
+    setIsNext(true);
+    setRound(1);
+  }
+
   const RestartButton = () => {
     let description = RESTART_GAME;
     function onButtonClick() {
-      const initBoardHistory = [...history.slice(0, 1)];
-      setHistory(initBoardHistory);
-      setCurrentMove(0);
-      const initItemHistory = [...selectedItemHistory.slice(0, 1)];
-      setSelectedItemHistory(initItemHistory);
-      setSelectedItem(items[Math.floor(Math.random() * items.length)]);
-      setNextSelItem(items[Math.floor(Math.random() * items.length)]);
-      setGameOver(false);
-      setRestart(true);
-      setIsNext(true);
-      setRound(1);
+      restartGame();
 
       // socket.emit('restart', gameMode);
     }
@@ -1596,6 +1600,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
   function exitGame() {
     setGameMode(GameMode.MODE_NONE);
     setRestart(true);
+    restartGame();
   }
 
   const openModal = (info, time = 500) => {

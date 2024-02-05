@@ -324,11 +324,19 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
     return null;
 }
 
-function StartModal({ setStartModalOpen, setItemsLoading, setGameMode }) {
+function StartModal({ setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket }) {
     const [description, setDescription] = useState('棋盘加载中...');
     function onCancelButtonClick() {
         setItemsLoading(false);
         setStartModalOpen(false);
+        //
+        if (gameMode === GameMode.MODE_ROOM) {
+            socket.emit('leaveRoom');
+        }
+        else if (gameMode === GameMode.MODE_MATCH) {
+            socket.emit('exitMatching');
+        } else {
+        }
         setGameMode(GameMode.MODE_NONE);
     }
     return (
@@ -431,7 +439,7 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
             for (let j = 0; j < 20; j++) {
                 let randomValue;
                 do { randomValue = Math.floor(Math.random() * 100) / 100; }
-                while (randomValue == 1);
+                while (randomValue === 1);
                 seeds.push(randomValue);
             }
         }
@@ -467,6 +475,7 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
     }
 
     function enterRoom(roomId, nickName) {
+        setStartModalOpen(true);
         sendMessage(roomId, nickName);
         setItemsLoading(true);
         setGameMode(GameMode.MODE_ROOM);
