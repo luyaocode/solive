@@ -325,7 +325,25 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
 }
 
 function StartModal({ setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket }) {
-    const [description, setDescription] = useState('棋盘加载中...');
+    let text;
+    switch (gameMode) {
+        case GameMode.MODE_SIGNAL:
+            {
+                text = '正在加载棋盘...'
+                break;
+            }
+        case GameMode.MODE_MATCH:
+            {
+                text = '正在匹配...';
+                break;
+            }
+        case GameMode.MODE_ROOM:
+            {
+                text = '正在进入房间...'
+                break;
+            }
+    }
+    const [description, setDescription] = useState(text);
     function onCancelButtonClick() {
         setItemsLoading(false);
         setStartModalOpen(false);
@@ -343,7 +361,7 @@ function StartModal({ setStartModalOpen, setItemsLoading, gameMode, setGameMode,
         <div className="loading-overlay">
             <div className="loading-spinner"></div>
             <p className="loading-text">{description}</p>
-            <button className="cancel-button" onClick={onCancelButtonClick}>取消加载</button>
+            <button className="cancel-button" onClick={onCancelButtonClick}>取消</button>
         </div>
     );
 }
@@ -491,8 +509,8 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
     return (
         <div className="menu-container">
             <div>
-                <FancyTitle text={cTitle} />
-                <FancyTitle2 text={title} />
+                <FancyTitle text={title} />
+                <FancyTitle2 text={cTitle} />
             </div>
             <div className="menu-items">
                 <div className="menu-item">
@@ -542,6 +560,26 @@ function ConfirmModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
                 <div className='button-confirm-container'>
                     <Button onClick={onOkBtnClick}>确定</Button>
                     <Button onClick={OnCancelBtnClick}>取消</Button>
+                </div>
+
+            </div>
+        </div>
+    );
+}
+
+function InfoModal({ modalInfo, setModalOpen }) {
+    function closeModal() {
+        setModalOpen(false);
+    }
+    return (
+        <div className="modal-overlay">
+            <div className="modal">
+                <span className="close-button" onClick={closeModal}>
+                    &times;
+                </span>
+                <p>{modalInfo}</p>
+                <div className='button-confirm-container'>
+                    <Button onClick={closeModal}>确定</Button>
                 </div>
 
             </div>
@@ -605,5 +643,5 @@ function EnterRoomModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
 
 export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
-    Menu, ConfirmModal
+    Menu, ConfirmModal, InfoModal
 };

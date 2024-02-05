@@ -35,6 +35,8 @@ function ChaosGomoku() {
     const [allIsOk, setAllIsOk] = useState(false);
     const [synchronized, setSynchronized] = useState(false); // 和对方同步
     const [matched, setMatched] = useState(false); // 匹配是否成功
+    const [isPlayerLeaveRoomModalOpen, setPlayerLeaveRoomModalOpen] = useState(false);
+
     useEffect(() => {
         let delay;
         if (window.performance && window.performance.timeOrigin) {
@@ -100,7 +102,7 @@ function ChaosGomoku() {
                 gameMode={gameMode} setDeviceType={setDeviceType} setRoomDeviceType={setRoomDeviceType}
                 setBoardWidth={setBoardWidth} setBoardHeight={setBoardHeight} setSynchronized={setSynchronized}
                 setHeadCount={setHeadCount} setHistoryPeekUsers={setHistoryPeekUsers} setRoomId={setRoomId}
-                setNickName={setNickName} setMatched={setMatched}
+                setNickName={setNickName} setMatched={setMatched} setPlayerLeaveRoomModalOpen={setPlayerLeaveRoomModalOpen}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
@@ -125,6 +127,7 @@ function ChaosGomoku() {
                                 gameLog={gameLog} setGameLog={setGameLog} isRestart={isRestart} gameMode={gameMode} setGameMode={setGameMode} GameMode={GameMode}
                                 socket={socket} pieceType={pieceType} lastStep={lastStep} seeds={seeds}
                                 deviceType={deviceType} roomDeviceType={roomDeviceType}
+                                isPlayerLeaveRoomModalOpen={isPlayerLeaveRoomModalOpen} setPlayerLeaveRoomModalOpen={setPlayerLeaveRoomModalOpen}
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
                                 roomId={roomId} nickName={nickName} />

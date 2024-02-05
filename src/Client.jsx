@@ -5,7 +5,7 @@ import { GameMode, DeviceType } from './ConstDefine.jsx'
 function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
     setSynchronized, setHeadCount, setHistoryPeekUsers, setRoomId,
-    setNickName, setMatched }) {
+    setNickName, setMatched, setPlayerLeaveRoomModalOpen }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -82,6 +82,11 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
             socket.on('step', ({ i, j }) => {
                 setLastStep([i, j]);
             });
+
+            socket.on('playerLeaveRoom', (data) => {
+                console.log('Server:', data);
+                setPlayerLeaveRoomModalOpen(true);
+            })
         });
 
         // 监听连接关闭事件

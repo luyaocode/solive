@@ -799,8 +799,7 @@
     0 0 40px #00ffff,
     0 0 80px #00ffff,
     0 0 160px #00ffff,
-    0 0 320px #00ffff,
-    0 0 640px #00ffff;
+    0 0 320px #00ffff;
   animation: swirl 3s infinite linear;
 }
 
@@ -882,6 +881,13 @@
 /* 为每个字母应用不同的动画 */
 .menu-header2 h1 span {
   display: inline-block;
+  margin: 6px;
+  display: inline-block;
+  font-size: 36px;
+  /* 增加字体大小 */
+  color: white;
+  /* 可选：添加字体，以确保在没有默认字体的情况下有一个备选字体 */
+  font-family: 'Arial', sans-serif;
 }
 
 /* 定义随机抖动动画 */

@@ -2,7 +2,7 @@ import './Game.css';
 import { useState, useEffect, useRef } from 'react';
 import { Howl } from 'howler';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
-import { ItemInfo, MusicPlayer, ConfirmModal } from './Control.jsx';
+import { ItemInfo, MusicPlayer, ConfirmModal, InfoModal } from './Control.jsx';
 
 import {
   Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
@@ -1259,7 +1259,8 @@ function VolumeControlButton() {
 
 function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound,
   gameLog, setGameLog, isRestart, gameMode, setGameMode, GameMode,
-  socket, pieceType, lastStep, seeds, deviceType, roomDeviceType }) {
+  socket, pieceType, lastStep, seeds, deviceType, roomDeviceType,
+  isPlayerLeaveRoomModalOpen, setPlayerLeaveRoomModalOpen }) {
 
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
@@ -1598,6 +1599,9 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
   }
 
   function exitGame() {
+    if (gameMode === GameMode.MODE_ROOM || gameMode === GameMode.MODE_MATCH) {
+      socket.emit('leaveRoom');
+    }
     setGameMode(GameMode.MODE_NONE);
     setRestart(true);
     restartGame();
@@ -1691,6 +1695,9 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
       )}
       {isSkipModalOpen && (
         <ConfirmModal modalInfo='确定跳过本回合吗？' onOkBtnClick={skipRound} OnCancelBtnClick={() => setSkipModalOpen(false)} />
+      )}
+      {isPlayerLeaveRoomModalOpen && (
+        <InfoModal modalInfo='对方离开了房间' setModalOpen={setPlayerLeaveRoomModalOpen} />
       )}
     </div>
   );
