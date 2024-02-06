@@ -67,7 +67,7 @@ function ChaosGomoku() {
     useEffect(() => {
         const screenWidth = window.screen.width;
         // const screenHeight = window.screen.height;
-        const square_width = Math.floor(screenWidth / (1.39 * 24));
+        const square_width = Math.floor(screenWidth / (1.5 * 24));
         switch (deviceType) {
             case DeviceType.MOBILE: {
                 setBoardWidth(square_width);
