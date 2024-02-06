@@ -1287,9 +1287,9 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   }
   const [selectedItem, setSelectedItem] = useState(items[Math.floor(random1 * items.length)]);
   const [nextSelItem, setNextSelItem] = useState(items[Math.floor(random2 * items.length)]);
-  console.log('selectedItem:' + selectedItem.cname);
-  console.log('nextSelItem:' + nextSelItem.cname);
-  console.log('++++++');
+  // console.log('selectedItem:' + selectedItem.cname);
+  // console.log('nextSelItem:' + nextSelItem.cname);
+  // console.log('++++++');
 
   const [selectedItemHistory, setSelectedItemHistory] = useState([selectedItem]);
   const [xIsNext, setIsNext] = useState(true);
@@ -1320,17 +1320,17 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
 
       setNextSelItem(nextRandomItem);
 
-      console.log('random:' + random);
-      console.log('tempLength:' + temp.length);
-      console.log('itemsLength:' + items.length);
-      console.log('nextIndex:', +nextIndex);
-      if (nextSelItem === nextRandomItem) {
-        console.log('同一个对象');
-      }
-      console.log('lastSelItem:' + selectedItem.cname + ',used:' + selectedItem.isUsed)
-      console.log('selectedItem:' + nextSelItem.cname + ',used:' + nextSelItem.isUsed);
-      console.log('nextSelItem:' + nextRandomItem.cname + ',used:' + nextRandomItem.isUsed);
-      console.log('-----');
+      // console.log('random:' + random);
+      // console.log('tempLength:' + temp.length);
+      // console.log('itemsLength:' + items.length);
+      // console.log('nextIndex:', +nextIndex);
+      // if (nextSelItem === nextRandomItem) {
+      //   console.log('同一个对象');
+      // }
+      // console.log('lastSelItem:' + selectedItem.cname + ',used:' + selectedItem.isUsed)
+      // console.log('selectedItem:' + nextSelItem.cname + ',used:' + nextSelItem.isUsed);
+      // console.log('nextSelItem:' + nextRandomItem.cname + ',used:' + nextRandomItem.isUsed);
+      // console.log('-----');
     }
     const nextItemHistory = [...selectedItemHistory.slice(0, currentMove + 1), selectedItem];
     setSelectedItemHistory(nextItemHistory);
@@ -1569,6 +1569,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
       }
       else {
         if (gameOver) {
+          setRestartResponseModalOpen(true);
           socket.emit('restart', { gameMode, gameOver });
         }
         else {

@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './Game.css';
-import { Timer, GameLog, ItemManager, StartModal, Menu } from './Control.jsx'
+import { Timer, GameLog, ItemManager, StartModal, Menu, Modal } from './Control.jsx'
 import Game from './Game.js'
 import { GameMode, Piece_Type_Black, DeviceType } from './ConstDefine.jsx'
 import Client from './Client.jsx'
@@ -42,6 +42,10 @@ function ChaosGomoku() {
     const [isPlayerDisconnectedModalOpen, setPlayerDisconnectedModalOpen] = useState(false);
     const [isRestartRequestModalOpen, setRestartRequestModalOpen] = useState(false);
     const [restartResponseModalOpen, setRestartResponseModalOpen] = useState(false);
+
+    // 通用弹窗
+    const [commonModalText, setCommonModalText] = useState('');
+    const [commonModalOpen, setCommonModalOpen] = useState(false);
 
     useEffect(() => {
         let delay;
@@ -111,6 +115,7 @@ function ChaosGomoku() {
                 setPlayerDisconnectedModalOpen={setPlayerDisconnectedModalOpen}
                 setRestartRequestModalOpen={setRestartRequestModalOpen} setRestart={setRestart}
                 setRestartResponseModalOpen={setRestartResponseModalOpen} setAllIsOk={setAllIsOk}
+                setCommonModalText={setCommonModalText} setCommonModalOpen={setCommonModalOpen}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
@@ -143,6 +148,9 @@ function ChaosGomoku() {
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
                                 roomId={roomId} nickName={nickName} />
+                            {commonModalOpen &&
+                                <Modal modalInfo={commonModalText} setModalOpen={setCommonModalOpen} />
+                            }
                         </>
                     ) : (
                         startModalOpen &&

@@ -8,7 +8,8 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setNickName, setMatched, setJoined, setStartModalOpen,
     setPlayerLeaveRoomModalOpen,
     setPlayerDisconnectedModalOpen, setRestartRequestModalOpen, setRestart,
-    setRestartResponseModalOpen, setAllIsOk }) {
+    setRestartResponseModalOpen, setAllIsOk,
+    setCommonModalText, setCommonModalOpen }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -108,14 +109,21 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
                 setRestartRequestModalOpen(true);
             });
 
-            socket.on('restart_resp', (resp) => {
+            socket.on('restart_resp', ({ resp, socketId }) => {
                 if (resp) {
-                    setRestart(true);
-                    setStartModalOpen(true);
-                    setAllIsOk(false);
+                    if (socketId !== socket.id) {
+                        setCommonModalText('对方已同意');
+                        setCommonModalOpen(true);
+                    }
+                    setTimeout(() => {
+                        setRestart(true);
+                        setStartModalOpen(true);
+                        setAllIsOk(false);
+                    }, 1000);
                 }
-                else {
-
+                else if (socketId !== socket.id) {
+                    setCommonModalText('对方已拒绝');
+                    setCommonModalOpen(true);
                 }
                 setRestartResponseModalOpen(false);
             });
