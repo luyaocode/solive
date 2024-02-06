@@ -47,6 +47,13 @@ function ChaosGomoku() {
     const [commonModalText, setCommonModalText] = useState('');
     const [commonModalOpen, setCommonModalOpen] = useState(false);
 
+    const [isSkipRound, setSkipRound] = useState(false);
+    useEffect(() => {
+        if (isSkipRound) {
+            setSkipRound(false);
+        }
+    }, [isSkipRound]);
+
     useEffect(() => {
         let delay;
         if (window.performance && window.performance.timeOrigin) {
@@ -116,6 +123,7 @@ function ChaosGomoku() {
                 setRestartRequestModalOpen={setRestartRequestModalOpen} setRestart={setRestart}
                 setRestartResponseModalOpen={setRestartResponseModalOpen} setAllIsOk={setAllIsOk}
                 setCommonModalText={setCommonModalText} setCommonModalOpen={setCommonModalOpen}
+                setSkipRound={setSkipRound}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
@@ -145,6 +153,7 @@ function ChaosGomoku() {
                                 gameOver={gameOver} setGameOver={setGameOver}
                                 isRestartRequestModalOpen={isRestartRequestModalOpen} setRestartRequestModalOpen={setRestartRequestModalOpen}
                                 restartResponseModalOpen={restartResponseModalOpen} setRestartResponseModalOpen={setRestartResponseModalOpen}
+                                isSkipRound={isSkipRound}
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
                                 roomId={roomId} nickName={nickName} />

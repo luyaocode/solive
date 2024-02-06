@@ -462,8 +462,17 @@
   /* 添加悬停效果过渡 */
 }
 
+.button-normal[disabled] {
+  background-color: #dddddd;
+  /* 设置禁用状态背景色为灰色 */
+  color: #999999;
+  /* 设置禁用状态文字颜色为灰色 */
+  cursor: not-allowed;
+  /* 设置禁用状态鼠标样式为禁止 */
+}
+
 /* 悬停效果 */
-.button-normal:hover {
+.button-normal:not([disabled]):hover {
   background-color: #45a049;
 }
 

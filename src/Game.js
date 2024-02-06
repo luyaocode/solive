@@ -763,7 +763,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   setGameOver, selectedItem, nextSelItem, selectedItemHistory, gameStart, setGameStart,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton,
   VolumeControlButton, logAction, isRestart, lastClick, setLastClick,
-  socket, pieceType, lastStep, gameMode }) {
+  socket, pieceType, lastStep, gameMode, skipRound, isSkipRound }) {
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const renderCell = (cellValue, rowIndex, colIndex) => {
@@ -885,8 +885,15 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     handleClick(lastStep[0], lastStep[1], true);
   }, [lastStep]);
 
+  useEffect(() => {
+    if (isSkipRound) {
+      skipRound();
+    }
+  }, [isSkipRound]);
+
   let currentPiece = xIsNext ? '●' : '○';
   let nextPiece = xIsNext ? '○' : '●';
+  let description = currentPiece === pieceType ? '（我）' : '';
   // let currentItem = selectedItemHistory[currentMove];
   let currentItem = selectedItem;
 
@@ -911,7 +918,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   return (
     <>
       <div className='game-info'>
-        <div className="piece-status">{currentPieceStatus}<span className='piece-name'>{currentPiece}</span><span className='span-blank'></span>
+        <div className="piece-status">{currentPieceStatus}<span className='piece-name'>{currentPiece + description}</span><span className='span-blank'></span>
           {currentItemStatus}<ItemInfo item={selectedItem} />
         </div>
         <div className="piece-status">{nextPieceStatus}<span className='piece-name'>{nextPiece}</span><span className='span-blank'></span>
@@ -1264,13 +1271,14 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   isPlayerLeaveRoomModalOpen, setPlayerLeaveRoomModalOpen,
   isPlayerDisconnectedModalOpen, setPlayerDisconnectedModalOpen,
   gameOver, setGameOver, isRestartRequestModalOpen, setRestartRequestModalOpen,
-  restartResponseModalOpen, setRestartResponseModalOpen }) {
+  restartResponseModalOpen, setRestartResponseModalOpen,
+  isSkipRound }) {
 
+  const [canSkipRound, setCanSkipRound] = useState(true);
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalInfo, setModalInfo] = useState('');
   const timeoutIdRef = useRef(null);
-
 
   const [gameStart, setGameStart] = useState(false);
   const [board, setBoard] = useState(() => createBoard(boardWidth, boardHeight, setGameStart));
@@ -1598,7 +1606,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
       setSkipModalOpen(true);
     }
     return (
-      <button className='button-normal' onClick={onButtonClick}>{description}</button>
+      <button className='button-normal' onClick={onButtonClick} disabled={!canSkipRound}>{description}</button>
     );
   }
 
@@ -1681,6 +1689,12 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
     setTotalRound(round + 1);
     const tempArr = [...roundMoveArr.slice(0, round + 1), currentMove];
     setRoundMoveArr(tempArr);
+    if (pieceType === Piece_Type_Black && xIsNext || pieceType === Piece_Type_White && !xIsNext) {
+      setCanSkipRound(true);
+    }
+    else {
+      setCanSkipRound(false);
+    }
   }, [xIsNext]);
 
   useEffect(() => {
@@ -1705,6 +1719,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
           VolumeControlButton={VolumeControlButton} logAction={logAction}
           isRestart={isRestart} lastClick={lastClick} setLastClick={setLastClick}
           socket={socket} pieceType={pieceType} lastStep={lastStep} gameMode={gameMode}
+          skipRound={skipRound} isSkipRound={isSkipRound}
         />
       </div>
       {isModalOpen && (
@@ -1721,7 +1736,12 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
         <ConfirmModal modalInfo='确定退出游戏吗？' onOkBtnClick={exitGame} OnCancelBtnClick={() => setConfirmModalOpen(false)} />
       )}
       {isSkipModalOpen && (
-        <ConfirmModal modalInfo='确定跳过本回合吗？' onOkBtnClick={skipRound} OnCancelBtnClick={() => setSkipModalOpen(false)} />
+        <ConfirmModal modalInfo='确定跳过本回合吗？'
+          onOkBtnClick={() => {
+            socket.emit('skipRound');
+            setSkipModalOpen(false);
+          }}
+          OnCancelBtnClick={() => setSkipModalOpen(false)} />
       )}
       {isPlayerLeaveRoomModalOpen && (
         <InfoModal modalInfo='对方离开了房间' setModalOpen={setPlayerLeaveRoomModalOpen} />

@@ -9,7 +9,7 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setPlayerLeaveRoomModalOpen,
     setPlayerDisconnectedModalOpen, setRestartRequestModalOpen, setRestart,
     setRestartResponseModalOpen, setAllIsOk,
-    setCommonModalText, setCommonModalOpen }) {
+    setCommonModalText, setCommonModalOpen, setSkipRound }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -126,6 +126,10 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
                     setCommonModalOpen(true);
                 }
                 setRestartResponseModalOpen(false);
+            });
+
+            socket.on('skipRound', () => {
+                setSkipRound(true);
             });
         });
 
