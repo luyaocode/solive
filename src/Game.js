@@ -8,9 +8,7 @@ import {
   Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
   , FreezeSpell
 } from './Item.ts'
-import { GameMode, Piece_Type_Black, Piece_Type_White, DeviceType } from './ConstDefine.jsx';
-const _ = require('lodash');
-const root = document.documentElement;
+import { GameMode, Piece_Type_Black, Piece_Type_White, DeviceType, root, _ } from './ConstDefine.jsx';
 
 // 样式
 const Init_Square_Style = 'square';

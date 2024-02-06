@@ -39,6 +39,7 @@
   --item-used-status-span-color: green;
 
   --gamelog-button-width: 70vh;
+  --highest-online-users-background: linear-gradient(45deg, #ff5722, #e91e63, #9c27b0, #2196f3, #00bcd4, #4CAF50, #8BC34A, #FFC107, #FF5722);
 }
 
 .App {
@@ -1069,6 +1070,17 @@
   vertical-align: middle;
 }
 
+.highest-online-users .disconnected {
+  font-family: Arial, sans-serif;
+  /* 设置字体大小 */
+  font-weight: bold;
+  /* 设置字体加粗 */
+  color: #b3acac;
+  /* 设置字体颜色为红色 */
+  text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+  /* 添加文字阴影效果 */
+}
+
 @keyframes heartbeat {
   from {
     transform: scale(1);
@@ -1084,7 +1096,7 @@
   position: absolute;
   width: 100%;
   height: 100%;
-  background: linear-gradient(45deg, #ff5722, #e91e63, #9c27b0, #2196f3, #00bcd4, #4CAF50, #8BC34A, #FFC107, #FF5722);
+  background: var(--highest-online-users-background);
   top: 0;
   left: 0;
   z-index: -1;

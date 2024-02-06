@@ -2,7 +2,10 @@ import React, { useEffect, useState } from 'react';
 import './Game.css';
 import { Timer, GameLog, ItemManager, StartModal, Menu, Modal } from './Control.jsx'
 import Game from './Game.js'
-import { GameMode, Piece_Type_Black, DeviceType } from './ConstDefine.jsx'
+import {
+    GameMode, Piece_Type_Black, DeviceType, root,
+    Highest_Online_Users_Background
+} from './ConstDefine.jsx'
 import Client from './Client.jsx'
 
 function ChaosGomoku() {
@@ -27,6 +30,7 @@ function ChaosGomoku() {
     const [socket, setSocket] = useState(null);
     const [headCount, setHeadCount] = useState(0);
     const [historyPeekUsers, setHistoryPeekUsers] = useState(0);
+    const [netConnected, setNetConnected] = useState(false);
 
     const [nickName, setNickName] = useState();     // 昵称
     const [roomId, setRoomId] = useState();         // 房间号
@@ -110,6 +114,15 @@ function ChaosGomoku() {
         }
     }, [gameMode]);
 
+    useEffect(() => {
+        if (netConnected) {
+            root.style.setProperty('highest-online-users-background', 'gray');
+        }
+        else {
+            root.style.setProperty('highest-online-users-background', Highest_Online_Users_Background);
+        }
+    }, [netConnected]);
+
     return (
         <React.StrictMode className='game-container'>
             <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
@@ -123,14 +136,14 @@ function ChaosGomoku() {
                 setRestartRequestModalOpen={setRestartRequestModalOpen} setRestart={setRestart}
                 setRestartResponseModalOpen={setRestartResponseModalOpen} setAllIsOk={setAllIsOk}
                 setCommonModalText={setCommonModalText} setCommonModalOpen={setCommonModalOpen}
-                setSkipRound={setSkipRound}
+                setSkipRound={setSkipRound} setNetConnected={setNetConnected}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
                     <Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
                         socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
                         deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}
-                        headCount={headCount} historyPeekUsers={historyPeekUsers} />
+                        headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected} />
                 </>)
             }
             {gameMode !== GameMode.MODE_NONE && (

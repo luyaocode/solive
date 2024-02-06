@@ -474,7 +474,7 @@ function FancyTitle2({ text }) {
 function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
     socket, setNickName, setRoomId, setSeeds,
     deviceType, boardWidth, boardHeight,
-    headCount, historyPeekUsers }) {
+    headCount, historyPeekUsers, netConnected }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
@@ -555,7 +555,7 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
                     <button onClick={() => onButtonClick(GameMode.MODE_ROOM)}>房间模式</button>
                 </div>
             </div>
-            <SystemInfo headCount={headCount} historyPeekUsers={historyPeekUsers} />
+            <SystemInfo headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected} />
             <Footer />
             {enterRoomModalOpen && <EnterRoomModal modalInfo='请输入信息'
                 onOkBtnClick={enterRoom}
@@ -564,12 +564,36 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
     );
 }
 
-function SystemInfo({ headCount, historyPeekUsers }) {
+function SystemInfo({ headCount, historyPeekUsers, netConnected }) {
+    const [count, setCount] = useState(headCount);
+    const [icon, setIcon] = useState('🔥');
+    const [showPeekUsers, setShowPeekUsers] = useState(false);
+    function showHistoryPeekUsers() {
+        if (!showPeekUsers) {
+            setCount(historyPeekUsers);
+            setIcon('🔝');
+        }
+        else {
+            setCount(headCount);
+            setIcon('🔥');
+        }
+        setShowPeekUsers(!showPeekUsers);
+    }
+
+    useEffect(() => {
+        setCount(headCount);
+    }, [headCount])
 
     return (
-        <div className="highest-online-users">
-            <span className="count">{headCount}</span>
-            <span className="icon">🔥</span>
+        <div onClick={() => showHistoryPeekUsers(showPeekUsers)} disabled={!netConnected} style={{ cursor: 'pointer' }}>
+            <div className="highest-online-users">
+                {netConnected ?
+                    <>
+                        <span className="count">{count}</span>
+                        <span className="icon">{icon}</span>
+                    </> :
+                    <span className='disconnected'>离 线</span>}
+            </div>
         </div>
     );
 }

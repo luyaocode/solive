@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 import io from 'socket.io-client';
-import { GameMode, DeviceType } from './ConstDefine.jsx'
+import { GameMode, DeviceType, root } from './ConstDefine.jsx'
 
 function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
@@ -9,7 +9,8 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setPlayerLeaveRoomModalOpen,
     setPlayerDisconnectedModalOpen, setRestartRequestModalOpen, setRestart,
     setRestartResponseModalOpen, setAllIsOk,
-    setCommonModalText, setCommonModalOpen, setSkipRound }) {
+    setCommonModalText, setCommonModalOpen, setSkipRound,
+    setNetConnected }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -38,11 +39,10 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
             serverUrl = process.env.REACT_APP_BACKEND_URL;
         }
         const socket = io.connect(serverUrl);
-        // 当连接成功时触发
         setSocket(socket);
-
         socket.on('connect', () => {
             console.log('Connected to server');
+            setNetConnected(socket.connected);
             // 当从服务器接收到消息时触发
             socket.on('message', (data) => {
                 console.log('Server:', data);
@@ -131,12 +131,11 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
             socket.on('skipRound', () => {
                 setSkipRound(true);
             });
-        });
 
-        // 监听连接关闭事件
-        socket.onclose = (event) => {
-            console.log('WebSocket connection closed:', event);
-        };
+            socket.on('disconnect', () => {
+                setNetConnected(false);
+            });
+        });
         return () => {
             socket.disconnect();
         };
