@@ -52,6 +52,13 @@ function ChaosGomoku() {
     const [commonModalOpen, setCommonModalOpen] = useState(false);
 
     const [isSkipRound, setSkipRound] = useState(false);
+    const [restartInSameRoom, setRestartInSameRoom] = useState(false);
+    // useEffect(() => {
+    //     if (restartInSameRoom) {
+    //         setTimeout(() => setRestartInSameRoom(false), 1000);
+    //     }
+    // }, [restartInSameRoom]);
+
     useEffect(() => {
         if (isSkipRound) {
             setSkipRound(false);
@@ -77,7 +84,12 @@ function ChaosGomoku() {
             setTotalRound(0);
             setItems([]);
             setItemsLoaded(false);
-            setSeeds([]);
+            if (gameMode === GameMode.MODE_SIGNAL) {
+                let seeds = generateSeeds();
+                setSeeds(seeds);
+            } else {
+                setSeeds([]);
+            }
             setSynchronized(false);
             setMatched(false);
             setLastStep([]);
@@ -107,7 +119,13 @@ function ChaosGomoku() {
     }, [deviceType]);
 
     useEffect(() => {
+        if (gameMode === GameMode.MODE_NONE) {
+            setRestartInSameRoom(false);
+        }
         if (gameMode === GameMode.MODE_SIGNAL) {
+            setPieceType(Piece_Type_Black);
+            setRoomId();
+            setNickName();
             if (boardWidth !== 0 && boardHeight !== 0) {
                 setAllIsOk(true);
             }
@@ -123,6 +141,19 @@ function ChaosGomoku() {
         }
     }, [netConnected]);
 
+    function generateSeeds() {
+        let seeds = [];
+        for (let i = 0; i < 20; i++) {
+            for (let j = 0; j < 20; j++) {
+                let randomValue;
+                do { randomValue = Math.floor(Math.random() * 100) / 100; }
+                while (randomValue === 1);
+                seeds.push(randomValue);
+            }
+        }
+        return seeds;
+    }
+
     return (
         <React.StrictMode className='game-container'>
             <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
@@ -137,13 +168,15 @@ function ChaosGomoku() {
                 setRestartResponseModalOpen={setRestartResponseModalOpen} setAllIsOk={setAllIsOk}
                 setCommonModalText={setCommonModalText} setCommonModalOpen={setCommonModalOpen}
                 setSkipRound={setSkipRound} setNetConnected={setNetConnected}
+                setRestartInSameRoom={setRestartInSameRoom}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
                     <Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
                         socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
                         deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}
-                        headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected} />
+                        headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
+                        generateSeeds={generateSeeds} />
                 </>)
             }
             {gameMode !== GameMode.MODE_NONE && (
@@ -166,7 +199,7 @@ function ChaosGomoku() {
                                 gameOver={gameOver} setGameOver={setGameOver}
                                 isRestartRequestModalOpen={isRestartRequestModalOpen} setRestartRequestModalOpen={setRestartRequestModalOpen}
                                 restartResponseModalOpen={restartResponseModalOpen} setRestartResponseModalOpen={setRestartResponseModalOpen}
-                                isSkipRound={isSkipRound}
+                                isSkipRound={isSkipRound} setRestartInSameRoom={setRestartInSameRoom}
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
                                 roomId={roomId} nickName={nickName} />
@@ -177,7 +210,7 @@ function ChaosGomoku() {
                     ) : (
                         startModalOpen &&
                         <StartModal isRestart={isRestart} setStartModalOpen={setStartModalOpen} setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} matched={matched}
-                            joined={joined} setAllIsOk={setAllIsOk} />
+                            joined={joined} setAllIsOk={setAllIsOk} restartInSameRoom={restartInSameRoom} />
                     )}
                 </>)}
 

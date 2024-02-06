@@ -2,7 +2,7 @@ import './Game.css';
 import { useState, useEffect, useRef } from 'react';
 import { Howl } from 'howler';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
-import { ItemInfo, MusicPlayer, ConfirmModal, InfoModal, Modal } from './Control.jsx';
+import { ItemInfo, ConfirmModal, InfoModal, Modal, SettingsButton } from './Control.jsx';
 
 import {
   Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
@@ -761,7 +761,8 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   setGameOver, selectedItem, nextSelItem, selectedItemHistory, gameStart, setGameStart,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton,
   VolumeControlButton, logAction, isRestart, lastClick, setLastClick,
-  socket, pieceType, lastStep, gameMode, skipRound, isSkipRound }) {
+  socket, pieceType, lastStep, gameMode, skipRound, isSkipRound,
+  ExitButton, SkipButton }) {
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const renderCell = (cellValue, rowIndex, colIndex) => {
@@ -780,7 +781,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
       }
       else {
         if ((pieceType === Piece_Type_Black && !xIsNext) ||
-          pieceType === Piece_Type_White && xIsNext) {
+          (pieceType === Piece_Type_White && xIsNext)) {
           playSound(Error_Target);
           return;
         }
@@ -927,10 +928,13 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
         <div className="button-container">
           <UndoButton />
           <RedoButton />
+          <SkipButton />
           <RestartButton />
-          <SwitchSoundButton />
+          {/* <SwitchSoundButton />
           <VolumeControlButton />
-          <MusicPlayer isRestart={isRestart} />
+          <MusicPlayer isRestart={isRestart} /> */}
+          <SettingsButton SwitchSoundButton={SwitchSoundButton} VolumeControlButton={VolumeControlButton} isRestart={isRestart} />
+          <ExitButton />
         </div>
       </div>
       <div className="board-row">
@@ -1273,7 +1277,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   isPlayerDisconnectedModalOpen, setPlayerDisconnectedModalOpen,
   gameOver, setGameOver, isRestartRequestModalOpen, setRestartRequestModalOpen,
   restartResponseModalOpen, setRestartResponseModalOpen,
-  isSkipRound }) {
+  isSkipRound, setRestartInSameRoom }) {
 
   const [canSkipRound, setCanSkipRound] = useState(true);
   // 消息弹窗
@@ -1587,6 +1591,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
           setRestartModalOpen(true);
         }
       }
+      setRestartInSameRoom(true);
     }
     return (
       <button className='button-normal' onClick={onButtonClick}>{description}</button>
@@ -1594,12 +1599,12 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   }
 
   const ExitButton = () => {
-    let description = "退出";
+    let description = "退出游戏";
     function onButtonClick() {
       setConfirmModalOpen(true);
     }
     return (
-      <button className='button-normal' onClick={onButtonClick}>{description}</button>
+      <button className='button-exit' onClick={onButtonClick}>{description}</button>
     );
   }
 
@@ -1693,7 +1698,8 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
     const tempArr = [...roundMoveArr.slice(0, round + 1), currentMove];
     setRoundMoveArr(tempArr);
     if (gameMode === GameMode.MODE_MATCH || gameMode === GameMode.MODE_ROOM) {
-      if (pieceType === Piece_Type_Black && xIsNext || pieceType === Piece_Type_White && !xIsNext) {
+      if ((pieceType === Piece_Type_Black && xIsNext) ||
+        (pieceType === Piece_Type_White && !xIsNext)) {
         setCanSkipRound(true);
       }
       else {
@@ -1714,8 +1720,8 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   return (
     <div className="game">
       <div className='side-button-container'>
-        <ExitButton />
-        <SkipButton />
+        {/* <ExitButton />
+        <SkipButton /> */}
       </div>
       <div className="game-board">
         <Board xIsNext={xIsNext} board={currentBoard} setBoard={setBoard}
@@ -1727,7 +1733,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
           VolumeControlButton={VolumeControlButton} logAction={logAction}
           isRestart={isRestart} lastClick={lastClick} setLastClick={setLastClick}
           socket={socket} pieceType={pieceType} lastStep={lastStep} gameMode={gameMode}
-          skipRound={skipRound} isSkipRound={isSkipRound}
+          skipRound={skipRound} isSkipRound={isSkipRound} ExitButton={ExitButton} SkipButton={SkipButton}
         />
       </div>
       {isModalOpen && (

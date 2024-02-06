@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Input, Form, Space } from 'antd';
 import './Game.css';
-import { GameMode, GlobalCtx } from './ConstDefine.jsx'
+import { GameMode } from './ConstDefine.jsx'
 import { Howl } from 'howler';
 import {
     Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
@@ -258,8 +258,14 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
 
     useEffect(() => {
         if (seeds.length > 0) {
-            createInitItems();
-            setItemsLoaded(true);
+            let timerId;
+            timerId = setTimeout(() => {
+                createInitItems();
+                setItemsLoaded(true);
+            }, timeDelay * 1000);
+            return () => {
+                clearTimeout(timerId);
+            };
         }
     }, [seeds]);
 
@@ -325,34 +331,41 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
 }
 
 function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket, matched,
-    joined, setAllIsOk }) {
+    joined, setAllIsOk, restartInSameRoom }) {
     const [isModalOpen, setModalOpen] = useState(false);
-    let text, text2;
-    switch (gameMode) {
-        case GameMode.MODE_SIGNAL:
-            {
-                text = '正在加载棋盘...'
-                text2 = '加载成功';
-                break;
-            }
-        case GameMode.MODE_MATCH:
-            {
-                text = '正在匹配...';
-                text2 = '匹配成功';
-                break;
-            }
-        case GameMode.MODE_ROOM:
-            {
-                text = '正在进入房间...'
-                text2 = '进入成功';
-                break;
-            }
-        default: {
-            break;
-        }
-    }
+
+    const { text, text2 } = getTexts();
     const [description, setDescription] = useState(text);
     const [secondText, setSecondText] = useState(text2);
+
+    function getTexts() {
+        let text, text2;
+        switch (gameMode) {
+            case GameMode.MODE_SIGNAL:
+                {
+                    text = '正在加载棋盘...'
+                    text2 = '加载成功';
+                    break;
+                }
+            case GameMode.MODE_MATCH:
+                {
+                    text = '正在匹配...';
+                    text2 = '匹配成功';
+                    break;
+                }
+            case GameMode.MODE_ROOM:
+                {
+                    text = '正在进入房间...'
+                    text2 = '进入成功';
+                    break;
+                }
+            default: {
+                break;
+            }
+        }
+        return { text, text2 };
+    }
+
     function onCancelButtonClick() {
         setItemsLoading(false);
         setStartModalOpen(false);
@@ -375,11 +388,25 @@ function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, s
 
     useEffect(() => {
         if (isRestart) {
-            setDescription('正在重新开始');
+            // setDescription('正在重新开始...');
             setModalOpen(false);
             setAllIsOk(true);
         }
     }, [isRestart]);
+
+    //
+    useEffect(() => {
+        if (restartInSameRoom) {
+            setDescription('正在重新开始...');
+            setModalOpen(false);
+            setAllIsOk(true);
+        }
+        else {
+            const { text, text2 } = getTexts();
+            setDescription(text);
+            setSecondText(text2);
+        }
+    }, [restartInSameRoom]);
 
     return (
         <>
@@ -474,23 +501,12 @@ function FancyTitle2({ text }) {
 function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
     socket, setNickName, setRoomId, setSeeds,
     deviceType, boardWidth, boardHeight,
-    headCount, historyPeekUsers, netConnected }) {
+    headCount, historyPeekUsers, netConnected, generateSeeds }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
 
-    function generateSeeds() {
-        let seeds = [];
-        for (let i = 0; i < 20; i++) {
-            for (let j = 0; j < 20; j++) {
-                let randomValue;
-                do { randomValue = Math.floor(Math.random() * 100) / 100; }
-                while (randomValue === 1);
-                seeds.push(randomValue);
-            }
-        }
-        return seeds;
-    }
+
 
     function onButtonClick(mode) {
         if (mode === GameMode.MODE_ROOM) {
@@ -715,7 +731,30 @@ function EnterRoomModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
     );
 }
 
+function SettingsButton({ SwitchSoundButton, VolumeControlButton, isRestart }) {
+    const [isOpen, setIsOpen] = useState(false);
+
+    const toggleSettings = () => {
+        setIsOpen(!isOpen);
+    };
+
+    return (
+        <div className="settings-container">
+            <button onClick={toggleSettings} className="settings-button">
+                设置
+            </button>
+            {isOpen && (
+                <div className="settings-dropdown">
+                    <SwitchSoundButton />
+                    <VolumeControlButton />
+                    <MusicPlayer isRestart={isRestart} />
+                </div>
+            )}
+        </div>
+    );
+}
+
 export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
-    Menu, ConfirmModal, InfoModal, Modal
+    Menu, ConfirmModal, InfoModal, Modal, SettingsButton
 };

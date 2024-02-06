@@ -1,6 +1,6 @@
-import React, { useEffect } from 'react';
+import { useEffect } from 'react';
 import io from 'socket.io-client';
-import { GameMode, DeviceType, root } from './ConstDefine.jsx'
+import { DeviceType } from './ConstDefine.jsx'
 
 function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
@@ -10,7 +10,7 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setPlayerDisconnectedModalOpen, setRestartRequestModalOpen, setRestart,
     setRestartResponseModalOpen, setAllIsOk,
     setCommonModalText, setCommonModalOpen, setSkipRound,
-    setNetConnected }) {
+    setNetConnected, setRestartInSameRoom }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -111,6 +111,7 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
 
             socket.on('restart_resp', ({ resp, socketId }) => {
                 if (resp) {
+                    setRestartInSameRoom(true);
                     if (socketId !== socket.id) {
                         setCommonModalText('对方已同意');
                         setCommonModalOpen(true);
