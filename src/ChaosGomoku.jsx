@@ -116,10 +116,10 @@ function ChaosGomoku() {
 
     useEffect(() => {
         if (netConnected) {
-            root.style.setProperty('highest-online-users-background', 'gray');
+            root.style.setProperty('--highest-online-users-background', Highest_Online_Users_Background);
         }
         else {
-            root.style.setProperty('highest-online-users-background', Highest_Online_Users_Background);
+            root.style.setProperty('--highest-online-users-background', 'gray');
         }
     }, [netConnected]);
 
