@@ -2,7 +2,7 @@ import './Game.css';
 import { useState, useEffect, useRef } from 'react';
 import { Howl } from 'howler';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
-import { ItemInfo, MusicPlayer, ConfirmModal, InfoModal } from './Control.jsx';
+import { ItemInfo, MusicPlayer, ConfirmModal, InfoModal, Modal } from './Control.jsx';
 
 import {
   Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
@@ -1257,23 +1257,26 @@ function VolumeControlButton() {
   );
 };
 
-function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound,
+function Game({ boardWidth, boardHeight, items, setItems, setRestart,
+  round, setRound, roundMoveArr, setRoundMoveArr, totalRound, setTotalRound,
   gameLog, setGameLog, isRestart, gameMode, setGameMode, GameMode,
   socket, pieceType, lastStep, seeds, deviceType, roomDeviceType,
   isPlayerLeaveRoomModalOpen, setPlayerLeaveRoomModalOpen,
-  isPlayerDisconnectedModalOpen, setPlayerDisconnectedModalOpen }) {
+  isPlayerDisconnectedModalOpen, setPlayerDisconnectedModalOpen,
+  gameOver, setGameOver, isRestartRequestModalOpen, setRestartRequestModalOpen,
+  restartResponseModalOpen, setRestartResponseModalOpen }) {
 
   // 消息弹窗
   const [isModalOpen, setModalOpen] = useState(false);
   const [modalInfo, setModalInfo] = useState('');
   const timeoutIdRef = useRef(null);
 
+
   const [gameStart, setGameStart] = useState(false);
   const [board, setBoard] = useState(() => createBoard(boardWidth, boardHeight, setGameStart));
   const [history, setHistory] = useState([board]);
   const [currentMove, setCurrentMove] = useState(0);
   const currentBoard = history[currentMove];
-  const [gameOver, setGameOver] = useState(false);
   let random1, random2;
   if (gameMode === GameMode.MODE_ROOM || gameMode === GameMode.MODE_MATCH) {
     random1 = seeds[0];
@@ -1284,9 +1287,9 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
   }
   const [selectedItem, setSelectedItem] = useState(items[Math.floor(random1 * items.length)]);
   const [nextSelItem, setNextSelItem] = useState(items[Math.floor(random2 * items.length)]);
-  // console.log('selectedItem:' + selectedItem.cname);
-  // console.log('nextSelItem:' + nextSelItem.cname);
-  // console.log('++++++');
+  console.log('selectedItem:' + selectedItem.cname);
+  console.log('nextSelItem:' + nextSelItem.cname);
+  console.log('++++++');
 
   const [selectedItemHistory, setSelectedItemHistory] = useState([selectedItem]);
   const [xIsNext, setIsNext] = useState(true);
@@ -1295,6 +1298,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
   const [isConfirmModalOpen, setConfirmModalOpen] = useState(false);
   const [isSkipModalOpen, setSkipModalOpen] = useState(false);
   const [lastClick, setLastClick] = useState([null, null]);
+  const [isRestartModalOpen, setRestartModalOpen] = useState(false);
 
   function pickRandomItem() {
     if (selectedItem.isUsed) {
@@ -1316,17 +1320,17 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
 
       setNextSelItem(nextRandomItem);
 
-      // console.log('random:' + random);
-      // console.log('tempLength:' + temp.length);
-      // console.log('itemsLength:' + items.length);
-      // console.log('nextIndex:', +nextIndex);
-      // if (nextSelItem === nextRandomItem) {
-      //   console.log('同一个对象');
-      // }
-      // console.log('lastSelItem:' + selectedItem.cname + ',used:' + selectedItem.isUsed)
-      // console.log('selectedItem:' + nextSelItem.cname + ',used:' + nextSelItem.isUsed);
-      // console.log('nextSelItem:' + nextRandomItem.cname + ',used:' + nextRandomItem.isUsed);
-      // console.log('-----');
+      console.log('random:' + random);
+      console.log('tempLength:' + temp.length);
+      console.log('itemsLength:' + items.length);
+      console.log('nextIndex:', +nextIndex);
+      if (nextSelItem === nextRandomItem) {
+        console.log('同一个对象');
+      }
+      console.log('lastSelItem:' + selectedItem.cname + ',used:' + selectedItem.isUsed)
+      console.log('selectedItem:' + nextSelItem.cname + ',used:' + nextSelItem.isUsed);
+      console.log('nextSelItem:' + nextRandomItem.cname + ',used:' + nextRandomItem.isUsed);
+      console.log('-----');
     }
     const nextItemHistory = [...selectedItemHistory.slice(0, currentMove + 1), selectedItem];
     setSelectedItemHistory(nextItemHistory);
@@ -1542,10 +1546,17 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
     setCurrentMove(0);
     const initItemHistory = [...selectedItemHistory.slice(0, 1)];
     setSelectedItemHistory(initItemHistory);
-    setSelectedItem(items[Math.floor(Math.random() * items.length)]);
-    setNextSelItem(items[Math.floor(Math.random() * items.length)]);
+    let random1, random2;
+    if (gameMode === GameMode.MODE_ROOM || gameMode === GameMode.MODE_MATCH) {
+      random1 = seeds[0];
+      random2 = seeds[1];
+    } else {
+      random1 = Math.random();
+      random2 = Math.random();
+    }
+    setSelectedItem(items[Math.floor(random1 * items.length)]);
+    setNextSelItem(items[Math.floor(random2 * items.length)]);
     setGameOver(false);
-    setRestart(true);
     setIsNext(true);
     setRound(1);
   }
@@ -1553,9 +1564,17 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
   const RestartButton = () => {
     let description = RESTART_GAME;
     function onButtonClick() {
-      restartGame();
-
-      // socket.emit('restart', gameMode);
+      if (gameMode === GameMode.MODE_SIGNAL) {
+        setRestart(true);
+      }
+      else {
+        if (gameOver) {
+          socket.emit('restart', { gameMode, gameOver });
+        }
+        else {
+          setRestartModalOpen(true);
+        }
+      }
     }
     return (
       <button className='button-normal' onClick={onButtonClick}>{description}</button>
@@ -1663,6 +1682,12 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
     setRoundMoveArr(tempArr);
   }, [xIsNext]);
 
+  useEffect(() => {
+    if (isRestart) {
+      restartGame();
+    }
+  }, [isRestart]);
+
   return (
     <div className="game">
       <div className='side-button-container'>
@@ -1702,6 +1727,31 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart, round, set
       )}
       {isPlayerDisconnectedModalOpen && (
         <InfoModal modalInfo='对方断开连接' setModalOpen={setPlayerDisconnectedModalOpen} />
+      )}
+      {isRestartModalOpen && (
+        <ConfirmModal modalInfo='游戏仍未结束，确定重新开始吗？' onOkBtnClick={() => {
+          setRestartModalOpen(false);
+          setRestartResponseModalOpen(true);
+          setTimeout(() => {
+            socket.emit('restart', { gameMode, gameOver });
+          }, 1000);
+        }} OnCancelBtnClick={() => setRestartModalOpen(false)} />
+      )}
+      {restartResponseModalOpen && (
+        <Modal modalInfo='等待对方回应...' setModalOpen={setRestartResponseModalOpen} timeDelay={false} />
+      )}
+      {isRestartRequestModalOpen && (
+        <ConfirmModal modalInfo=
+          {gameOver ? '对方邀请您再来一局，是否接受？' : '游戏仍未结束，对方请求重新开局，确定重新开始吗？'}
+          onOkBtnClick={() => {
+            // setRestart(true);
+            setRestartRequestModalOpen(false);
+            socket.emit('restart_response', true);
+          }}
+          OnCancelBtnClick={() => {
+            setRestartRequestModalOpen(false);
+            socket.emit('restart_response', false);
+          }} />
       )}
     </div>
   );

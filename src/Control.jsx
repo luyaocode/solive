@@ -324,7 +324,7 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
     return null;
 }
 
-function StartModal({ setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket, matched,
+function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket, matched,
     joined, setAllIsOk }) {
     const [isModalOpen, setModalOpen] = useState(false);
     let text, text2;
@@ -372,6 +372,14 @@ function StartModal({ setStartModalOpen, setItemsLoading, gameMode, setGameMode,
             setModalOpen(true);
         }
     }, [matched, joined]);
+
+    useEffect(() => {
+        if (isRestart) {
+            setDescription('正在重新开始');
+            setModalOpen(false);
+            setAllIsOk(true);
+        }
+    }, [isRestart]);
 
     return (
         <>
@@ -607,10 +615,18 @@ function InfoModal({ modalInfo, setModalOpen }) {
     );
 }
 
-function Modal({ modalInfo, setModalOpen, timeDelay, afterDelay }) {
+// 若干时间之后自动关闭的Modal
+function Modal({ modalInfo, setModalOpen, timeDelay = 1000, afterDelay }) {
     useEffect(() => {
-        const timer = setTimeout(() => { setModalOpen(false); afterDelay(); }, timeDelay);
-        return () => clearTimeout(timer);
+        if (timeDelay) {
+            const timer = setTimeout(() => {
+                setModalOpen(false);
+                if (afterDelay) {
+                    afterDelay();
+                }
+            }, timeDelay);
+            return () => clearTimeout(timer);
+        }
     });
     return (
         <div className="modal-overlay">

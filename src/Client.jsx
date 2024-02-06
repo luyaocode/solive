@@ -5,8 +5,10 @@ import { GameMode, DeviceType } from './ConstDefine.jsx'
 function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
     setSynchronized, setHeadCount, setHistoryPeekUsers, setRoomId,
-    setNickName, setMatched, setJoined, setPlayerLeaveRoomModalOpen,
-    setPlayerDisconnectedModalOpen }) {
+    setNickName, setMatched, setJoined, setStartModalOpen,
+    setPlayerLeaveRoomModalOpen,
+    setPlayerDisconnectedModalOpen, setRestartRequestModalOpen, setRestart,
+    setRestartResponseModalOpen, setAllIsOk }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -100,6 +102,22 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
             socket.on('playerDisconnected', (data) => {
                 console.log('Server:', data);
                 setPlayerDisconnectedModalOpen(true);
+            });
+
+            socket.on('restart_request', ({ gameMode, nickName, gameOver }) => {
+                setRestartRequestModalOpen(true);
+            });
+
+            socket.on('restart_resp', (resp) => {
+                if (resp) {
+                    setRestart(true);
+                    setStartModalOpen(true);
+                    setAllIsOk(false);
+                }
+                else {
+
+                }
+                setRestartResponseModalOpen(false);
             });
         });
 
