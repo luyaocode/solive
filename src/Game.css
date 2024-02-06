@@ -93,8 +93,7 @@
   font-size: var(--square-size);
   font-weight: bold;
   line-height: var(--square-size);
-  margin-right: -1px;
-  margin-top: -1px;
+  margin: 0px;
   padding: 0;
   text-align: center;
   width: var(--square-size);
@@ -114,8 +113,7 @@
   font-weight: bold;
   line-height: var(--square-size);
   height: var(--square-size);
-  margin-right: -1px;
-  margin-top: -1px;
+  margin: 0px;
   padding: 0;
   text-align: center;
   width: var(--square-size);
@@ -134,8 +132,7 @@
   font-weight: bold;
   line-height: var(--square-size);
   height: var(--square-size);
-  margin-right: -1px;
-  margin-top: -1px;
+  margin: 0px;
   padding: 0;
   text-align: center;
   width: var(--square-size);
@@ -155,8 +152,7 @@
   font-weight: bold;
   line-height: var(--square-size);
   height: var(--square-size);
-  margin-right: -1px;
-  margin-top: -1px;
+  margin: 0px;
   padding: 0;
   text-align: center;
   width: var(--square-size);
@@ -176,8 +172,7 @@
   font-weight: bold;
   line-height: var(--square-size);
   height: var(--square-size);
-  margin-right: -1px;
-  margin-top: -1px;
+  margin: 0px;
   padding: 0;
   text-align: center;
   width: var(--square-size);
@@ -192,8 +187,7 @@
   font-weight: bold;
   line-height: var(--square-size);
   height: var(--square-size);
-  margin-right: -1px;
-  margin-top: -1px;
+  margin: 0px;
   padding: 0;
   text-align: center;
   width: var(--square-size);
