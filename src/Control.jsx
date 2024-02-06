@@ -149,7 +149,7 @@ function ItemInfo({ item }) {
                 <div className="item-info-overlay" onClick={handleCloseModalOutside}>
                     <div className="item-info">
                         <span className="item-info-close-btn" onClick={closeModal}>X</span>
-                        <h4>{name}：</h4>
+                        <h4>{cname}：</h4>
                         <p>{info}</p>
                     </div>
                 </div>

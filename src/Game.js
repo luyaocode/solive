@@ -893,7 +893,10 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
 
   let currentPiece = xIsNext ? '●' : '○';
   let nextPiece = xIsNext ? '○' : '●';
-  let description = currentPiece === pieceType ? '（我）' : '';
+  let description = '';
+  if (gameMode !== GameMode.MODE_SIGNAL) {
+    description = currentPiece === pieceType ? '（我）' : '';
+  }
   // let currentItem = selectedItemHistory[currentMove];
   let currentItem = selectedItem;
 
@@ -1533,18 +1536,20 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   });
 
   const UndoButton = () => {
+    let validate = (gameMode === GameMode.MODE_MATCH || gameMode === GameMode.MODE_ROOM) ? true : false;
     let description = "悔棋";
     const lastRound = round - 1;
     return (
-      <button className='button-normal' onClick={() => jumpTo(lastRound, true)}>{description}</button>
+      <button className='button-normal' onClick={() => jumpTo(lastRound, true)} disabled={validate}>{description}</button>
     );
   }
 
   const RedoButton = () => {
+    let validate = (gameMode === GameMode.MODE_MATCH || gameMode === GameMode.MODE_ROOM) ? true : false;
     let description = "还原";
     const nextRound = round + 1;
     return (
-      <button className='button-normal' onClick={() => jumpTo(nextRound, false, true)}>{description}</button>
+      <button className='button-normal' onClick={() => jumpTo(nextRound, false, true)} disabled={validate}>{description}</button>
     );
   }
 
@@ -1689,11 +1694,16 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
     setTotalRound(round + 1);
     const tempArr = [...roundMoveArr.slice(0, round + 1), currentMove];
     setRoundMoveArr(tempArr);
-    if (pieceType === Piece_Type_Black && xIsNext || pieceType === Piece_Type_White && !xIsNext) {
-      setCanSkipRound(true);
+    if (gameMode === GameMode.MODE_MATCH || gameMode === GameMode.MODE_ROOM) {
+      if (pieceType === Piece_Type_Black && xIsNext || pieceType === Piece_Type_White && !xIsNext) {
+        setCanSkipRound(true);
+      }
+      else {
+        setCanSkipRound(false);
+      }
     }
     else {
-      setCanSkipRound(false);
+      setCanSkipRound(true);
     }
   }, [xIsNext]);
 
