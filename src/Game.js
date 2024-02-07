@@ -1277,7 +1277,8 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   isPlayerDisconnectedModalOpen, setPlayerDisconnectedModalOpen,
   gameOver, setGameOver, isRestartRequestModalOpen, setRestartRequestModalOpen,
   restartResponseModalOpen, setRestartResponseModalOpen,
-  isSkipRound, setRestartInSameRoom }) {
+  isSkipRound, setRestartInSameRoom, isUndoRound,
+  setUndoRoundRequestModalOpen }) {
 
   const [canSkipRound, setCanSkipRound] = useState(true);
   // 消息弹窗
@@ -1537,12 +1538,26 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
     );
   });
 
+  function isMyRound() {
+    return (pieceType === Piece_Type_Black && xIsNext) || (pieceType === Piece_Type_White && !xIsNext);
+  }
+
   const UndoButton = () => {
-    let validate = (gameMode === GameMode.MODE_MATCH || gameMode === GameMode.MODE_ROOM) ? true : false;
     let description = "悔棋";
-    const lastRound = round - 1;
     return (
-      <button className='button-normal' onClick={() => jumpTo(lastRound, true)} disabled={validate}>{description}</button>
+      <button className='button-normal' onClick={() => {
+        if (gameMode === GameMode.MODE_SIGNAL) {
+          jumpTo(round - 1, true, false);
+        }
+        else {
+          setUndoRoundRequestModalOpen(true);
+          socket.emit('undoRoundRequest');
+        }
+
+      }} disabled={gameMode === GameMode.MODE_SIGNAL ? (round === 1) : (isMyRound() ||
+        (round === 1) ||
+        (pieceType === Piece_Type_White && round === 2))
+      }>{description}</button>
     );
   }
 
@@ -1551,7 +1566,8 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
     let description = "还原";
     const nextRound = round + 1;
     return (
-      <button className='button-normal' onClick={() => jumpTo(nextRound, false, true)} disabled={validate}>{description}</button>
+      <button className='button-normal' onClick={() => jumpTo(nextRound, false, true)}
+        disabled={validate || (round === 1) || (round === totalRound)}>{description}</button>
     );
   }
 
@@ -1716,6 +1732,13 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
       restartGame();
     }
   }, [isRestart]);
+
+  useEffect(() => {
+    if (isUndoRound) {
+      const nextRound = round - 1;
+      jumpTo(nextRound, true, false);
+    }
+  }, [isUndoRound]);
 
   return (
     <div className="game">

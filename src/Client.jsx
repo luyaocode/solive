@@ -10,7 +10,8 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setPlayerDisconnectedModalOpen, setRestartRequestModalOpen, setRestart,
     setRestartResponseModalOpen, setAllIsOk,
     setCommonModalText, setCommonModalOpen, setSkipRound,
-    setNetConnected, setRestartInSameRoom }) {
+    setNetConnected, setRestartInSameRoom, setUndoRound,
+    setUndoRoundRequestModalOpen, setUndoRoundResponseModalOpen }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -131,6 +132,26 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
 
             socket.on('skipRound', () => {
                 setSkipRound(true);
+            });
+
+            socket.on('undoRoundRequest', () => {
+                setUndoRoundResponseModalOpen(true);
+            });
+
+            socket.on('undoRound', ({ resp, socketId }) => {
+                if (resp) {
+                    setUndoRound(true);
+                    if (socketId !== socket.id) {
+                        setUndoRoundRequestModalOpen(false);
+                        setCommonModalText('对方已同意');
+                        setCommonModalOpen(true);
+                    }
+                }
+                else if (socketId !== socket.id) {
+                    setUndoRoundRequestModalOpen(false);
+                    setCommonModalText('对方已拒绝');
+                    setCommonModalOpen(true);
+                }
             });
 
             socket.on('disconnect', () => {

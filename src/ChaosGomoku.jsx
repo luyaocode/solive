@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import './Game.css';
-import { Timer, GameLog, ItemManager, StartModal, Menu, Modal } from './Control.jsx'
+import { Timer, GameLog, ItemManager, StartModal, Menu, Modal, ConfirmModal } from './Control.jsx'
 import Game from './Game.js'
 import {
     GameMode, Piece_Type_Black, DeviceType, root,
@@ -52,12 +52,15 @@ function ChaosGomoku() {
     const [commonModalOpen, setCommonModalOpen] = useState(false);
 
     const [isSkipRound, setSkipRound] = useState(false);
-    const [restartInSameRoom, setRestartInSameRoom] = useState(false);
-    // useEffect(() => {
-    //     if (restartInSameRoom) {
-    //         setTimeout(() => setRestartInSameRoom(false), 1000);
-    //     }
-    // }, [restartInSameRoom]);
+    const [restartInSameRoom, setRestartInSameRoom] = useState(false); // 是否在同一房间重开
+    const [isUndoRound, setUndoRound] = useState(false); // 悔棋
+    const [undoRoundRequestModalOpen, setUndoRoundRequestModalOpen] = useState(false);
+    const [undoRoundResponseModalOpen, setUndoRoundResponseModalOpen] = useState(false);
+    useEffect(() => {
+        if (isUndoRound) {
+            setUndoRound(false);
+        }
+    }, [isUndoRound]);
 
     useEffect(() => {
         if (isSkipRound) {
@@ -168,7 +171,9 @@ function ChaosGomoku() {
                 setRestartResponseModalOpen={setRestartResponseModalOpen} setAllIsOk={setAllIsOk}
                 setCommonModalText={setCommonModalText} setCommonModalOpen={setCommonModalOpen}
                 setSkipRound={setSkipRound} setNetConnected={setNetConnected}
-                setRestartInSameRoom={setRestartInSameRoom}
+                setRestartInSameRoom={setRestartInSameRoom} setUndoRound={setUndoRound}
+                setUndoRoundRequestModalOpen={setUndoRoundRequestModalOpen}
+                setUndoRoundResponseModalOpen={setUndoRoundResponseModalOpen}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
@@ -200,11 +205,27 @@ function ChaosGomoku() {
                                 isRestartRequestModalOpen={isRestartRequestModalOpen} setRestartRequestModalOpen={setRestartRequestModalOpen}
                                 restartResponseModalOpen={restartResponseModalOpen} setRestartResponseModalOpen={setRestartResponseModalOpen}
                                 isSkipRound={isSkipRound} setRestartInSameRoom={setRestartInSameRoom}
+                                isUndoRound={isUndoRound}
+                                setUndoRoundRequestModalOpen={setUndoRoundRequestModalOpen}
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
                                 roomId={roomId} nickName={nickName} />
                             {commonModalOpen &&
                                 <Modal modalInfo={commonModalText} setModalOpen={setCommonModalOpen} />
+                            }
+                            {undoRoundRequestModalOpen &&
+                                <Modal modalInfo='等待对方回应...' setModalOpen={setUndoRoundRequestModalOpen} timeDelay={false} />
+                            }
+                            {
+                                undoRoundResponseModalOpen &&
+                                <ConfirmModal modalInfo='对方请求悔棋，是否同意？' onOkBtnClick={() => {
+                                    socket.emit('undoRoundResponse', true);
+                                    setUndoRoundResponseModalOpen(false);
+                                }} OnCancelBtnClick={() => {
+                                    socket.emit('undoRoundResponse', false);
+                                    setUndoRoundResponseModalOpen(false);
+                                }
+                                } />
                             }
                         </>
                     ) : (
