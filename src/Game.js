@@ -930,9 +930,6 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
           <RedoButton />
           <SkipButton />
           <RestartButton />
-          {/* <SwitchSoundButton />
-          <VolumeControlButton />
-          <MusicPlayer isRestart={isRestart} /> */}
           <SettingsButton SwitchSoundButton={SwitchSoundButton} VolumeControlButton={VolumeControlButton} isRestart={isRestart} />
           <ExitButton />
         </div>

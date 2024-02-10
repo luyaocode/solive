@@ -733,23 +733,47 @@ function EnterRoomModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
 
 function SettingsButton({ SwitchSoundButton, VolumeControlButton, isRestart }) {
     const [isOpen, setIsOpen] = useState(false);
+    const buttonRef = useRef(null);
+    const dropdownRef = useRef(null);
 
     const toggleSettings = () => {
         setIsOpen(!isOpen);
     };
 
+    const closeModal = () => {
+        setIsOpen(false);
+    };
+
+    useEffect(() => {
+        function handleClickOutside(event) {
+            if (
+                dropdownRef.current &&
+                !dropdownRef.current.contains(event.target) &&
+                buttonRef.current &&
+                !buttonRef.current.contains(event.target)
+            ) {
+                setIsOpen(false);
+            }
+        }
+
+        // 添加事件监听器
+        document.addEventListener('mousedown', handleClickOutside);
+        return () => {
+            // 卸载时移除事件监听器
+            document.removeEventListener('mousedown', handleClickOutside);
+        };
+    }, []);
+
     return (
         <div className="settings-container">
-            <button onClick={toggleSettings} className="settings-button">
+            <button ref={buttonRef} onClick={toggleSettings} className="settings-button">
                 设置
             </button>
-            {isOpen && (
-                <div className="settings-dropdown">
-                    <SwitchSoundButton />
-                    <VolumeControlButton />
-                    <MusicPlayer isRestart={isRestart} />
-                </div>
-            )}
+            <div ref={dropdownRef} className='settings-dropdown' style={{ display: isOpen ? 'block' : 'none' }}>
+                <SwitchSoundButton />
+                <VolumeControlButton />
+                <MusicPlayer isRestart={isRestart} />
+            </div>
         </div>
     );
 }
