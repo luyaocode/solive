@@ -1624,7 +1624,12 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   const SkipButton = () => {
     let description = "跳过";
     function onButtonClick() {
-      setSkipModalOpen(true);
+      if (gameMode === GameMode.MODE_SIGNAL) {
+        skipRound();
+      }
+      else {
+        setSkipModalOpen(true);
+      }
     }
     return (
       <button className='button-normal' onClick={onButtonClick} disabled={!canSkipRound}>{description}</button>
@@ -1645,7 +1650,9 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
     }
     pickRandomItem();
     setIsNext(!xIsNext);
-    setSkipModalOpen(false);
+    if (gameMode !== GameMode.MODE_SIGNAL) {
+      setSkipModalOpen(false);
+    }
   }
 
   function exitGame() {
