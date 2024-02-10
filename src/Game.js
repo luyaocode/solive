@@ -775,6 +775,11 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   };
 
   function handleClick(i, j, isEnemyTurn) {
+    if (gameOver) {
+      openModal("游戏已结束！再来一局吧", 3000);
+      return;
+    }
+
     if (gameMode !== GameMode.MODE_SIGNAL) {
       if (isEnemyTurn) {
 
@@ -793,10 +798,6 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
       setGameStart(false);
     }
 
-    if (gameOver) {
-      openModal("游戏已结束！再来一局吧", 3000);
-      return;
-    }
     if (board[i][j].type !== '') {
       if (!selectedItem.before) {
         playSound(Error_Target);
@@ -1551,9 +1552,9 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
           socket.emit('undoRoundRequest');
         }
 
-      }} disabled={gameMode === GameMode.MODE_SIGNAL ? (round === 1) : (isMyRound() ||
+      }} disabled={gameOver ? true : (gameMode === GameMode.MODE_SIGNAL ? (round === 1) : (isMyRound() ||
         (round === 1) ||
-        (pieceType === Piece_Type_White && round === 2))
+        (pieceType === Piece_Type_White && round === 2)))
       }>{description}</button>
     );
   }
@@ -1717,7 +1718,10 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
     setTotalRound(round + 1);
     const tempArr = [...roundMoveArr.slice(0, round + 1), currentMove];
     setRoundMoveArr(tempArr);
-    if (gameMode === GameMode.MODE_MATCH || gameMode === GameMode.MODE_ROOM) {
+    if (gameOver) {
+      setCanSkipRound(false);
+    }
+    else if (gameMode === GameMode.MODE_MATCH || gameMode === GameMode.MODE_ROOM) {
       if ((pieceType === Piece_Type_Black && xIsNext) ||
         (pieceType === Piece_Type_White && !xIsNext)) {
         setCanSkipRound(true);
