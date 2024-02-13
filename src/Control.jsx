@@ -509,7 +509,7 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
     deviceType, boardWidth, boardHeight,
     headCount, historyPeekUsers, netConnected, generateSeeds,
     isLoginModalOpen, setLoginModalOpen, isLoginSuccess,
-    selectedTable, setSelectedTable }) {
+    selectedTable, setSelectedTable, setTableViewOpen }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
@@ -596,7 +596,7 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
             </div>
             <SystemInfo headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected} />
             <LoginButton modalOpen={isLoginModalOpen} setModalOpen={setLoginModalOpen}
-                isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable} />
+                isLoginSuccess={isLoginSuccess} setTableViewOpen={setTableViewOpen} />
             <Footer />
             {enterRoomModalOpen && <EnterRoomModal modalInfo='请输入信息'
                 onOkBtnClick={enterRoom}
@@ -645,9 +645,23 @@ function SystemInfo({ headCount, historyPeekUsers, netConnected }) {
     );
 }
 
-function TableViewer({ selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData }) {
+function TableViewer({ selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData, setTableViewOpen }) {
+    function handleTableSelect(e) {
+        setSelectedTable(e.target.value);
+    }
+
     return (
         <>
+            <div className='table-container'>
+                <button className="button-normal" type="primary" onClick={() => setTableViewOpen(false)}>
+                    &times; 退出
+                </button>
+                <Radio.Group onChange={handleTableSelect} value={selectedTable} >
+                    <Radio.Button value={Table_Client_Ips}>IP登录表</Radio.Button>
+                    <Radio.Button value={Table_Game_Info}>所有对局表</Radio.Button>
+                    <Radio.Button value={Table_Step_Info}>单次对局表</Radio.Button>
+                </Radio.Group>
+            </div>
             {selectedTable === Table_Client_Ips && <IpLoginTable data={clientIpsData} setSelectedTable={setSelectedTable} />}
             {selectedTable === Table_Game_Info && <AllGamesTable data={gameInfoData} setSelectedTable={setSelectedTable} />}
             {selectedTable === Table_Step_Info && <SingleGameTable data={stepInfoData} setSelectedTable={setSelectedTable} />}
@@ -655,15 +669,14 @@ function TableViewer({ selectedTable, setSelectedTable, clientIpsData, gameInfoD
     );
 }
 
-function LoginButton({ modalOpen, setModalOpen, isLoginSuccess, selectedTable, setSelectedTable }) {
+function LoginButton({ modalOpen, setModalOpen, isLoginSuccess, setTableViewOpen }) {
     function onClick() {
         if (isLoginSuccess === LoginStatus.LOGOUT) {
             setModalOpen(!modalOpen);
         }
-    }
-
-    function handleTableSelect(e) {
-        setSelectedTable(e.target.value);
+        else if (isLoginSuccess === LoginStatus.OK) {
+            setTableViewOpen(true);
+        }
     }
 
     return (
@@ -671,16 +684,6 @@ function LoginButton({ modalOpen, setModalOpen, isLoginSuccess, selectedTable, s
             <div className="loginButton" onClick={onClick}>
                 <span>☁️</span>
             </div>
-            {isLoginSuccess === LoginStatus.OK && !modalOpen &&
-                <div>
-                    <h1>选择表格：</h1>
-                    <Radio.Group onChange={handleTableSelect} value={selectedTable}>
-                        <Radio.Button value={Table_Client_Ips}>IP登录表</Radio.Button>
-                        <Radio.Button value={Table_Game_Info}>所有对局表</Radio.Button>
-                        <Radio.Button value={Table_Step_Info}>单次对局表</Radio.Button>
-                    </Radio.Group>
-                </div>
-            }
         </>
     );
 }
@@ -689,10 +692,10 @@ function IpLoginTable({ data, setSelectedTable }) {
     return (
         <>
             <div className='table-container'>
-                <Button className="close-button" type="primary" onClick={() => setSelectedTable(null)}>
+                <button className="button-normal" type="primary" onClick={() => setSelectedTable(null)}>
                     &times; 关闭
-                </Button>
-                <Table dataSource={data} columns={Config_ClientIpsColumns} />
+                </button>
+                <Table dataSource={data} columns={Config_ClientIpsColumns} scroll={{ x: 'max-content' }} />
             </div>
         </>
     );
@@ -702,10 +705,10 @@ function AllGamesTable({ data, setSelectedTable }) {
     return (
         <>
             <div className='table-container'>
-                <Button className="close-button" type="primary" onClick={() => setSelectedTable(null)}>
+                <button className="button-normal" type="primary" onClick={() => setSelectedTable(null)}>
                     &times; 关闭
-                </Button>
-                <Table dataSource={data} columns={Config_GameInfoColumns} />
+                </button>
+                <Table dataSource={data} columns={Config_GameInfoColumns} scroll={{ x: 'max-content' }} />
             </div>
         </>
     );
@@ -715,10 +718,10 @@ function SingleGameTable({ data, setSelectedTable }) {
     return (
         <>
             <div className='table-container'>
-                <Button className="close-button" type="primary" onClick={() => setSelectedTable(null)}>
+                <button className="button-normal" type="primary" onClick={() => setSelectedTable(null)}>
                     &times; 关闭
-                </Button>
-                <Table dataSource={data} columns={Config_StepInfoColumns} />
+                </button>
+                <Table dataSource={data} columns={Config_StepInfoColumns} scroll={{ x: 'max-content' }} />
             </div>
         </>
     );

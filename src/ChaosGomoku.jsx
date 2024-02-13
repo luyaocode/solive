@@ -11,7 +11,6 @@ import {
     LoginStatus
 } from './ConstDefine.jsx'
 import Client from './Client.jsx'
-import { TableBody } from '@mui/material';
 
 function ChaosGomoku() {
     const [boardWidth, setBoardWidth] = useState(0);
@@ -69,6 +68,7 @@ function ChaosGomoku() {
     const [gameInfoData, setGameInfoData] = useState([]);
     const [stepInfoData, setStepInfoData] = useState([]);
     const [selectedTable, setSelectedTable] = useState(null);
+    const [tableViewOpen, setTableViewOpen] = useState(false);
 
     useEffect(() => {
         if (isUndoRound) {
@@ -210,14 +210,15 @@ function ChaosGomoku() {
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
-                    {selectedTable ?
-                        <TableViewer {...{ selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData }} /> :
+                    {tableViewOpen ?
+                        <TableViewer {...{ selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData, setTableViewOpen }} /> :
                         (<Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
                             socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
                             deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}
                             headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
                             generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
-                            isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable} />)}
+                            isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
+                            setTableViewOpen={setTableViewOpen} />)}
                 </>)
             }
             {gameMode !== GameMode.MODE_NONE && (

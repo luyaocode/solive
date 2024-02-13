@@ -1248,5 +1248,8 @@
 /* 数据表 */
 .table-container {
   margin-top: 10px;
+  display: flex;
+  flex-direction: column;
+
   /* 根据需要设置上边距值 */
 }
