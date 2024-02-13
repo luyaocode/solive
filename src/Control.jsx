@@ -1,7 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Input, Form, Space } from 'antd';
+import { Button, Input, Form, Space, Radio, Table } from 'antd';
 import './Game.css';
-import { GameMode } from './ConstDefine.jsx'
+import {
+    Config_ClientIpsColumns,
+    Config_GameInfoColumns,
+    Config_StepInfoColumns,
+    GameMode, LoginStatus,
+    Table_Client_Ips, Table_Game_Info, Table_Step_Info
+} from './ConstDefine.jsx'
 import { Howl } from 'howler';
 import {
     Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
@@ -501,12 +507,13 @@ function FancyTitle2({ text }) {
 function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
     socket, setNickName, setRoomId, setSeeds,
     deviceType, boardWidth, boardHeight,
-    headCount, historyPeekUsers, netConnected, generateSeeds }) {
+    headCount, historyPeekUsers, netConnected, generateSeeds,
+    isLoginModalOpen, setLoginModalOpen, isLoginSuccess,
+    selectedTable, setSelectedTable }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
-
-
+    const [loginResultModalOpen, setLoginResultModalOpen] = useState(false);
 
     function onButtonClick(mode) {
         if (mode === GameMode.MODE_ROOM) {
@@ -543,12 +550,28 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
         setGameMode(GameMode.MODE_ROOM);
     }
 
+    function login(account, passwd) {
+        socket.emit('login', { account, passwd });
+    }
+
     function sendMessage(roomId, nickName) {
         // 向服务器发送加入房间的请求，附带房间 ID 和昵称
         socket.emit('joinRoom', { roomId, nickName, deviceType, boardWidth, boardHeight });
         setNickName(nickName);
         setRoomId(roomId);
     }
+
+    useEffect(() => {
+        if (isLoginSuccess === LoginStatus.LOGOUT) {
+            return;
+        }
+        if (isLoginModalOpen) {
+            setLoginResultModalOpen(true);
+        }
+        if (isLoginSuccess === LoginStatus.OK) {
+            setLoginModalOpen(false);
+        }
+    }, [isLoginSuccess]);
 
     return (
         <div className="menu-container">
@@ -572,10 +595,18 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
                 </div>
             </div>
             <SystemInfo headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected} />
+            <LoginButton modalOpen={isLoginModalOpen} setModalOpen={setLoginModalOpen}
+                isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable} />
             <Footer />
             {enterRoomModalOpen && <EnterRoomModal modalInfo='请输入信息'
                 onOkBtnClick={enterRoom}
                 OnCancelBtnClick={() => setEnterRoomModalOpen(false)} />}
+            {isLoginModalOpen && <LoginModal modalInfo='请输入账号密码'
+                onOkBtnClick={login}
+                OnCancelBtnClick={() => setLoginModalOpen(false)} />}
+            {
+                loginResultModalOpen && <Modal modalInfo={isLoginSuccess === LoginStatus.OK ? '登录成功！' : '登录失败！'} setModalOpen={setLoginResultModalOpen} />
+            }
         </div>
     );
 }
@@ -609,6 +640,140 @@ function SystemInfo({ headCount, historyPeekUsers, netConnected }) {
                         <span className="icon">{icon}</span>
                     </> :
                     <span className='disconnected'>离 线</span>}
+            </div>
+        </div>
+    );
+}
+
+function TableViewer({ selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData }) {
+    return (
+        <>
+            {selectedTable === Table_Client_Ips && <IpLoginTable data={clientIpsData} setSelectedTable={setSelectedTable} />}
+            {selectedTable === Table_Game_Info && <AllGamesTable data={gameInfoData} setSelectedTable={setSelectedTable} />}
+            {selectedTable === Table_Step_Info && <SingleGameTable data={stepInfoData} setSelectedTable={setSelectedTable} />}
+        </>
+    );
+}
+
+function LoginButton({ modalOpen, setModalOpen, isLoginSuccess, selectedTable, setSelectedTable }) {
+    function onClick() {
+        if (isLoginSuccess === LoginStatus.LOGOUT) {
+            setModalOpen(!modalOpen);
+        }
+    }
+
+    function handleTableSelect(e) {
+        setSelectedTable(e.target.value);
+    }
+
+    return (
+        <>
+            <div className="loginButton" onClick={onClick}>
+                <span>☁️</span>
+            </div>
+            {isLoginSuccess === LoginStatus.OK && !modalOpen &&
+                <div>
+                    <h1>选择表格：</h1>
+                    <Radio.Group onChange={handleTableSelect} value={selectedTable}>
+                        <Radio.Button value={Table_Client_Ips}>IP登录表</Radio.Button>
+                        <Radio.Button value={Table_Game_Info}>所有对局表</Radio.Button>
+                        <Radio.Button value={Table_Step_Info}>单次对局表</Radio.Button>
+                    </Radio.Group>
+                </div>
+            }
+        </>
+    );
+}
+
+function IpLoginTable({ data, setSelectedTable }) {
+    return (
+        <>
+            <div className='table-container'>
+                <Button className="close-button" type="primary" onClick={() => setSelectedTable(null)}>
+                    &times; 关闭
+                </Button>
+                <Table dataSource={data} columns={Config_ClientIpsColumns} />
+            </div>
+        </>
+    );
+}
+
+function AllGamesTable({ data, setSelectedTable }) {
+    return (
+        <>
+            <div className='table-container'>
+                <Button className="close-button" type="primary" onClick={() => setSelectedTable(null)}>
+                    &times; 关闭
+                </Button>
+                <Table dataSource={data} columns={Config_GameInfoColumns} />
+            </div>
+        </>
+    );
+}
+
+function SingleGameTable({ data, setSelectedTable }) {
+    return (
+        <>
+            <div className='table-container'>
+                <Button className="close-button" type="primary" onClick={() => setSelectedTable(null)}>
+                    &times; 关闭
+                </Button>
+                <Table dataSource={data} columns={Config_StepInfoColumns} />
+            </div>
+        </>
+    );
+}
+
+
+function LoginModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
+    function closeModal() {
+        OnCancelBtnClick();
+    }
+
+    function onFinish(values) {
+        const { account, passwd } = values;
+        onOkBtnClick(account, passwd);
+    }
+    return (
+        <div className="modal-overlay">
+            <div className="modal">
+                <span className="close-button" onClick={closeModal}>
+                    &times;
+                </span>
+                <p>{modalInfo}</p>
+                <Form
+                    name="basic"
+                    onFinish={onFinish}
+                    labelCol={{ span: 6 }}
+                    wrapperCol={{ span: 18 }}
+                >
+                    <Form.Item
+                        label="账号"
+                        name="account"
+                        rules={[{ required: true, message: '请输入账号!' }]}
+                    >
+                        <Input placeholder="请输入账号" />
+                    </Form.Item>
+
+                    <Form.Item
+                        label="密码"
+                        name="passwd"
+                        rules={[{ required: true, message: '请输入密码!' }]}
+                    >
+                        <Input placeholder="请输入密码" />
+                    </Form.Item>
+
+                    <Form.Item wrapperCol={{ span: 24 }} style={{ textAlign: 'right' }}>
+                        <Space size={10}>
+                            <Button type="primary" htmlType="submit">
+                                确定
+                            </Button>
+                            <Button type="primary" onClick={closeModal}>
+                                取消
+                            </Button>
+                        </Space>
+                    </Form.Item>
+                </Form>
             </div>
         </div>
     );
@@ -780,5 +945,6 @@ function SettingsButton({ SwitchSoundButton, VolumeControlButton, isRestart }) {
 
 export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
-    Menu, ConfirmModal, InfoModal, Modal, SettingsButton
+    Menu, ConfirmModal, InfoModal, Modal, SettingsButton, LoginButton, LoginModal,
+    TableViewer
 };

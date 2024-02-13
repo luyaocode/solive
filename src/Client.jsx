@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import io from 'socket.io-client';
-import { DeviceType } from './ConstDefine.jsx'
+import { DeviceType, LoginStatus, Table_Client_Ips, Table_Game_Info, Table_Step_Info } from './ConstDefine.jsx'
 
 function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
@@ -11,7 +11,9 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setRestartResponseModalOpen, setAllIsOk,
     setCommonModalText, setCommonModalOpen, setSkipRound,
     setNetConnected, setRestartInSameRoom, setUndoRound,
-    setUndoRoundRequestModalOpen, setUndoRoundResponseModalOpen }) {
+    setUndoRoundRequestModalOpen, setUndoRoundResponseModalOpen,
+    setLoginSuccess,
+    setClientIpsData, setGameInfoData, setStepInfoData }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -154,6 +156,19 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
                 }
             });
 
+            socket.on('login_resp', (resp) => {
+                if (resp) {
+                    setLoginSuccess(LoginStatus.OK);
+                }
+                else {
+                    setLoginSuccess(LoginStatus.Failed);
+                }
+            });
+
+            socket.on('tableData', ({ tableName, tableData }) => {
+                setTableData(tableName, tableData);
+            });
+
             socket.on('disconnect', () => {
                 setNetConnected(false);
             });
@@ -162,6 +177,18 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
             socket.disconnect();
         };
     }, []);
+
+    function setTableData(tableName, tableData) {
+        if (tableName === Table_Client_Ips) {
+            setClientIpsData(tableData);
+        }
+        else if (tableName === Table_Game_Info) {
+            setGameInfoData(tableData);
+        }
+        else if (tableName === Table_Step_Info) {
+            setStepInfoData(tableData);
+        }
+    }
 
     return null;
 }

@@ -1,12 +1,17 @@
 import React, { useEffect, useState } from 'react';
 import './Game.css';
-import { Timer, GameLog, ItemManager, StartModal, Menu, Modal, ConfirmModal } from './Control.jsx'
+import {
+    Timer, GameLog, ItemManager, StartModal, Menu, Modal, ConfirmModal,
+    TableViewer
+} from './Control.jsx'
 import Game from './Game.js'
 import {
     GameMode, Piece_Type_Black, DeviceType, root,
-    Highest_Online_Users_Background
+    Highest_Online_Users_Background,
+    LoginStatus
 } from './ConstDefine.jsx'
 import Client from './Client.jsx'
+import { TableBody } from '@mui/material';
 
 function ChaosGomoku() {
     const [boardWidth, setBoardWidth] = useState(0);
@@ -56,6 +61,15 @@ function ChaosGomoku() {
     const [isUndoRound, setUndoRound] = useState(false); // 悔棋
     const [undoRoundRequestModalOpen, setUndoRoundRequestModalOpen] = useState(false);
     const [undoRoundResponseModalOpen, setUndoRoundResponseModalOpen] = useState(false);
+    const [isLoginModalOpen, setLoginModalOpen] = useState(false);
+    const [isLoginSuccess, setLoginSuccess] = useState(LoginStatus.LOGOUT);
+
+    // 后端数据
+    const [clientIpsData, setClientIpsData] = useState([]);
+    const [gameInfoData, setGameInfoData] = useState([]);
+    const [stepInfoData, setStepInfoData] = useState([]);
+    const [selectedTable, setSelectedTable] = useState(null);
+
     useEffect(() => {
         if (isUndoRound) {
             setUndoRound(false);
@@ -144,6 +158,23 @@ function ChaosGomoku() {
         }
     }, [netConnected]);
 
+    useEffect(() => {
+        if (isLoginSuccess === LoginStatus.Failed) {
+            setTimeout(() => {
+                setLoginSuccess(LoginStatus.LOGOUT, 1000);
+            })
+        }
+        else if (isLoginSuccess === LoginStatus.OK) {
+            root.style.setProperty('--login-button-span-background-color', 'linear-gradient(145deg, #00ff00, #c7c7c7)')
+        }
+    }, [isLoginSuccess]);
+
+    useEffect(() => {
+        if (selectedTable) {
+            socket.emit('fetchTable', selectedTable);
+        }
+    }, [selectedTable]);
+
     function generateSeeds() {
         let seeds = [];
         for (let i = 0; i < 20; i++) {
@@ -174,14 +205,19 @@ function ChaosGomoku() {
                 setRestartInSameRoom={setRestartInSameRoom} setUndoRound={setUndoRound}
                 setUndoRoundRequestModalOpen={setUndoRoundRequestModalOpen}
                 setUndoRoundResponseModalOpen={setUndoRoundResponseModalOpen}
+                setLoginSuccess={setLoginSuccess}
+                setClientIpsData={setClientIpsData} setGameInfoData={setGameInfoData} setStepInfoData={setStepInfoData}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
-                    <Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
-                        socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
-                        deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}
-                        headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
-                        generateSeeds={generateSeeds} />
+                    {selectedTable ?
+                        <TableViewer {...{ selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData }} /> :
+                        (<Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
+                            socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
+                            deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}
+                            headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
+                            generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
+                            isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable} />)}
                 </>)
             }
             {gameMode !== GameMode.MODE_NONE && (
