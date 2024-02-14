@@ -2,7 +2,7 @@ import './Game.css';
 import { useState, useEffect, useRef } from 'react';
 import { Howl } from 'howler';
 import { MinusOutlined, PlusOutlined } from '@ant-design/icons';
-import { ItemInfo, ConfirmModal, InfoModal, Modal, SettingsButton } from './Control.jsx';
+import { ItemInfo, ConfirmModal, InfoModal, Modal, SettingsButton, PlayerAvatar } from './Control.jsx';
 
 import {
   Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
@@ -62,7 +62,7 @@ const BGM = '背景音乐';
 const VOLUME = '音量';
 const OPEN = '开启';
 const CLOSE = '关闭';
-const RESTART_GAME = '再来一局';
+const RESTART_GAME = '再来';
 const OPEN_SOUND = OPEN + SOUND;
 const CLOSE_SOUND = CLOSE + SOUND;
 const OPEN_BGM = OPEN + BGM;
@@ -774,6 +774,10 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     );
   };
 
+  function isMyTurn() {
+    return ((pieceType === Piece_Type_Black && xIsNext) || (pieceType === Piece_Type_White && !xIsNext));
+  }
+
   function handleClick(i, j, isEnemyTurn) {
     if (gameOver) {
       openModal("游戏已结束！再来一局吧", 3000);
@@ -895,15 +899,11 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
 
   let currentPiece = xIsNext ? '●' : '○';
   let nextPiece = xIsNext ? '○' : '●';
-  let description = '';
-  if (gameMode !== GameMode.MODE_SIGNAL) {
-    description = currentPiece === pieceType ? '（我）' : '';
-  }
   // let currentItem = selectedItemHistory[currentMove];
   let currentItem = selectedItem;
 
-  let nextPieceStatus = '下一回合行动棋子: ';
-  let currentPieceStatus = '当前回合行动棋子: ';
+  let nextPieceStatus = '下个棋子: ';
+  let currentPieceStatus = '当前棋子: ';
   // let isUsedStatus = currentItem.isUsed ? '已使用' : '未使用';
   // if (currentItem.isUsed) {
   //   root.style.setProperty('--item-used-status-span-color', 'red');
@@ -920,22 +920,36 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   // }
   let currentItemStatus = '当前道具: ';
   let nextItemStatus = '下个道具: ';
+  let myTurn;
+  if (gameMode === GameMode.MODE_SIGNAL) {
+    myTurn = !xIsNext;
+  }
+  else {
+    myTurn = isMyTurn();
+  }
+
+  const anotherPieceType = pieceType === Piece_Type_Black ? Piece_Type_White : Piece_Type_Black;
   return (
     <>
-      <div className='game-info'>
-        <div className="piece-status">{currentPieceStatus}<span className='piece-name'>{currentPiece + description}</span><span className='span-blank'></span>
-          {currentItemStatus}<ItemInfo item={selectedItem} />
+      <div className='game-info-parent'>
+        <PlayerAvatar isMyTurn={myTurn} info={gameMode === GameMode.MODE_SIGNAL ? '思考中...' : ''}
+          pieceType={gameMode === GameMode.MODE_SIGNAL ? Piece_Type_Black : pieceType} />
+        <div className='game-info'>
+          <div className="piece-status">{currentPieceStatus}<span className='piece-name'>{currentPiece}</span><span className='span-blank'></span>
+            {currentItemStatus}<ItemInfo item={selectedItem} />
+          </div>
+          <div className="piece-status">{nextPieceStatus}<span className='piece-name'>{nextPiece}</span><span className='span-blank'></span>
+            {nextItemStatus}<ItemInfo item={nextSelItem} /></div>
+          <div className="button-container">
+            <UndoButton />
+            <RedoButton />
+            <SkipButton />
+            <RestartButton />
+            <SettingsButton SwitchSoundButton={SwitchSoundButton} VolumeControlButton={VolumeControlButton} isRestart={isRestart} />
+            <ExitButton />
+          </div>
         </div>
-        <div className="piece-status">{nextPieceStatus}<span className='piece-name'>{nextPiece}</span><span className='span-blank'></span>
-          {nextItemStatus}<ItemInfo item={nextSelItem} /></div>
-        <div className="button-container">
-          <UndoButton />
-          <RedoButton />
-          <SkipButton />
-          <RestartButton />
-          <SettingsButton SwitchSoundButton={SwitchSoundButton} VolumeControlButton={VolumeControlButton} isRestart={isRestart} />
-          <ExitButton />
-        </div>
+        <PlayerAvatar isMyTurn={gameMode === GameMode.MODE_SIGNAL ? !myTurn : myTurn} info='思考中...' pieceType={gameMode === GameMode.MODE_SIGNAL ? Piece_Type_White : anotherPieceType} />
       </div>
       <div className="board-row">
         {board.map((row, rowIndex) => (
@@ -1278,7 +1292,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   gameOver, setGameOver, isRestartRequestModalOpen, setRestartRequestModalOpen,
   restartResponseModalOpen, setRestartResponseModalOpen,
   isSkipRound, setRestartInSameRoom, isUndoRound,
-  setUndoRoundRequestModalOpen }) {
+  setUndoRoundRequestModalOpen, avatarA, avatarB }) {
 
   const [canSkipRound, setCanSkipRound] = useState(true);
   // 消息弹窗
@@ -1615,7 +1629,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   }
 
   const ExitButton = () => {
-    let description = "退出游戏";
+    let description = "退出";
     function onButtonClick() {
       setConfirmModalOpen(true);
     }
@@ -1752,10 +1766,6 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
 
   return (
     <div className="game">
-      <div className='side-button-container'>
-        {/* <ExitButton />
-        <SkipButton /> */}
-      </div>
       <div className="game-board">
         <Board xIsNext={xIsNext} board={currentBoard} setBoard={setBoard}
           currentMove={currentMove} onPlay={handlePlay} gameOver={gameOver}

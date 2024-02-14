@@ -42,6 +42,8 @@
   --highest-online-users-background: none;
 
   --login-button-span-background-color: none;
+
+  --avatar-img-animation: glitter 0.8s infinite alternate;
 }
 
 .App {
@@ -529,20 +531,6 @@
   /* 设置按钮之间的间距 */
 }
 
-.side-button-container {
-  display: flex;
-  flex-direction: column;
-  /* 垂直排列 */
-  align-items: center;
-  /* 水平居中对齐 */
-}
-
-/* 可以为按钮添加样式 */
-.side-button-container button {
-  margin-bottom: 10px;
-  /* 按钮之间的垂直间距 */
-}
-
 .game {
   display: flex;
   justify-content: center;
@@ -565,6 +553,11 @@
   align-items: center;
 }
 
+.game-info-parent {
+  display: flex;
+  flex-direction: row;
+}
+
 .game-info {
   border: 2px solid #ccc;
   background-color: rgba(255, 255, 255, 0.5);
@@ -575,6 +568,8 @@
   /* 设置边框圆角 */
   padding: 5px;
   /* 内边距 */
+  margin-left: 5px;
+  margin-right: 5px;
   margin-bottom: 5px;
   z-index: 1001;
 }
@@ -1246,10 +1241,56 @@
 }
 
 /* 数据表 */
-.table-container {
+.table-menu {
   margin-top: 10px;
   display: flex;
   flex-direction: column;
+}
+
+.table-container {
+  margin-top: 10px;
+  margin-bottom: 10px;
+  margin-left: 20px;
+  margin-right: 20px;
+  display: flex;
+  flex-direction: column;
+  width: 94%;
+  /* 使用百分比宽度 */
+  overflow: auto;
+  /* 允许水平滚动 */
 
   /* 根据需要设置上边距值 */
+}
+
+/* 玩家头像 */
+.player-avatar {
+  display: flex;
+  flex-direction: column;
+  /* 垂直排列 */
+  align-items: center;
+  margin-top: 30px;
+  /* 水平居中对齐 */
+}
+
+.avatar-img {
+  animation: var(--avatar-img-animation);
+  /* 添加激光、心跳和闪光动画 */
+  transition: transform 0.2s ease-in-out;
+  /* 添加鼠标悬停时的过渡效果 */
+}
+
+@keyframes glitter {
+  0% {
+    filter: brightness(1);
+  }
+
+  100% {
+    filter: brightness(1.2);
+    /* 调整亮度 */
+  }
+}
+
+.avatar-img:hover {
+  transform: scale(1.1);
+  /* 鼠标悬停时放大图片 */
 }

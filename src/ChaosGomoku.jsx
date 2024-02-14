@@ -54,6 +54,7 @@ function ChaosGomoku() {
     // 通用弹窗
     const [commonModalText, setCommonModalText] = useState('');
     const [commonModalOpen, setCommonModalOpen] = useState(false);
+    const [logoutModalOpen, setLogoutModalOpen] = useState(false);
 
     const [isSkipRound, setSkipRound] = useState(false);
     const [restartInSameRoom, setRestartInSameRoom] = useState(false); // 是否在同一房间重开
@@ -69,6 +70,9 @@ function ChaosGomoku() {
     const [stepInfoData, setStepInfoData] = useState([]);
     const [selectedTable, setSelectedTable] = useState(null);
     const [tableViewOpen, setTableViewOpen] = useState(false);
+
+    // 头像
+    const [avatarIndex, setAvatarIndex] = useState([0, 0]);
 
     useEffect(() => {
         if (isUndoRound) {
@@ -167,6 +171,9 @@ function ChaosGomoku() {
         else if (isLoginSuccess === LoginStatus.OK) {
             root.style.setProperty('--login-button-span-background-color', 'linear-gradient(145deg, #00ff00, #c7c7c7)')
         }
+        else if (isLoginSuccess === LoginStatus.LOGOUT) {
+            root.style.setProperty('--login-button-span-background-color', 'none')
+        }
     }, [isLoginSuccess]);
 
     useEffect(() => {
@@ -211,7 +218,11 @@ function ChaosGomoku() {
             {gameMode === GameMode.MODE_NONE && (
                 <>
                     {tableViewOpen ?
-                        <TableViewer {...{ selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData, setTableViewOpen }} /> :
+                        <TableViewer {...{
+                            socket,
+                            selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData, setTableViewOpen,
+                            setLoginSuccess, logoutModalOpen, setLogoutModalOpen
+                        }} /> :
                         (<Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
                             socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
                             deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}

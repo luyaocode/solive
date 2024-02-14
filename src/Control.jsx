@@ -6,6 +6,7 @@ import {
     Config_GameInfoColumns,
     Config_StepInfoColumns,
     GameMode, LoginStatus,
+    Piece_Type_Black,
     Table_Client_Ips, Table_Game_Info, Table_Step_Info
 } from './ConstDefine.jsx'
 import { Howl } from 'howler';
@@ -15,6 +16,7 @@ import {
 } from './Item.ts';
 
 import _ from 'lodash';
+import { green } from '@mui/material/colors';
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
     const [seconds, setSeconds] = useState(0);
@@ -645,16 +647,28 @@ function SystemInfo({ headCount, historyPeekUsers, netConnected }) {
     );
 }
 
-function TableViewer({ selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData, setTableViewOpen }) {
+function TableViewer({ socket, selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData, setTableViewOpen,
+    setLoginSuccess, logoutModalOpen, setLogoutModalOpen }) {
     function handleTableSelect(e) {
         setSelectedTable(e.target.value);
     }
 
+    function logout() {
+        setLoginSuccess(LoginStatus.LOGOUT);
+        setLogoutModalOpen(false);
+        setTableViewOpen(false);
+        localStorage.removeItem('token');
+        // socket.emit('logout');
+    }
+
     return (
         <>
-            <div className='table-container'>
+            <div className='table-menu'>
                 <button className="button-normal" type="primary" onClick={() => setTableViewOpen(false)}>
-                    &times; 退出
+                    &times; 返回主页
+                </button>
+                <button className="button-normal" type="primary" onClick={() => setLogoutModalOpen(true)}>
+                    &times; 退出登录
                 </button>
                 <Radio.Group onChange={handleTableSelect} value={selectedTable} >
                     <Radio.Button value={Table_Client_Ips}>IP登录表</Radio.Button>
@@ -665,6 +679,8 @@ function TableViewer({ selectedTable, setSelectedTable, clientIpsData, gameInfoD
             {selectedTable === Table_Client_Ips && <IpLoginTable data={clientIpsData} setSelectedTable={setSelectedTable} />}
             {selectedTable === Table_Game_Info && <AllGamesTable data={gameInfoData} setSelectedTable={setSelectedTable} />}
             {selectedTable === Table_Step_Info && <SingleGameTable data={stepInfoData} setSelectedTable={setSelectedTable} />}
+            {logoutModalOpen && <ConfirmModal modalInfo='确定退出登录吗？' onOkBtnClick={logout}
+                OnCancelBtnClick={() => setLogoutModalOpen(false)} />}
         </>
     );
 }
@@ -763,7 +779,7 @@ function LoginModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
                         name="passwd"
                         rules={[{ required: true, message: '请输入密码!' }]}
                     >
-                        <Input placeholder="请输入密码" />
+                        <Input.Password placeholder="请输入密码" />
                     </Form.Item>
 
                     <Form.Item wrapperCol={{ span: 24 }} style={{ textAlign: 'right' }}>
@@ -946,8 +962,64 @@ function SettingsButton({ SwitchSoundButton, VolumeControlButton, isRestart }) {
     );
 }
 
+function PlayerAvatar({ name, info, isMyTurn, pieceType }) {
+    const [selectedAvatar, setSelectedAvatar] = useState('');
+
+    useEffect(() => {
+        const numRows = 5;
+        const numCols = 16;
+        const avatarWidth = 55.625;
+        const avatarHeight = 51.8;
+        const factor = 0.7;
+        const scaledWidth = avatarWidth * factor;
+        const scaledHeight = avatarHeight * factor;
+
+        // 随机选择一个头像的行和列
+        const randomRow = Math.floor(Math.random() * numRows);
+        const randomCol = Math.floor(Math.random() * numCols);
+
+        // 计算头像的位置
+        const x = randomCol * avatarWidth;
+        const y = randomRow * avatarHeight;
+
+        // 加载图片
+        const img = new Image();
+        img.onload = function () {
+            // 创建Canvas元素
+            const canvas = document.createElement('canvas');
+            canvas.width = scaledWidth;
+            canvas.height = scaledHeight;
+            const ctx = canvas.getContext('2d');
+
+            if (pieceType === Piece_Type_Black) {
+                ctx.fillStyle = 'black';
+            } else {
+                ctx.fillStyle = 'white';
+            }
+            ctx.fillRect(0, 0, scaledWidth, scaledHeight);
+
+            // 绘制头像到Canvas
+            ctx.drawImage(img, x, y, avatarWidth, avatarHeight, 0, 0, scaledWidth, scaledHeight);
+
+            // 获取头像数据URL
+            const avatarDataURL = canvas.toDataURL();
+            setSelectedAvatar(avatarDataURL);
+        }
+        img.src = 'picture/avatar/avatar.png';
+
+    }, []);
+
+    return (
+        <div className='player-avatar'>
+            {selectedAvatar && <img src={selectedAvatar} alt="Avatar" className="avatar-img" />}
+            <span>{name}</span>
+            {!isMyTurn && <span>{info}</span>}
+        </div>
+    );
+}
+
 export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
     Menu, ConfirmModal, InfoModal, Modal, SettingsButton, LoginButton, LoginModal,
-    TableViewer
+    TableViewer, PlayerAvatar
 };
