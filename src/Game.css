@@ -995,6 +995,7 @@
   top: 50%;
   left: 50%;
   animation: multipleRipple 4s linear infinite;
+  pointer-events: none;
 }
 
 @keyframes multipleRipple {
@@ -1056,7 +1057,7 @@
 }
 
 .menu-item button:hover {
-  background-color: #0056b3;
+  background-color: #48ae31;
 }
 
 /* 菜单footer */
