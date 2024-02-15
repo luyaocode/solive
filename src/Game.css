@@ -429,7 +429,7 @@
   -moz-text-stroke: 1px var(--item-used-status-span-color);
   -ms-text-stroke: 1px var(--item-used-status-span-color);
   -o-text-stroke: 1px var(--item-used-status-span-color);
-  font-size: 1em;
+  font-size: 0.8em;
 }
 
 /* .item-used-status-span {
@@ -438,7 +438,7 @@
 } */
 
 .span-blank {
-  margin-right: 20px;
+  margin-right: 10px;
 }
 
 .piece-status {

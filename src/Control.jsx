@@ -402,6 +402,11 @@ function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, s
                     text2 = '加载成功';
                     break;
                 }
+            case GameMode.MODE_AI: {
+                text = '正在匹配AI';
+                text2 = '匹配成功';
+                break;
+            }
             case GameMode.MODE_MATCH:
                 {
                     text = '正在匹配...';
@@ -568,7 +573,7 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
         if (mode === GameMode.MODE_ROOM) {
             setEnterRoomModalOpen(true);
         }
-        else if (mode === GameMode.MODE_SIGNAL) {
+        else if (mode === GameMode.MODE_SIGNAL || mode === GameMode.MODE_AI) {
             const seeds = generateSeeds();
             setSeeds(seeds);
             setStartModalOpen(true);
@@ -633,7 +638,8 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
                     {/* <img src="item1.jpg" alt="Item 1" /> */}
                     <h2>单机</h2>
                     {/* <p>模式介绍：...</p> */}
-                    <button onClick={() => onButtonClick(GameMode.MODE_SIGNAL)}>开始游戏</button>
+                    <button onClick={() => onButtonClick(GameMode.MODE_SIGNAL)}>面对面</button>
+                    <button onClick={() => onButtonClick(GameMode.MODE_AI)}>AI模式</button>
                 </div>
                 <div className="menu-item">
                     {/* <img src="item2.jpg" alt="Item 2" /> */}
@@ -1052,10 +1058,10 @@ function PlayerAvatar({ avatarIndex, name, info, isMyTurn, pieceType, setChatPan
 
     return (
         <div className='player-avatar'>
+            <span>{!isMyTurn ? info : '🌿'}</span>
             {selectedAvatar && <img src={selectedAvatar} alt="Avatar" className="avatar-img"
                 onClick={() => { if (setChatPanelOpen) { setChatPanelOpen(true) } }} />}
             <span>{name}</span>
-            {!isMyTurn && <span>{info}</span>}
         </div>
     );
 }

@@ -117,7 +117,7 @@ function ChaosGomoku() {
             setTotalRound(0);
             setItems([]);
             setItemsLoaded(false);
-            if (gameMode === GameMode.MODE_SIGNAL) {
+            if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
                 let seeds = generateSeeds();
                 setSeeds(seeds);
             } else {
@@ -126,7 +126,7 @@ function ChaosGomoku() {
             setSynchronized(false);
             setMatched(false);
             setLastStep([]);
-            if (gameMode === GameMode.MODE_SIGNAL) {
+            if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
                 setAllIsOk(true);
             }
             // 清空消息
@@ -159,7 +159,7 @@ function ChaosGomoku() {
         if (gameMode === GameMode.MODE_NONE) {
             setRestartInSameRoom(false);
         }
-        if (gameMode === GameMode.MODE_SIGNAL) {
+        if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
             setPieceType(Piece_Type_Black);
             setRoomId();
             setNickName();

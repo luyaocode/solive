@@ -3,6 +3,7 @@ export const GameMode = {
     MODE_SIGNAL: 1,
     MODE_MATCH: 2,
     MODE_ROOM: 3,
+    MODE_AI: 4,
 }
 
 export const Piece_Type_Black = '●';

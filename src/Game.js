@@ -765,6 +765,9 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   ExitButton, SkipButton, avatarIndex, avatarIndexPB, setChatPanelOpen }) {
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
+  const [pieceClicked, setPieceClicked] = useState(false); // 落子但未使用道具
+  const [nextAIStep, setNextAIStep] = useState();
+
   const renderCell = (cellValue, rowIndex, colIndex) => {
     const key = [rowIndex, colIndex];
     return (
@@ -780,11 +783,14 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
 
   function handleClick(i, j, isEnemyTurn) {
     if (gameOver) {
+      if (gameMode === GameMode.MODE_AI) {
+        return;
+      }
       openModal("游戏已结束！再来一局吧", 3000);
       return;
     }
 
-    if (gameMode !== GameMode.MODE_SIGNAL) {
+    if (gameMode !== GameMode.MODE_SIGNAL && gameMode !== GameMode.MODE_AI) {
       if (isEnemyTurn) {
 
       }
@@ -857,6 +863,10 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
 
     onPlay(lastClick, setLastClick, nextBoard, i, j);
 
+    if (gameMode === GameMode.MODE_AI && selectedItem.before && !xIsNext) {
+      setPieceClicked(true);
+    }
+
     // 胜利判定
     checkArray.push([i, j]);
     for (const arr of checkArray) {
@@ -877,7 +887,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     checkArray = [];
 
     // 发送消息
-    if (!isEnemyTurn && gameMode !== GameMode.MODE_SIGNAL) {
+    if (!isEnemyTurn && gameMode !== GameMode.MODE_SIGNAL && gameMode !== GameMode.MODE_AI) {
       const currItem = selectedItem.name;
       const nextItem = nextSelItem.name;
       socket.emit('step', { i, j, currItem, nextItem });
@@ -890,6 +900,30 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     }
     handleClick(lastStep[0], lastStep[1], true);
   }, [lastStep]);
+
+  useEffect(() => {
+    if (gameMode === GameMode.MODE_AI && !xIsNext) {
+      const nextAIStep = calculateNextStep(board, selectedItem);
+      setNextAIStep(nextAIStep);
+      setTimeout(() => {
+        handleClick(nextAIStep[0][0], nextAIStep[0][1]);
+      }, Math.random() * 1000 + 1000);
+    }
+  }, [xIsNext]);
+
+  useEffect(() => {
+    if (pieceClicked) {
+      setTimeout(() => {
+        if (_.isEqual(nextAIStep[1], [null, null])) {
+          skipRound();
+        }
+        else if (nextAIStep[1]) {
+          handleClick(nextAIStep[1][0], nextAIStep[1][1]);
+        }
+      }, 800);
+      setPieceClicked(false);
+    }
+  }, [pieceClicked, nextAIStep]);
 
   useEffect(() => {
     if (isSkipRound) {
@@ -921,7 +955,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   let currentItemStatus = '当前道具: ';
   let nextItemStatus = '下个道具: ';
   let myTurn;
-  if (gameMode === GameMode.MODE_SIGNAL) {
+  if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
     myTurn = !xIsNext;
   }
   else {
@@ -932,8 +966,8 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   return (
     <>
       <div className='game-info-parent'>
-        <PlayerAvatar avatarIndex={avatarIndex} isMyTurn={myTurn} info={gameMode === GameMode.MODE_SIGNAL ? '思考中...' : ''}
-          pieceType={gameMode === GameMode.MODE_SIGNAL ? Piece_Type_Black : pieceType} />
+        <PlayerAvatar avatarIndex={avatarIndex} isMyTurn={myTurn} info={(gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) ? '💡' : ''}
+          pieceType={(gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) ? Piece_Type_Black : pieceType} />
         <div className='game-info'>
           <div className="piece-status">{currentPieceStatus}<span className='piece-name'>{currentPiece}</span><span className='span-blank'></span>
             {currentItemStatus}<ItemInfo item={selectedItem} />
@@ -949,7 +983,9 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
             <ExitButton />
           </div>
         </div>
-        <PlayerAvatar setChatPanelOpen={gameMode === GameMode.MODE_SIGNAL ? undefined : setChatPanelOpen} avatarIndex={avatarIndexPB} isMyTurn={gameMode === GameMode.MODE_SIGNAL ? !myTurn : myTurn} info='思考中...' pieceType={gameMode === GameMode.MODE_SIGNAL ? Piece_Type_White : anotherPieceType} />
+        <PlayerAvatar setChatPanelOpen={(gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) ? undefined : setChatPanelOpen} avatarIndex={avatarIndexPB}
+          isMyTurn={(gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) ? !myTurn : myTurn} info='💡'
+          pieceType={(gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) ? Piece_Type_White : anotherPieceType} />
       </div>
       <div className="board-row">
         {board.map((row, rowIndex) => (
@@ -1560,7 +1596,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
     let description = "悔棋";
     return (
       <button className='button-normal' onClick={() => {
-        if (gameMode === GameMode.MODE_SIGNAL) {
+        if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
           jumpTo(round - 1, true, false);
         }
         else {
@@ -1568,7 +1604,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
           socket.emit('undoRoundRequest');
         }
 
-      }} disabled={gameOver ? true : (gameMode === GameMode.MODE_SIGNAL ? (round === 1) : (isMyRound() ||
+      }} disabled={gameOver ? true : ((gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) ? (round === 1) : (isMyRound() ||
         (round === 1) ||
         (pieceType === Piece_Type_White && round === 2)))
       }>{description}</button>
@@ -1609,7 +1645,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   const RestartButton = () => {
     let description = RESTART_GAME;
     function onButtonClick() {
-      if (gameMode === GameMode.MODE_SIGNAL) {
+      if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
         setRestart(true);
       }
       else {
@@ -1641,7 +1677,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   const SkipButton = () => {
     let description = "跳过";
     function onButtonClick() {
-      if (gameMode === GameMode.MODE_SIGNAL) {
+      if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
         skipRound();
       }
       else {
@@ -1667,7 +1703,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
     }
     pickRandomItem();
     setIsNext(!xIsNext);
-    if (gameMode !== GameMode.MODE_SIGNAL) {
+    if (gameMode !== GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
       setSkipModalOpen(false);
     }
   }
@@ -1700,7 +1736,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
     if (gameMode === GameMode.MODE_ROOM || gameMode === GameMode.MODE_MATCH) {
       dType = roomDeviceType;
     }
-    else if (gameMode === GameMode.MODE_SIGNAL) {
+    else if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
       dType = deviceType;
     }
     switch (dType) {
@@ -1900,5 +1936,292 @@ function calculateWinner(board, x, y) {
 
   return [null, [null, null]];
 };
+
+function initScores(w, h) {
+  let scores = [];
+  for (let i = 0; i < h; i++) {
+    scores[i] = []; // 创建一个空数组作为二维数组的每一行
+    for (let j = 0; j < w; j++) {
+      scores[i][j] = 0; // 初始化每个元素为 0
+    }
+  }
+  return scores;
+}
+
+function updateScoreByPos(board, r, c, scores) {
+  const width = board[0].length;
+  const height = board.length;
+  // 检查敌方花朵
+  const arrayToCheckFlower = [[r - 1, c], [r, c - 1], [r, c + 1],
+  [r + 1, c]];
+  for (const arr of arrayToCheckFlower) {
+    const x = arr[0];
+    const y = arr[1];
+    if (x >= 0 && x < width && y >= 0 && y < height) {
+      if (board[x][y].attachSeed && board[x][y].type === Piece_Type_Black) {
+        scores[r][c] += 5;
+      }
+    }
+  }
+
+  // 检查一环棋子
+  const arrayToCheckFirstRing = [[r - 1, c - 1], [r - 1, c], [r - 1, c + 1],
+  [r, c - 1], [r, c + 1],
+  [r + 1, c - 1], [r + 1, c], [r + 1, c + 1]];
+  for (const arr of arrayToCheckFirstRing) {
+    const x = arr[0];
+    const y = arr[1];
+    if (x >= 0 && x < width && y >= 0 && y < height) {
+      if (board[x][y].type !== '') {
+        scores[r][c] += 1;
+      }
+    }
+  }
+
+  // 检查二环棋子
+  const arrayToCheckSecondRing = [[r - 2, c - 2], [r - 2, c - 1], [r - 2, c], [r - 2, c + 1], [r - 2, c + 2],
+  [r - 1, c - 2], [r - 1, c + 1],
+  [r, c - 2], [r, c + 2],
+  [r + 1, c - 2], [r + 1, c + 2],
+  [r + 2, c - 2], [r + 2, c - 1], [r + 2, c], [r + 2, c + 1], [r + 2, c + 2]];
+  for (const arr of arrayToCheckSecondRing) {
+    const x = arr[0];
+    const y = arr[1];
+    if (x >= 0 && x < width && y >= 0 && y < height) {
+      if (board[x][y].type !== '') {
+        scores[r][c] += 0.5;
+      }
+    }
+  }
+}
+
+function updateScoreByItem(board, r, c, scores, item) {
+  const width = board[0].length;
+  const height = board.length;
+  if (item instanceof Sword) {
+    const arrayToCheckSword = [[r - 1, c], [r, c - 1], [r, c + 1],
+    [r + 1, c]];
+    for (const arr of arrayToCheckSword) {
+      const x = arr[0];
+      const y = arr[1];
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        if (board[x][y].type === Piece_Type_Black && !board[x][y].canBeDestroyed) {
+          scores[r][c] += 1;
+        }
+      }
+    }
+  }
+  else if (item instanceof Shield) {
+    // 检查一环棋子
+    const arrayToCheckFirstRing = [[r - 1, c - 1], [r - 1, c], [r - 1, c + 1],
+    [r, c - 1], [r, c + 1],
+    [r + 1, c - 1], [r + 1, c], [r + 1, c + 1]];
+    for (const arr of arrayToCheckFirstRing) {
+      const x = arr[0];
+      const y = arr[1];
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        if (board[x][y].type === Piece_Type_White) {
+          scores[r][c] += 1;
+        }
+      }
+    }
+  }
+  else if (item instanceof Bow) {
+    // 检查一环棋子
+    const arrayToCheckFirstRing = [[r - 1, c - 1], [r - 1, c], [r - 1, c + 1],
+    [r, c - 1], [r, c + 1],
+    [r + 1, c - 1], [r + 1, c], [r + 1, c + 1]];
+    for (const arr of arrayToCheckFirstRing) {
+      const x = arr[0];
+      const y = arr[1];
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        if (board[x][y].type !== '') {
+          scores[r][c] += 1;
+        }
+      }
+    }
+  }
+  else if (item instanceof TimeBomb) {
+    const arrayToCheckSword = [[r - 1, c], [r, c - 1], [r, c + 1],
+    [r + 1, c]];
+    for (const arr of arrayToCheckSword) {
+      const x = arr[0];
+      const y = arr[1];
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        if (board[x][y].type === Piece_Type_Black) {
+          scores[r][c] += 1;
+        }
+      }
+    }
+  }
+  else if (item instanceof InfectPotion) {
+    const arrayToCheckSword = [[r - 1, c], [r, c - 1], [r, c + 1],
+    [r + 1, c]];
+    for (const arr of arrayToCheckSword) {
+      const x = arr[0];
+      const y = arr[1];
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        if (board[x][y].type === Piece_Type_Black) {
+          scores[r][c] += 1;
+        }
+      }
+    }
+  }
+  else if (item instanceof XFlower) {
+    // 检查一环棋子
+    const arrayToCheckFirstRing = [[r - 1, c - 1], [r - 1, c], [r - 1, c + 1],
+    [r, c - 1], [r, c + 1],
+    [r + 1, c - 1], [r + 1, c], [r + 1, c + 1]];
+    for (const arr of arrayToCheckFirstRing) {
+      const x = arr[0];
+      const y = arr[1];
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        if (board[x][y].type === '') {
+          scores[r][c] += 1;
+        }
+      }
+    }
+  }
+  else if (item instanceof FreezeSpell) {
+    // 检查一环棋子
+    const arrayToCheckFirstRing = [[r - 1, c - 1], [r - 1, c], [r - 1, c + 1],
+    [r, c - 1], [r, c + 1],
+    [r + 1, c - 1], [r + 1, c], [r + 1, c + 1]];
+    for (const arr of arrayToCheckFirstRing) {
+      const x = arr[0];
+      const y = arr[1];
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        if (board[x][y].type === Piece_Type_Black) {
+          scores[r][c] += 1;
+        }
+      }
+    }
+  }
+}
+
+function findMaxIndex(arr) {
+  let index = [];
+  let max = arr[0][0]; // 假设数组中的第一个元素是最大值
+
+  let i, j;
+  for (i = 0; i < arr.length; i++) {
+    for (j = 0; j < arr[i].length; j++) {
+      if (arr[i][j] > max) {
+        max = arr[i][j]; // 更新最大值
+      }
+    }
+  }
+  for (i = 0; i < arr.length; i++) {
+    for (j = 0; j < arr[i].length; j++) {
+      if (arr[i][j] === max) {
+        index.push([i, j]);
+      }
+    }
+  }
+  return index;
+}
+
+function getPiecePos(board, item) {
+  const scores = initScores(board[0].length, board.length);
+  board.map((row, x) => {
+    row.map((cell, y) => {
+      if (board[x][y].type === '') {
+        if (board[x][y].liveTime > 0) {
+          scores[x][y] += -999;
+        }
+        if (board[x][y].status.frozen) {
+          scores[x][y] += -10;
+        }
+        if (board[x][y].growthTime > 0 && board[x][y].willBe === Piece_Type_Black) {
+          scores[x][y] += 5;
+        }
+        // 更新得分
+        updateScoreByPos(board, x, y, scores);
+        updateScoreByItem(board, x, y, scores, item);
+      }
+    })
+  });
+  return findMaxIndex(scores);
+}
+
+function getItemPos(board, item, bestPiecePos) {
+  const r = bestPiecePos[0];
+  const c = bestPiecePos[1];
+  const width = board[0].length;
+  const height = board.length;
+  let resx = null, resy = null;
+
+  if (item instanceof Sword) {
+    const arrayToCheckSword = [[r - 1, c], [r, c - 1], [r, c + 1],
+    [r + 1, c]];
+    for (const arr of arrayToCheckSword) {
+      const x = arr[0];
+      const y = arr[1];
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        if (board[x][y].liveTime > 0) {
+          continue;
+        }
+        if (board[x][y].type === Piece_Type_Black && !board[x][y].status.frozen ||
+          board[x][y].type === Piece_Type_White && board[x][y].status.frozen) {
+          resx = x;
+          resy = y;
+          break;
+        }
+      }
+    }
+  }
+  else if (item instanceof Bow) {
+    const arrayToCheckBow = [[r - 1, c - 1], [r - 1, c], [r - 1, c + 1],
+    [r, c - 1], [r, c + 1],
+    [r + 1, c - 1], [r + 1, c], [r + 1, c + 1]];
+    for (const arr of arrayToCheckBow) {
+      const x = arr[0];
+      const y = arr[1];
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        if (x >= 0 && x < width && y >= 0 && y < height) {
+          if (!board[x][y].canBeDestroyed || board[x][y].liveTime > 0) {
+            continue;
+          }
+          if (board[x][y].type === Piece_Type_Black && !board[x][y].status.frozen ||
+            board[x][y].type === Piece_Type_White && board[x][y].status.frozen) {
+            resx = x;
+            resy = y;
+            break;
+          }
+        }
+      }
+    }
+  }
+  else if (item instanceof InfectPotion) {
+    const arrayToCheckPotion = [[r - 1, c], [r, c - 1], [r, c + 1],
+    [r + 1, c]];
+    for (const arr of arrayToCheckPotion) {
+      const x = arr[0];
+      const y = arr[1];
+      if (x >= 0 && x < width && y >= 0 && y < height) {
+        if (board[x][y].status.frozen || !board[x][y].canBeDestroyed || board[x][y].liveTime > 0) {
+          continue;
+        }
+        if (board[x][y].type === Piece_Type_Black) {
+          resx = x;
+          resy = y;
+          break;
+        }
+      }
+    }
+  }
+  return [resx, resy];
+
+}
+
+function calculateNextStep(board, item) {
+  const piecePos = getPiecePos(board, item);
+  const bestPiecePos = piecePos[Math.floor(Math.random() * piecePos.length)];
+  let bestItemPos;
+  if (item instanceof Sword || item instanceof Bow || item instanceof InfectPotion) {
+    bestItemPos = getItemPos(board, item, bestPiecePos);
+  }
+  return [bestPiecePos, bestItemPos];
+}
 
 export default Game;
