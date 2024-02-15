@@ -605,6 +605,9 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
     }
 
     function login(account, passwd) {
+        if (!netConnected) {
+            setLoginResultModalOpen(true);
+        }
         socket.emit('login', { account, passwd });
     }
 
