@@ -16,11 +16,12 @@ The project is built using **create-react-app**.
 
 <img src="./public/game-demo.png" style="zoom:33%;" />
 
-Play Now: [Please open in your browser on PC](http://47.97.186.50:3000/)
+Play Now: http://47.97.186.50
 
 ### Update Log
 
-1. Version 1.0: Added Sword, Shield, Bow, Potion, Bomb, Flower, and Ice Magic props, along with sound effects, undo functionality, and other regular features. ——2024/01/26
+1. Version 0.1: Added Sword, Shield, Bow, Potion, Bomb, Flower, and Ice Magic props, along with sound effects, undo functionality, and other regular features. ——2024/01/26
+1. Version 0.2: Add online multiplayer functionality.——2024/02/15
 
 ### Preparatory Stage
 Make sure you have installed **Node.js** and **npm**
@@ -58,7 +59,8 @@ npm run start
 
 ### 更新记录
 
-1. v1.0版本：增加剑、盾、弓、药水、炸弹、花朵、冰冻魔法道具，增加音效、悔棋等常规功能 ——2024/01/26
+1. v0.1版本：增加剑、盾、弓、药水、炸弹、花朵、冰冻魔法道具，增加音效、悔棋等常规功能 ——2024/01/26
+1. v0.2版本：增加联机功能 ——2024/02/15
 
 ### 准备阶段
 
