@@ -877,7 +877,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     checkArray = [];
 
     // 发送消息
-    if (!isEnemyTurn) {
+    if (!isEnemyTurn && gameMode !== GameMode.MODE_SIGNAL) {
       const currItem = selectedItem.name;
       const nextItem = nextSelItem.name;
       socket.emit('step', { i, j, currItem, nextItem });

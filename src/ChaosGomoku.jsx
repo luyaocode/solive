@@ -2,7 +2,8 @@ import React, { useEffect, useState } from 'react';
 import './Game.css';
 import {
     Timer, GameLog, ItemManager, StartModal, Menu, Modal, ConfirmModal,
-    TableViewer
+    TableViewer,
+    ChatPanel
 } from './Control.jsx'
 import Game from './Game.js'
 import {
@@ -80,6 +81,10 @@ function ChaosGomoku() {
     const [avatarIndexPB, setAvatarIndexPB] = useState(
         [Math.floor(Math.random() * Avatar_Number_X),
         Math.floor(Math.random() * Avatar_Number_Y)]);
+
+    // 文本消息
+    const [messages, setMessages] = useState([]);
+    const [chatPanelOpen, setChatPanelOpen] = useState(false);
 
     useEffect(() => {
         if (isUndoRound) {
@@ -222,6 +227,7 @@ function ChaosGomoku() {
                 setLoginSuccess={setLoginSuccess}
                 setClientIpsData={setClientIpsData} setGameInfoData={setGameInfoData} setStepInfoData={setStepInfoData}
                 setAvatarIndex={setAvatarIndex} setAvatarIndexPB={setAvatarIndexPB}
+                setMessages={setMessages}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
@@ -266,7 +272,8 @@ function ChaosGomoku() {
                                 avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB}
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
-                                roomId={roomId} nickName={nickName} />
+                                roomId={roomId} nickName={nickName} setChatPanelOpen={setChatPanelOpen}
+                                gameMode={gameMode} />
                             {commonModalOpen &&
                                 <Modal modalInfo={commonModalText} setModalOpen={setCommonModalOpen} />
                             }
@@ -284,6 +291,9 @@ function ChaosGomoku() {
                                 }
                                 } />
                             }
+                            {
+                                chatPanelOpen &&
+                                <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} socket={socket} />}
                         </>
                     ) : (
                         startModalOpen &&

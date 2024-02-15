@@ -18,7 +18,6 @@ import {
 } from './Item.ts';
 
 import _ from 'lodash';
-import { green } from '@mui/material/colors';
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
     const [seconds, setSeconds] = useState(0);
@@ -60,9 +59,45 @@ function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
     );
 }
 
-function GameLog({ isRestart, gameLog, setGameLog, roomId, nickName }) {
+function GameLog({ isRestart, gameLog, setGameLog, roomId, nickName, setChatPanelOpen, gameMode }) {
     const [isActive, setIsActive] = useState(true);
     const [isModalOpen, setModalOpen] = useState(false);
+
+    const [longPressActive, setLongPressActive] = useState(false);
+    let pressTimer;
+
+    const startPress = () => {
+        pressTimer = setTimeout(() => {
+            setLongPressActive(true);
+        }, 1000);
+    };
+
+    const cancelPress = () => {
+        clearTimeout(pressTimer);
+    };
+
+    const handleTouchStart = () => {
+        startPress();
+    };
+
+    const handleTouchEnd = () => {
+        cancelPress();
+    };
+
+    const handleTouchMove = () => {
+        cancelPress();
+    };
+
+    const handleButtonClick = () => {
+        if (longPressActive) {
+            if (gameMode !== GameMode.MODE_SIGNAL) {
+                setChatPanelOpen(true);
+            }
+            setLongPressActive(false);
+        } else {
+            showAll();
+        }
+    };
 
     useEffect(() => {
         if (isActive) {
@@ -108,9 +143,18 @@ function GameLog({ isRestart, gameLog, setGameLog, roomId, nickName }) {
             setModalOpen(false);
         }
     };
+
     return (
         <>
-            <Button className='gamelog-button' onClick={showAll}>{gameLog[gameLog.length - 1][0]}</Button>
+            <Button
+                onTouchStart={handleTouchStart}
+                onTouchEnd={handleTouchEnd}
+                onTouchMove={handleTouchMove}
+                onMouseDown={startPress}
+                onMouseUp={cancelPress}
+                onMouseLeave={cancelPress}
+                className='gamelog-button'
+                onClick={handleButtonClick}>{gameLog[gameLog.length - 1][0]}</Button>
             <span>房间号: {roomId}</span><span className='span-blank'></span>
             <span>昵称: {nickName}</span>
             {isModalOpen && (
@@ -118,7 +162,7 @@ function GameLog({ isRestart, gameLog, setGameLog, roomId, nickName }) {
                     <div className="gamelog-modal">
                         <span className="gamelog-modal-close-btn" onClick={closeModal}>X</span>
                         <h4>本局记录：</h4>
-                        <p>{allInfo}</p>
+                        {allInfo}
                     </div>
                 </div>
             )}
@@ -1014,8 +1058,92 @@ function PlayerAvatar({ avatarIndex, name, info, isMyTurn, pieceType }) {
     );
 }
 
+function ChatPanel({ messages, setMessages, setChatPanelOpen, socket }) {
+    const [inputText, setInputText] = useState('');
+    const textareaRef = useRef(null);
+    const messageContainerRef = useRef(null);
+
+    // 处理发送消息
+    const handleSendMessage = () => {
+        if (inputText !== '') {
+            const newMessage = { text: inputText, sender: 'me' };
+            // 发送到服务器
+            socket.emit('chatMessage', newMessage);
+            setMessages(prev => [...prev, newMessage]);
+            setInputText('');
+            adjustTextareaHeight();
+        }
+    };
+
+    function onClose() {
+        setChatPanelOpen(false);
+    }
+
+    const handleChange = (e) => {
+        setInputText(e.target.value);
+        e.target.style.height = 'auto';
+        e.target.style.height = e.target.scrollHeight + 'px';
+    };
+
+    const adjustTextareaHeight = () => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+        }
+    };
+
+    useEffect(() => {
+        if (messageContainerRef.current) {
+            messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
+        }
+    }, [messages]);
+
+    useEffect(() => {
+        if (textareaRef.current) {
+            if (textareaRef.current) {
+                textareaRef.current.style.height = `${textareaRef.current.scrollHeight}px`; // 设置初始高度为一行文本的高度
+            }
+        }
+    }, []); // 只在组件加载时执行
+
+    return (
+        <div className='chat-panel-wrapper'>
+            <div className="chat-panel">
+                <div className="chatpanel-close-button" onClick={onClose}>&times;</div>
+                <div ref={messageContainerRef} className="message-container">
+                    {messages.map((message, index) => (
+                        <div key={index} className={`message ${message.sender}`}>
+                            {message.text.replace(/ /g, '\u00a0')} {/* 使用空格的 HTML 实体替换空格 */}
+                        </div>
+                    ))}
+                </div>
+                <div className="input-container">
+                    <textarea
+                        ref={textareaRef}
+                        value={inputText}
+                        onChange={handleChange}
+                        placeholder="请输入..."
+                        style={{
+                            width: '80%',
+                            height: '1.5em', // 设置初始高度为一行文本的高度
+                            minHeight: 'auto', // 调整最小高度为自动
+                            maxHeight: '100px', // 调整最大高度
+                            fontSize: '20px', // 调整字体大小
+                            border: '1px solid #ccc',
+                            resize: 'none',
+                            overflow: 'hidden',
+                            lineHeight: '1.2', // 设置行高与字体大小相同
+                            padding: '10px', // 调整内边距
+                        }}
+                    />
+                    <button onClick={handleSendMessage}>发送</button>
+                </div>
+            </div>
+        </div>
+    );
+}
+
 export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
     Menu, ConfirmModal, InfoModal, Modal, SettingsButton, LoginButton, LoginModal,
-    TableViewer, PlayerAvatar
+    TableViewer, PlayerAvatar, ChatPanel
 };

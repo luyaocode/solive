@@ -16,7 +16,8 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setNetConnected, setRestartInSameRoom, setUndoRound,
     setUndoRoundRequestModalOpen, setUndoRoundResponseModalOpen,
     setLoginSuccess,
-    setClientIpsData, setGameInfoData, setStepInfoData, setAvatarIndex, setAvatarIndexPB }) {
+    setClientIpsData, setGameInfoData, setStepInfoData, setAvatarIndex, setAvatarIndexPB,
+    setMessages }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -194,6 +195,12 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
 
             socket.on('set_avatar_pb', (avatarIndex) => {
                 setAvatarIndexPB(avatarIndex);
+            });
+
+            socket.on('chat_message', (msg) => {
+                const newMessage = { text: msg, sender: 'other' };
+
+                setMessages(prev => [...prev, newMessage]);
             });
 
             socket.on('disconnect', () => {
