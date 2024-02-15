@@ -19,6 +19,33 @@ body {
   /* 定义动画效果 */
 }
 
+body::after {
+  content: '';
+  position: absolute;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(45deg, #6c463a, #963555, #893797, #22557f, #226f7a, #2c6f2e, #405a21, #6b571b, #812b11);
+  top: 0;
+  left: 0;
+  z-index: -1;
+  animation: rainbow 10s linear infinite;
+  background-size: 300% 300%;
+}
+
+@keyframes rainbow {
+  0% {
+    background-position: 0% 50%;
+  }
+
+  50% {
+    background-position: 100% 50%;
+  }
+
+  100% {
+    background-position: 0% 50%;
+  }
+}
+
 #root {
   width: 100%;
   height: 100%;
