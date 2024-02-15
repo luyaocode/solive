@@ -596,6 +596,8 @@
   width: 100%;
   text-align: center;
   position: relative;
+  margin-left: 10px;
+  margin-right: 10px;
 }
 
 .close-button {
