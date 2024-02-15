@@ -645,8 +645,8 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
                     {/* <img src="item2.jpg" alt="Item 2" /> */}
                     <h2>联机</h2>
                     {/* <p>模式介绍：...</p> */}
-                    <button onClick={() => onButtonClick(GameMode.MODE_MATCH)}>匹配模式</button>
-                    <button onClick={() => onButtonClick(GameMode.MODE_ROOM)}>房间模式</button>
+                    <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_MATCH)}>匹配模式</button>
+                    <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_ROOM)}>房间模式</button>
                 </div>
             </div>
             <SystemInfo headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected} />
