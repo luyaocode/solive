@@ -1008,7 +1008,7 @@ function SettingsButton({ SwitchSoundButton, VolumeControlButton, isRestart }) {
     );
 }
 
-function PlayerAvatar({ avatarIndex, name, info, isMyTurn, pieceType }) {
+function PlayerAvatar({ avatarIndex, name, info, isMyTurn, pieceType, setChatPanelOpen }) {
     const [selectedAvatar, setSelectedAvatar] = useState('');
 
     useEffect(() => {
@@ -1051,7 +1051,8 @@ function PlayerAvatar({ avatarIndex, name, info, isMyTurn, pieceType }) {
 
     return (
         <div className='player-avatar'>
-            {selectedAvatar && <img src={selectedAvatar} alt="Avatar" className="avatar-img" />}
+            {selectedAvatar && <img src={selectedAvatar} alt="Avatar" className="avatar-img"
+                onClick={() => { if (setChatPanelOpen) { setChatPanelOpen(true) } }} />}
             <span>{name}</span>
             {!isMyTurn && <span>{info}</span>}
         </div>

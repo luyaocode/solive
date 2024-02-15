@@ -762,7 +762,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton,
   VolumeControlButton, logAction, isRestart, lastClick, setLastClick,
   socket, pieceType, lastStep, gameMode, skipRound, isSkipRound,
-  ExitButton, SkipButton, avatarIndex, avatarIndexPB }) {
+  ExitButton, SkipButton, avatarIndex, avatarIndexPB, setChatPanelOpen }) {
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const renderCell = (cellValue, rowIndex, colIndex) => {
@@ -949,7 +949,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
             <ExitButton />
           </div>
         </div>
-        <PlayerAvatar avatarIndex={avatarIndexPB} isMyTurn={gameMode === GameMode.MODE_SIGNAL ? !myTurn : myTurn} info='思考中...' pieceType={gameMode === GameMode.MODE_SIGNAL ? Piece_Type_White : anotherPieceType} />
+        <PlayerAvatar setChatPanelOpen={gameMode === GameMode.MODE_SIGNAL ? undefined : setChatPanelOpen} avatarIndex={avatarIndexPB} isMyTurn={gameMode === GameMode.MODE_SIGNAL ? !myTurn : myTurn} info='思考中...' pieceType={gameMode === GameMode.MODE_SIGNAL ? Piece_Type_White : anotherPieceType} />
       </div>
       <div className="board-row">
         {board.map((row, rowIndex) => (
@@ -1292,7 +1292,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   gameOver, setGameOver, isRestartRequestModalOpen, setRestartRequestModalOpen,
   restartResponseModalOpen, setRestartResponseModalOpen,
   isSkipRound, setRestartInSameRoom, isUndoRound,
-  setUndoRoundRequestModalOpen, avatarIndex, avatarIndexPB }) {
+  setUndoRoundRequestModalOpen, avatarIndex, avatarIndexPB, setChatPanelOpen }) {
 
   const [canSkipRound, setCanSkipRound] = useState(true);
   // 消息弹窗
@@ -1777,7 +1777,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
           isRestart={isRestart} lastClick={lastClick} setLastClick={setLastClick}
           socket={socket} pieceType={pieceType} lastStep={lastStep} gameMode={gameMode}
           skipRound={skipRound} isSkipRound={isSkipRound} ExitButton={ExitButton} SkipButton={SkipButton}
-          avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB}
+          avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB} setChatPanelOpen={setChatPanelOpen}
         />
       </div>
       {isModalOpen && (

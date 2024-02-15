@@ -269,7 +269,7 @@ function ChaosGomoku() {
                                 isSkipRound={isSkipRound} setRestartInSameRoom={setRestartInSameRoom}
                                 isUndoRound={isUndoRound}
                                 setUndoRoundRequestModalOpen={setUndoRoundRequestModalOpen}
-                                avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB}
+                                avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB} setChatPanelOpen={setChatPanelOpen}
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
                                 roomId={roomId} nickName={nickName} setChatPanelOpen={setChatPanelOpen}
