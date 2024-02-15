@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button, Input, Form, Space, Radio, Table } from 'antd';
 import './Game.css';
 import {
+    Avatar_Number_X,
+    Avatar_Number_Y,
     Config_ClientIpsColumns,
     Config_GameInfoColumns,
     Config_StepInfoColumns,
@@ -511,7 +513,7 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
     deviceType, boardWidth, boardHeight,
     headCount, historyPeekUsers, netConnected, generateSeeds,
     isLoginModalOpen, setLoginModalOpen, isLoginSuccess,
-    selectedTable, setSelectedTable, setTableViewOpen }) {
+    selectedTable, setSelectedTable, setTableViewOpen, avatarIndex }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
@@ -542,7 +544,7 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
         setStartModalOpen(true);
         setGameMode(mode);
         setItemsLoading(true);
-        socket.emit('matchRoom', { deviceType, boardWidth, boardHeight });
+        socket.emit('matchRoom', { deviceType, boardWidth, boardHeight, avatarIndex });
     }
 
     function enterRoom(roomId, nickName) {
@@ -962,29 +964,23 @@ function SettingsButton({ SwitchSoundButton, VolumeControlButton, isRestart }) {
     );
 }
 
-function PlayerAvatar({ name, info, isMyTurn, pieceType }) {
+function PlayerAvatar({ avatarIndex, name, info, isMyTurn, pieceType }) {
     const [selectedAvatar, setSelectedAvatar] = useState('');
 
     useEffect(() => {
-        const numRows = 5;
-        const numCols = 16;
-        const avatarWidth = 55.625;
-        const avatarHeight = 51.8;
-        const factor = 0.7;
-        const scaledWidth = avatarWidth * factor;
-        const scaledHeight = avatarHeight * factor;
-
-        // 随机选择一个头像的行和列
-        const randomRow = Math.floor(Math.random() * numRows);
-        const randomCol = Math.floor(Math.random() * numCols);
-
-        // 计算头像的位置
-        const x = randomCol * avatarWidth;
-        const y = randomRow * avatarHeight;
-
+        const xIndex = avatarIndex[0];
+        const yIndex = avatarIndex[1];
         // 加载图片
         const img = new Image();
         img.onload = function () {
+            const avatarWidth = img.width / Avatar_Number_X;
+            const avatarHeight = img.height / Avatar_Number_Y;
+            const factor = 0.7;
+            const scaledWidth = avatarWidth * factor;
+            const scaledHeight = avatarHeight * factor;
+            // 计算头像的位置
+            const x = xIndex * avatarWidth;
+            const y = yIndex * avatarHeight;
             // 创建Canvas元素
             const canvas = document.createElement('canvas');
             canvas.width = scaledWidth;

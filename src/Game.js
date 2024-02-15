@@ -762,7 +762,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton,
   VolumeControlButton, logAction, isRestart, lastClick, setLastClick,
   socket, pieceType, lastStep, gameMode, skipRound, isSkipRound,
-  ExitButton, SkipButton }) {
+  ExitButton, SkipButton, avatarIndex, avatarIndexPB }) {
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const renderCell = (cellValue, rowIndex, colIndex) => {
@@ -932,7 +932,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   return (
     <>
       <div className='game-info-parent'>
-        <PlayerAvatar isMyTurn={myTurn} info={gameMode === GameMode.MODE_SIGNAL ? '思考中...' : ''}
+        <PlayerAvatar avatarIndex={avatarIndex} isMyTurn={myTurn} info={gameMode === GameMode.MODE_SIGNAL ? '思考中...' : ''}
           pieceType={gameMode === GameMode.MODE_SIGNAL ? Piece_Type_Black : pieceType} />
         <div className='game-info'>
           <div className="piece-status">{currentPieceStatus}<span className='piece-name'>{currentPiece}</span><span className='span-blank'></span>
@@ -949,7 +949,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
             <ExitButton />
           </div>
         </div>
-        <PlayerAvatar isMyTurn={gameMode === GameMode.MODE_SIGNAL ? !myTurn : myTurn} info='思考中...' pieceType={gameMode === GameMode.MODE_SIGNAL ? Piece_Type_White : anotherPieceType} />
+        <PlayerAvatar avatarIndex={avatarIndexPB} isMyTurn={gameMode === GameMode.MODE_SIGNAL ? !myTurn : myTurn} info='思考中...' pieceType={gameMode === GameMode.MODE_SIGNAL ? Piece_Type_White : anotherPieceType} />
       </div>
       <div className="board-row">
         {board.map((row, rowIndex) => (
@@ -1292,7 +1292,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   gameOver, setGameOver, isRestartRequestModalOpen, setRestartRequestModalOpen,
   restartResponseModalOpen, setRestartResponseModalOpen,
   isSkipRound, setRestartInSameRoom, isUndoRound,
-  setUndoRoundRequestModalOpen, avatarA, avatarB }) {
+  setUndoRoundRequestModalOpen, avatarIndex, avatarIndexPB }) {
 
   const [canSkipRound, setCanSkipRound] = useState(true);
   // 消息弹窗
@@ -1777,6 +1777,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
           isRestart={isRestart} lastClick={lastClick} setLastClick={setLastClick}
           socket={socket} pieceType={pieceType} lastStep={lastStep} gameMode={gameMode}
           skipRound={skipRound} isSkipRound={isSkipRound} ExitButton={ExitButton} SkipButton={SkipButton}
+          avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB}
         />
       </div>
       {isModalOpen && (

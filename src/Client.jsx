@@ -1,6 +1,9 @@
 import { useEffect } from 'react';
 import io from 'socket.io-client';
-import { DeviceType, LoginStatus, Table_Client_Ips, Table_Game_Info, Table_Step_Info } from './ConstDefine.jsx'
+import {
+    DeviceType, LoginStatus, Table_Client_Ips, Table_Game_Info, Table_Step_Info,
+    Avatar_Number_X, Avatar_Number_Y
+} from './ConstDefine.jsx'
 
 function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
@@ -13,7 +16,7 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setNetConnected, setRestartInSameRoom, setUndoRound,
     setUndoRoundRequestModalOpen, setUndoRoundResponseModalOpen,
     setLoginSuccess,
-    setClientIpsData, setGameInfoData, setStepInfoData }) {
+    setClientIpsData, setGameInfoData, setStepInfoData, setAvatarIndex, setAvatarIndexPB }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -25,13 +28,17 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
         }
     }
 
+    function setAvatar() {
+        const x = Math.floor(Math.random() * Avatar_Number_X);
+        const y = Math.floor(Math.random() * Avatar_Number_Y);
+        setAvatarIndex([x, y]);
+    }
+
     useEffect(() => {
-        // if (gameMode === GameMode.MODE_NONE || gameMode === GameMode.MODE_SIGNAL ||
-        //     gameMode === undefined) {
-        //     return;
-        // }
         const deviceType = getDeviceType();
         setDeviceType(deviceType);
+        // 设置头像
+        setAvatar();
 
         // 连接服务器
         let serverUrl;
@@ -183,6 +190,10 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
                 } else {
                     setLoginSuccess(LoginStatus.LOGOUT);
                 }
+            });
+
+            socket.on('set_avatar_pb', (avatarIndex) => {
+                setAvatarIndexPB(avatarIndex);
             });
 
             socket.on('disconnect', () => {

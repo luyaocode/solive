@@ -8,7 +8,9 @@ import Game from './Game.js'
 import {
     GameMode, Piece_Type_Black, DeviceType, root,
     Highest_Online_Users_Background,
-    LoginStatus
+    LoginStatus,
+    Avatar_Number_X,
+    Avatar_Number_Y
 } from './ConstDefine.jsx'
 import Client from './Client.jsx'
 
@@ -72,7 +74,12 @@ function ChaosGomoku() {
     const [tableViewOpen, setTableViewOpen] = useState(false);
 
     // 头像
-    const [avatarIndex, setAvatarIndex] = useState([0, 0]);
+    const [avatarIndex, setAvatarIndex] = useState(
+        [Math.floor(Math.random() * Avatar_Number_X),
+        Math.floor(Math.random() * Avatar_Number_Y)]);
+    const [avatarIndexPB, setAvatarIndexPB] = useState(
+        [Math.floor(Math.random() * Avatar_Number_X),
+        Math.floor(Math.random() * Avatar_Number_Y)]);
 
     useEffect(() => {
         if (isUndoRound) {
@@ -214,6 +221,7 @@ function ChaosGomoku() {
                 setUndoRoundResponseModalOpen={setUndoRoundResponseModalOpen}
                 setLoginSuccess={setLoginSuccess}
                 setClientIpsData={setClientIpsData} setGameInfoData={setGameInfoData} setStepInfoData={setStepInfoData}
+                setAvatarIndex={setAvatarIndex} setAvatarIndexPB={setAvatarIndexPB}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
@@ -229,7 +237,7 @@ function ChaosGomoku() {
                             headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
                             generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
                             isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
-                            setTableViewOpen={setTableViewOpen} />)}
+                            setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} />)}
                 </>)
             }
             {gameMode !== GameMode.MODE_NONE && (
@@ -255,6 +263,7 @@ function ChaosGomoku() {
                                 isSkipRound={isSkipRound} setRestartInSameRoom={setRestartInSameRoom}
                                 isUndoRound={isUndoRound}
                                 setUndoRoundRequestModalOpen={setUndoRoundRequestModalOpen}
+                                avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB}
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
                                 roomId={roomId} nickName={nickName} />
