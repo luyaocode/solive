@@ -129,6 +129,10 @@ function ChaosGomoku() {
             if (gameMode === GameMode.MODE_SIGNAL) {
                 setAllIsOk(true);
             }
+            // 清空消息
+            if (!restartInSameRoom) {
+                setMessages([]);
+            }
         }
     }, [isRestart]);
 
@@ -163,6 +167,8 @@ function ChaosGomoku() {
                 setAllIsOk(true);
             }
         }
+        // 清空消息
+        setMessages([]);
     }, [gameMode]);
 
     useEffect(() => {

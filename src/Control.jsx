@@ -9,7 +9,8 @@ import {
     Config_StepInfoColumns,
     GameMode, LoginStatus,
     Piece_Type_Black,
-    Table_Client_Ips, Table_Game_Info, Table_Step_Info
+    Table_Client_Ips, Table_Game_Info, Table_Step_Info,
+    Messages_Max_Len
 } from './ConstDefine.jsx'
 import { Howl } from 'howler';
 import {
@@ -1063,11 +1064,17 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, socket }) {
     const [inputText, setInputText] = useState('');
     const textareaRef = useRef(null);
     const messageContainerRef = useRef(null);
+    const [modalOpen, setModalOpen] = useState(false);
 
     // 处理发送消息
     const handleSendMessage = () => {
+        if (messages.length > Messages_Max_Len) {
+            setModalOpen(true);
+            return;
+        }
         if (inputText !== '') {
-            const newMessage = { text: inputText, sender: 'me' };
+            const textValid = inputText.substring(0, 2000);
+            const newMessage = { text: textValid, sender: 'me' };
             // 发送到服务器
             socket.emit('chatMessage', newMessage);
             setMessages(prev => [...prev, newMessage]);
@@ -1092,6 +1099,12 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, socket }) {
         }
     };
 
+    function onTextAreaClick() {
+        if (messageContainerRef.current) {
+            messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
+        }
+    }
+
     useEffect(() => {
         if (messageContainerRef.current) {
             messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
@@ -1107,39 +1120,43 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, socket }) {
     }, []); // 只在组件加载时执行
 
     return (
-        <div className='chat-panel-wrapper'>
-            <div className="chat-panel">
-                <div className="chatpanel-close-button" onClick={onClose}>&times;</div>
-                <div ref={messageContainerRef} className="message-container">
-                    {messages.map((message, index) => (
-                        <div key={index} className={`message ${message.sender}`}>
-                            {message.text.replace(/ /g, '\u00a0')} {/* 使用空格的 HTML 实体替换空格 */}
-                        </div>
-                    ))}
-                </div>
-                <div className="input-container">
-                    <textarea
-                        ref={textareaRef}
-                        value={inputText}
-                        onChange={handleChange}
-                        placeholder="请输入..."
-                        style={{
-                            width: '80%',
-                            height: '1.5em', // 设置初始高度为一行文本的高度
-                            minHeight: 'auto', // 调整最小高度为自动
-                            maxHeight: '100px', // 调整最大高度
-                            fontSize: '20px', // 调整字体大小
-                            border: '1px solid #ccc',
-                            resize: 'none',
-                            overflow: 'hidden',
-                            lineHeight: '1.2', // 设置行高与字体大小相同
-                            padding: '10px', // 调整内边距
-                        }}
-                    />
-                    <button onClick={handleSendMessage}>发送</button>
+        <>
+            <div className='chat-panel-wrapper'>
+                <div className="chat-panel">
+                    <div className="chatpanel-close-button" onClick={onClose}>&times;</div>
+                    <div ref={messageContainerRef} className="message-container">
+                        {messages.map((message, index) => (
+                            <div key={index} className={`message ${message.sender}`}>
+                                {message.text.replace(/ /g, '\u00a0')} {/* 使用空格的 HTML 实体替换空格 */}
+                            </div>
+                        ))}
+                    </div>
+                    <div className="input-container">
+                        <textarea
+                            ref={textareaRef}
+                            value={inputText}
+                            onChange={handleChange}
+                            placeholder="请输入..."
+                            onClick={onTextAreaClick}
+                            style={{
+                                width: '80%',
+                                height: '1.5em', // 设置初始高度为一行文本的高度
+                                minHeight: 'auto', // 调整最小高度为自动
+                                maxHeight: '100px', // 调整最大高度
+                                fontSize: '20px', // 调整字体大小
+                                border: '1px solid #ccc',
+                                resize: 'none',
+                                overflow: 'hidden',
+                                lineHeight: '1.2', // 设置行高与字体大小相同
+                                padding: '10px', // 调整内边距
+                            }}
+                        />
+                        <button onClick={handleSendMessage}>发送</button>
+                    </div>
                 </div>
             </div>
-        </div>
+            {modalOpen && <Modal modalInfo='消息已达上限！' setModalOpen={setModalOpen} />}
+        </>
     );
 }
 

@@ -60,3 +60,5 @@ export const Highest_Online_Users_Background = 'linear-gradient(45deg, #ff5722, 
 
 export const Avatar_Number_X = 16;
 export const Avatar_Number_Y = 5;
+
+export const Messages_Max_Len = 1000;
