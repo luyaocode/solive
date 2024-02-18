@@ -5,6 +5,8 @@ import {
     Avatar_Number_X, Avatar_Number_Y
 } from './ConstDefine.jsx'
 
+import { showNotification } from './Plugin.jsx'
+
 function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
     setSynchronized, setHeadCount, setHistoryPeekUsers, setRoomId,
@@ -199,7 +201,7 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
 
             socket.on('chat_message', (msg) => {
                 const newMessage = { text: msg, sender: 'other' };
-
+                showNotification(msg);
                 setMessages(prev => [...prev, newMessage]);
             });
 
