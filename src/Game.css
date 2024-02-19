@@ -821,7 +821,7 @@
 .menu-header h1 {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   /* 设置 Sans-serif 字体族 */
-  font-size: 50px;
+  font-size: 48px;
   color: #ffffff;
   text-shadow:
     0 0 5px #00ffff,
@@ -1080,6 +1080,13 @@
   padding: 20px;
   text-align: center;
   /* 使用百分比宽度 */
+}
+
+.record-number {
+  color: #fff;
+  /* 设置备案号字体颜色为白色 */
+  text-decoration: none;
+  /* 移除超链接的下划线 */
 }
 
 .github-info {

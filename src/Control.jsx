@@ -501,6 +501,10 @@ function Footer() {
                     </div>
                 </div>
             )}
+            <div style={{ marginTop: 10 + 'px' }}>
+                <a href='https://beian.miit.gov.cn' target='_blank' className='record-number'>鄂ICP备2024037650号</a>
+            </div>
+
         </footer>
     );
 }
