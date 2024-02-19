@@ -1948,6 +1948,58 @@ function initScores(w, h) {
   return scores;
 }
 
+function checkDanger(board, x, y, scores, item) {
+  const directions = [
+    [1, 0], [0, 1], [1, 1], [1, -1], // 水平、垂直、右斜、左斜方向
+  ];
+  const width = board[0].length;
+  const height = board.length;
+
+  const checkDirection = (dx, dy) => {
+    // 计算当前方向上的连珠数
+    const count = (dx, dy) => {
+      let count = 0;
+      let i = 1;
+      while (i <= 4) {
+        const newX = x + i * dx;
+        const newY = y + i * dy;
+        if (newX >= 0 && newX < height && newY >= 0 && newY < width && board[newX][newY].type === Piece_Type_Black &&
+          !board[newX][newY].status.frozen && !board[newX][newY].status.attachBomb) {
+          count += 1;
+        } else {
+          break;
+        }
+        i++;
+      }
+      return count;
+    };
+
+    let count1 = count(dx, dy);
+    let count2 = count(-dx, -dy);
+    if (count1 + count2 >= 4) {
+      if (item instanceof Shield || item instanceof XFlower) {
+        scores[x][y] += 100;
+      }
+      else {
+        scores[x][y] += 40;
+      }
+    }
+    else if (count1 + count2 >= 3) {
+      if (item instanceof Shield || item instanceof XFlower) {
+        scores[x][y] += 30;
+      }
+      else {
+        scores[x][y] += 10;
+      }
+    }
+  };
+
+  // 检查所有方向
+  for (const [dx, dy] of directions) {
+    checkDirection(dx, dy);
+  }
+};
+
 function updateScoreByPos(board, r, c, scores) {
   const width = board[0].length;
   const height = board.length;
@@ -2137,9 +2189,12 @@ function getPiecePos(board, item) {
         }
         // 更新得分
         updateScoreByPos(board, x, y, scores);
+        checkDanger(board, x, y, scores, item);
         updateScoreByItem(board, x, y, scores, item);
       }
-    })
+      return null;
+    });
+    return null;
   });
   return findMaxIndex(scores);
 }
@@ -2161,8 +2216,8 @@ function getItemPos(board, item, bestPiecePos) {
         if (board[x][y].liveTime > 0) {
           continue;
         }
-        if (board[x][y].type === Piece_Type_Black && !board[x][y].status.frozen ||
-          board[x][y].type === Piece_Type_White && board[x][y].status.frozen) {
+        if ((board[x][y].type === Piece_Type_Black && !board[x][y].status.frozen) ||
+          (board[x][y].type === Piece_Type_White && board[x][y].status.frozen)) {
           resx = x;
           resy = y;
           break;
@@ -2182,8 +2237,8 @@ function getItemPos(board, item, bestPiecePos) {
           if (!board[x][y].canBeDestroyed || board[x][y].liveTime > 0) {
             continue;
           }
-          if (board[x][y].type === Piece_Type_Black && !board[x][y].status.frozen ||
-            board[x][y].type === Piece_Type_White && board[x][y].status.frozen) {
+          if ((board[x][y].type === Piece_Type_Black && !board[x][y].status.frozen) ||
+            (board[x][y].type === Piece_Type_White && board[x][y].status.frozen)) {
             resx = x;
             resy = y;
             break;
