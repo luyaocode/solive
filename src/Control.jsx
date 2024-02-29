@@ -1065,7 +1065,7 @@ function PlayerAvatar({ avatarIndex, name, info, isMyTurn, pieceType, setChatPan
 
     return (
         <div className='player-avatar'>
-            <span>{!isMyTurn ? info : '🌿'}</span>
+            <span>{isMyTurn ? '💡' : '🌿'}</span>
             {selectedAvatar && <img src={selectedAvatar} alt="Avatar" className="avatar-img"
                 onClick={() => { if (setChatPanelOpen) { setChatPanelOpen(true) } }} />}
             <span>{name}</span>

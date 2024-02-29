@@ -956,7 +956,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   let nextItemStatus = '下个道具: ';
   let myTurn;
   if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
-    myTurn = !xIsNext;
+    myTurn = xIsNext;
   }
   else {
     myTurn = isMyTurn();
@@ -966,7 +966,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   return (
     <>
       <div className='game-info-parent'>
-        <PlayerAvatar avatarIndex={avatarIndex} isMyTurn={myTurn} info={(gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) ? '💡' : ''}
+        <PlayerAvatar avatarIndex={avatarIndex} isMyTurn={myTurn}
           pieceType={(gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) ? Piece_Type_Black : pieceType} />
         <div className='game-info'>
           <div className="piece-status">{currentPieceStatus}<span className='piece-name'>{currentPiece}</span><span className='span-blank'></span>
@@ -984,7 +984,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
           </div>
         </div>
         <PlayerAvatar setChatPanelOpen={(gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) ? undefined : setChatPanelOpen} avatarIndex={avatarIndexPB}
-          isMyTurn={(gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) ? !myTurn : myTurn} info='💡'
+          isMyTurn={!myTurn}
           pieceType={(gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) ? Piece_Type_White : anotherPieceType} />
       </div>
       <div className="board-row">
