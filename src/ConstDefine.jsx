@@ -63,3 +63,9 @@ export const Avatar_Number_X = 16;
 export const Avatar_Number_Y = 5;
 
 export const Messages_Max_Len = 1000;
+
+export const View = {
+    Menu: 0,
+    Table: 1,
+    VideoChat: 2,
+}

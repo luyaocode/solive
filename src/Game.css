@@ -1482,3 +1482,120 @@
   border-radius: 8px;
   cursor: pointer;
 }
+
+/* 视频通话 */
+.container {
+  display: grid;
+  grid-template-columns: 7fr 3fr;
+}
+
+.myId {
+  margin-right: 5rem;
+  border-radius: 5px;
+  background: #c9d6ff;
+  /* fallback for old browsers */
+  background: -webkit-linear-gradient(to right, #e2e2e2, #c9d6ff);
+  /* Chrome 10-25, Safari 5.1-6 */
+  background: linear-gradient(to right,
+      #e2e2e2,
+      #c9d6ff);
+  /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
+
+  padding: 2rem;
+  display: grid;
+  justify-content: center;
+  align-content: center;
+}
+
+.call-button {
+  text-align: center;
+  margin-top: 2rem;
+}
+
+.video-container {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  justify-content: center;
+  align-content: center;
+  margin-top: 10rem;
+  margin-left: 10rem;
+  border: 1px solid black;
+  background-color: gray;
+}
+
+.caller {
+  text-align: center;
+  color: #fff;
+}
+
+/* 遮罩 */
+.overlay {
+  position: fixed;
+  bottom: 0;
+  left: 0;
+  width: 100%;
+  height: 100px;
+  /* 遮罩层的高度，可以根据需要调整 */
+  background-color: transparent;
+  /* 初始状态为透明 */
+  z-index: 9999;
+  /* 确保遮罩层位于最上层 */
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.3s ease;
+  /* 添加过渡效果 */
+}
+
+.overlay:hover {
+  background-color: rgba(0, 0, 0, 0);
+  /* 鼠标悬浮时显示半透明黑色遮罩 */
+}
+
+.arrow-container {
+  display: none;
+}
+
+.overlay:hover .arrow-container {
+  display: flex;
+  /* 鼠标悬浮时显示箭头 */
+  flex-direction: column;
+  align-items: center;
+  animation: slideArrow 1.5s linear infinite;
+  /* 箭头动画 */
+}
+
+.arrow {
+  width: 0;
+  height: 0;
+  border-left: 15px solid transparent;
+  /* 增加箭头的宽度 */
+  border-right: 15px solid transparent;
+  /* 增加箭头的宽度 */
+  border-bottom: 20px solid rgba(255, 255, 255, 1);
+  /* 半透明箭头 */
+  /* 箭头的高度 */
+  cursor: pointer;
+  /* 鼠标指针样式为手型 */
+  margin-bottom: 5px;
+  /* 箭头之间的间距 */
+}
+
+@keyframes slideArrow {
+  0% {
+    transform: translateY(50%);
+    opacity: 0;
+    /* 开始时完全透明 */
+  }
+
+  50% {
+    opacity: 0.5;
+    /* 中间半透明 */
+  }
+
+  100% {
+    transform: translateY(0%);
+    opacity: 1;
+    /* 结束时完全不透明 */
+  }
+}

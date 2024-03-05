@@ -3,7 +3,9 @@ import './Game.css';
 import {
     Timer, GameLog, ItemManager, StartModal, Menu, Modal, ConfirmModal,
     TableViewer,
-    ChatPanel
+    ChatPanel,
+    VideoChat,
+    OverlayArrow,
 } from './Control.jsx'
 import Game from './Game.js'
 import {
@@ -11,7 +13,8 @@ import {
     Highest_Online_Users_Background,
     LoginStatus,
     Avatar_Number_X,
-    Avatar_Number_Y
+    Avatar_Number_Y,
+    View,
 } from './ConstDefine.jsx'
 import Client from './Client.jsx'
 
@@ -85,6 +88,15 @@ function ChaosGomoku() {
     // 文本消息
     const [messages, setMessages] = useState([]);
     const [chatPanelOpen, setChatPanelOpen] = useState(false);
+
+    // 系统界面
+    const [currentView, setCurrentView] = useState(View.Menu);
+    const enterVideoChatView = () => {
+        setCurrentView(View.VideoChat);
+    }
+    const returnMenuView = () => {
+        setCurrentView(View.Menu);
+    }
 
     useEffect(() => {
         if (isUndoRound) {
@@ -215,6 +227,7 @@ function ChaosGomoku() {
 
     return (
         <React.StrictMode className='game-container'>
+            <OverlayArrow onClick={enterVideoChatView} />
             <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
                 gameMode={gameMode} setDeviceType={setDeviceType} setRoomDeviceType={setRoomDeviceType}
                 setBoardWidth={setBoardWidth} setBoardHeight={setBoardHeight} setSynchronized={setSynchronized}
@@ -242,14 +255,15 @@ function ChaosGomoku() {
                             socket,
                             selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData, setTableViewOpen,
                             setLoginSuccess, logoutModalOpen, setLogoutModalOpen
-                        }} /> :
-                        (<Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
-                            socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
-                            deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}
-                            headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
-                            generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
-                            isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
-                            setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} />)}
+                        }} /> : (currentView === View.Menu ?
+                            (<Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
+                                socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
+                                deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}
+                                headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
+                                generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
+                                isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
+                                setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} />) :
+                            (currentView === View.VideoChat ? <VideoChat socket={socket} returnMenuView={returnMenuView} /> : null))}
                 </>)
             }
             {gameMode !== GameMode.MODE_NONE && (
