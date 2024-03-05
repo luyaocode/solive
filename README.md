@@ -20,8 +20,9 @@ Play Now: http://47.97.186.50
 
 ### Update Log
 
-1. Version 0.1: Added Sword, Shield, Bow, Potion, Bomb, Flower, and Ice Magic props, along with sound effects, undo functionality, and other regular features. ——2024/01/26
-1. Version 0.2: Add online multiplayer functionality.——2024/02/15
+1. Version 0.1: Added Sword, Shield, Bow, Potion, Bomb, Flower, and Ice Magic props, along with sound effects, undo functionality, and other regular features. ——2024/1/26
+2. Version 0.2: Add online multiplayer functionality.——2024/2/15
+3. Version 0.3: Added AI mode, added text chat and video call functionality.
 
 ### Preparatory Stage
 Make sure you have installed **Node.js** and **npm**
@@ -59,8 +60,9 @@ npm run start
 
 ### 更新记录
 
-1. v0.1版本：增加剑、盾、弓、药水、炸弹、花朵、冰冻魔法道具，增加音效、悔棋等常规功能 ——2024/01/26
-1. v0.2版本：增加联机功能 ——2024/02/15
+1. v0.1版本：增加剑、盾、弓、药水、炸弹、花朵、冰冻魔法道具，增加音效、悔棋等常规功能 ——2024/1/26
+2. v0.2版本：增加联机功能 ——2024/2/15
+3. v0.3版本：增加AI模式，增加文字聊天和视频通话功能 ——2024/3/5
 
 ### 准备阶段
 
