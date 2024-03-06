@@ -227,7 +227,7 @@ function ChaosGomoku() {
 
     return (
         <React.StrictMode className='game-container'>
-            <OverlayArrow onClick={enterVideoChatView} />
+            <OverlayArrow onClick={enterVideoChatView} currentView={currentView} />
             <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
                 gameMode={gameMode} setDeviceType={setDeviceType} setRoomDeviceType={setRoomDeviceType}
                 setBoardWidth={setBoardWidth} setBoardHeight={setBoardHeight} setSynchronized={setSynchronized}
@@ -262,8 +262,9 @@ function ChaosGomoku() {
                                 headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
                                 generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
                                 isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
-                                setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} />) :
-                            (currentView === View.VideoChat ? <VideoChat socket={socket} returnMenuView={returnMenuView} /> : null))}
+                                setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} />
+                            ) :
+                            (currentView === View.VideoChat ? <VideoChat deviceType={deviceType} socket={socket} returnMenuView={returnMenuView} /> : null))}
                 </>)
             }
             {gameMode !== GameMode.MODE_NONE && (

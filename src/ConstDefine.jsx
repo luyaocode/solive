@@ -69,3 +69,8 @@ export const View = {
     Table: 1,
     VideoChat: 2,
 }
+
+export const AudioIcon = 'picture/svg/AudioIcon.svg';
+export const AudioIconDisabled = 'picture/svg/AudioIconDisabled.svg';
+export const VideoIcon = 'picture/svg/VideoIcon.svg';
+export const VideoIconDisabled = 'picture/svg/VideoIconDisabled.svg';

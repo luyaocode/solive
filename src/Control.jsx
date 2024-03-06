@@ -13,7 +13,12 @@ import {
     GameMode, LoginStatus,
     Piece_Type_Black,
     Table_Client_Ips, Table_Game_Info, Table_Step_Info,
-    Messages_Max_Len
+    Messages_Max_Len,
+    View,
+    AudioIcon, AudioIconDisabled,
+    VideoIcon, VideoIconDisabled,
+    DeviceType,
+    root
 } from './ConstDefine.jsx'
 import { Howl } from 'howler';
 import {
@@ -1176,26 +1181,92 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, socket }) {
     );
 }
 
-function VideoChat({ socket, returnMenuView }) {
-    const [me, setMe] = useState("");
-    const [stream, setStream] = useState();
+function VideoChat({ deviceType, socket, returnMenuView }) {
+    const [me, setMe] = useState("");               // 本地socketId
+    const [localStream, setLocalStream] = useState();
+    const [remoteStream, setRemoteStream] = useState();
+    const [calling, setCalling] = useState(false);
     const [receivingCall, setReceivingCall] = useState(false);
-    const [caller, setCaller] = useState("");
+    const [caller, setCaller] = useState("");       // 拨打过来的socketId
     const [callerSignal, setCallerSignal] = useState();
     const [callAccepted, setCallAccepted] = useState(false);
-    const [idToCall, setIdToCall] = useState("");
+    const [callRejected, setCallRejected] = useState(false);
+    const [idToCall, setIdToCall] = useState("");   // 要拨打的socketId
     const [callEnded, setCallEnded] = useState(false);
     const [name, setName] = useState("");
+    const [another, setAnother] = useState();       // 当前通话的socketId
+    const [noResponse, setNoResponse] = useState(false);
+    const [confirmLeave, setConfirmLeave] = useState(false);
+
+    const [videoEnabled, setVideoEnabled] = useState(true);
+    const [audioEnabled, setAudioEnabled] = useState(true);
+    const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
+    const [selectedVideoDevice, setSelectedVideoDevice] = useState('');
+
     const myVideo = useRef();
     const userVideo = useRef();
     const connectionRef = useRef();
 
     useEffect(() => {
-        if (socket && myVideo.current) {
-            navigator.mediaDevices.getUserMedia({ video: true, audio: true }).then((stream) => {
-                setStream(stream);
-                myVideo.current.srcObject = stream;
+        switch (deviceType) {
+            case DeviceType.MOBILE: {
+                root.style.setProperty('--video-container-flex-direction', 'column');
+                break;
+            }
+            case DeviceType.PC: {
+                root.style.setProperty('--video-container-flex-direction', 'row');
+                break;
+            }
+            default: break;
+        }
+    }, [deviceType]);
+
+    // 获取媒体流
+    async function getUserMediaStream() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({
+                video: videoEnabled,
+                audio: audioEnabled
             });
+            return stream;
+        } catch (error) {
+            console.error('获取媒体流失败：');
+        }
+    }
+
+    useEffect(() => {
+        if (connectionRef.current && localStream) {
+        }
+    }, [localStream]);
+
+    // 更新轨道
+    useEffect(() => {
+        getUserMediaStream()
+            .then(stream => {
+                setLocalStream(stream);
+                myVideo.current.srcObject = stream;
+                if (connectionRef.current) {
+
+                }
+            });
+
+        return () => {
+            // 在组件卸载时停止媒体流
+            if (localStream) {
+                localStream.getTracks().forEach(track => track.stop());
+            }
+        };
+    }, [videoEnabled, audioEnabled, selectedAudioDevice, selectedVideoDevice]);
+
+    useEffect(() => {
+        if (socket && myVideo.current) {
+            getUserMediaStream()
+                .then(stream => {
+                    if (stream) {
+                        setLocalStream(stream);
+                        myVideo.current.srcObject = stream;
+                    }
+                });
 
             socket.on("callUser", (data) => {
                 setReceivingCall(true);
@@ -1204,8 +1275,21 @@ function VideoChat({ socket, returnMenuView }) {
                 setCallerSignal(data.signal);
             });
 
+            socket.on("callRejected", () => {
+                setCallAccepted(false);
+                setCallRejected(true);
+                setCalling(false);
+            });
+
             socket.on("connectEnded", () => {
                 setCallEnded(true);
+                setCallAccepted(false);
+                if (userVideo.current && userVideo.current.srcObject) {
+                    userVideo.current.srcObject.getTracks().forEach(track => {
+                        track.stop();
+                    });
+                    userVideo.current.srcObject = null; // 清除引用，以便内存回收
+                }
                 if (connectionRef.current) {
                     connectionRef.current.destroy();
                 }
@@ -1217,14 +1301,26 @@ function VideoChat({ socket, returnMenuView }) {
         if (socket) {
             setMe(socket.id);
         }
+        return () => {
+            if (connectionRef.current) {
+                connectionRef.current.destroy();
+            }
+        }
     }, []);
 
-    const callUser = (id) => {
+    useEffect(() => {
+        if (callEnded) {
+            setCallEnded(false);
+        }
+    }, [callEnded]);
+
+    const createCallPeer = (id, stream) => {
         const peer = new Peer({
             initiator: true,
             trickle: false,
             stream: stream
         });
+        // peer对象生成，在连接建立时或在需要更新连接状态时触发
         peer.on("signal", (data) => {
             socket.emit("callUser", {
                 userToCall: id,
@@ -1232,125 +1328,339 @@ function VideoChat({ socket, returnMenuView }) {
                 from: me,
                 name: name
             });
-        })
+            setCallerSignal(data);
+        });
+        // 接收到流（stream）时触发
         peer.on("stream", (stream) => {
-            userVideo.current.srcObject = stream;
-        })
+            if (userVideo.current) {
+                userVideo.current.srcObject = stream;
+                setRemoteStream(stream);
+            }
+        });
+
         socket.on("callAccepted", (signal) => {
             setCallAccepted(true);
-            peer.signal(signal);
-        })
-        connectionRef.current = peer;
+            if (!peer.destroyed) {
+                peer.signal(signal);
+            }
+            setCalling(false);
+            setAnother(idToCall);
+        });
+        return peer;
     }
 
-    const answerCall = () => {
-        setCallAccepted(true);
+    const callUser = (id) => {
+        setCalling(true);
+        connectionRef.current = createCallPeer(id, localStream);
+        setTimeout(() => {
+            if (calling && !callAccepted) {
+                setNoResponse(true);
+                setCalling(false);
+            }
+        }, 30000);
+    }
+
+    const createAnswerPeer = (stream) => {
         const peer = new Peer({
             initiator: false,
             trickle: false,
             stream: stream
-        })
+        });
         peer.on("signal", (data) => {
-            socket.emit("answerCall", { signal: data, to: caller });
-        })
+            socket.emit("acceptCall", { signal: data, to: caller });
+        });
         peer.on("stream", (stream) => {
-            userVideo.current.srcObject = stream;
-        })
+            if (userVideo.current) {
+                userVideo.current.srcObject = stream;
+                setRemoteStream(stream);
+            }
+        });
+        return peer;
+    }
 
-        peer.signal(callerSignal)
+    const acceptCall = () => {
+        setReceivingCall(false);
+        setCallAccepted(true);
+        const peer = createAnswerPeer(localStream);
+        peer.signal(callerSignal);
         connectionRef.current = peer;
+        setAnother(caller);
+    }
+
+    const rejectCall = () => {
+        setReceivingCall(false);
+        socket.emit("rejectCall", { to: caller });
     }
 
     const leaveCall = () => {
-        setCallEnded(true);
-        if (connectionRef.current) {
-            connectionRef.current.destroy();
-        }
-        socket.emit("endConnect", { to: idToCall });
+        socket.emit("endConnect", { me: me, another: another });
     }
 
     return (
         <>
-            <h1 style={{ textAlign: "center", color: '#fff' }}>Zoomish</h1>
-            <button className="button-normal" type="primary" onClick={() => returnMenuView()}>
+            <h1 style={{ textAlign: "center", color: '#fff' }}>视频通话</h1>
+            <button className="button-normal" type="primary" onClick={() => {
+                if (callAccepted) {
+                    setConfirmLeave(true);
+                }
+                else {
+                    returnMenuView();
+                }
+            }}>
                 &times; 返回主页
             </button>
             <div className="container">
                 <div className="video-container">
                     <div className="video">
-                        {<video playsInline muted ref={myVideo} autoPlay style={{ width: "200px" }} />}
+                        {<video playsInline muted ref={myVideo} autoPlay style={{ width: "300px" }} />}
                     </div>
                     <div className="video">
                         {callAccepted && !callEnded ?
-                            <video playsInline ref={userVideo} autoPlay style={{ width: "200px" }} /> :
+                            <video playsInline ref={userVideo} autoPlay style={{ width: "300px" }} /> :
                             null}
                     </div>
                 </div>
                 <div className="myId">
-                    <textarea
-                        id="filled-basic"
-                        label="Name"
-                        variant="filled"
-                        value={name}
-                        onChange={(e) => setName(e.target.value)}
-                        style={{ marginBottom: "20px" }}
-                    />
-                    <CopyToClipboard text={me} style={{ marginBottom: "2rem" }}>
-                        <Button variant="contained" color="primary">
-                            复制ID
-                        </Button>
-                    </CopyToClipboard>
-
-                    <textarea
-                        id="filled-basic"
-                        label="ID to call"
-                        variant="filled"
-                        value={idToCall}
-                        onChange={(e) => setIdToCall(e.target.value)}
-                    />
+                    {!callAccepted &&
+                        <>
+                            <textarea
+                                placeholder="我的昵称"
+                                id="filled-basic"
+                                label="Name"
+                                variant="filled"
+                                value={name}
+                                onChange={(e) => {
+                                    setName(e.target.value);
+                                    if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
+                                        e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                    } else {
+                                        e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
+                                    }
+                                }}
+                                style={{
+                                    width: '100%',
+                                    height: '1.5em', // 设置初始高度为一行文本的高度
+                                    minHeight: 'auto', // 调整最小高度为自动
+                                    maxHeight: '100px', // 调整最大高度
+                                    fontSize: '20px', // 调整字体大小
+                                    border: '1px solid #ccc',
+                                    resize: 'none',
+                                    lineHeight: '1.2', // 设置行高与字体大小相同
+                                }}
+                            />
+                            <textarea
+                                placeholder="对方号码"
+                                id="filled-basic"
+                                label="ID to call"
+                                variant="filled"
+                                value={idToCall}
+                                onChange={(e) => {
+                                    setIdToCall(e.target.value);
+                                    if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
+                                        e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
+                                        e.target.style.height = 'auto';
+                                        e.target.style.height = e.target.scrollHeight + 'px';
+                                    } else {
+                                        e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
+                                    }
+                                }}
+                                style={{
+                                    width: '100%',
+                                    height: '1.5em', // 设置初始高度为一行文本的高度
+                                    minHeight: '20px', // 调整最小高度为自动
+                                    maxHeight: '100px', // 调整最大高度
+                                    fontSize: '20px', // 调整字体大小
+                                    border: '1px solid #ccc',
+                                    resize: 'none',
+                                    lineHeight: '1.2', // 设置行高与字体大小相同
+                                }}
+                            />
+                        </>}
+                    <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled} setSelectedDevice={setSelectedAudioDevice} />
+                    <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled} setSelectedDevice={setSelectedVideoDevice} />
                     <div className="call-button">
                         {callAccepted && !callEnded ? (
-                            <Button variant="contained" color="secondary" onClick={leaveCall}>
-                                断开连接
+                            <Button variant="contained" color="secondary" onClick={leaveCall} style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
+                                挂断
                             </Button>
                         ) : (
-                            <Button color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
-                                呼叫
-                            </Button>
+                            <>
+                                <CopyToClipboard text={me} style={{ marginRight: '10px' }}>
+                                    <Button variant="contained" color="primary">
+                                        复制我的ID
+                                    </Button>
+                                </CopyToClipboard>
+                                <Button disabled={idToCall.length === 0} color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
+                                    呼叫
+                                </Button>
+                            </>
                         )}
-                        {idToCall}
                     </div>
                 </div>
-                <div>
-                    {receivingCall && !callAccepted ? (
-                        <div className="caller">
-                            <h1 >{name} 来电...</h1>
-                            <Button variant="contained" color="primary" onClick={answerCall}>
-                                接听
-                            </Button>
+                {receivingCall && !callAccepted &&
+                    <div className='modal-overlay-receive-call'>
+                        <div className="modal-receive-call">
+                            <div className="caller">
+                                <h1 >{name === '' ? '未知号码' : name} 邀请视频通话...</h1>
+                                <ButtonBox onOkBtnClick={acceptCall} OnCancelBtnClick={rejectCall}
+                                    okBtnInfo='接听' cancelBtnInfo='拒绝' />
+                            </div>
                         </div>
-                    ) : null}
-                </div>
-            </div>
+                    </div>}
+                {calling &&
+                    <CallingModal modalInfo={"正在呼叫 " + idToCall}
+                        onClick={() => setCalling(false)} />}
+                {callRejected &&
+                    <Modal modalInfo="已挂断" setModalOpen={setCallRejected} />}
+                {noResponse &&
+                    <Modal modalInfo="超时,无应答" setModalOpen={setNoResponse} />}
+                {confirmLeave &&
+                    <ConfirmModal modalInfo='确定挂断吗？' onOkBtnClick={() => {
+                        leaveCall();
+                        setConfirmLeave(false);
+                    }} OnCancelBtnClick={() => setConfirmLeave(false)} />}
+            </div >
         </>
     )
 }
 
-function OverlayArrow({ onClick }) {
+function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice }) {
+    const [audioDevices, setAudioDevices] = useState([]);
+    const [audioIcon, setAudioIcon] = useState(AudioIcon);
+
+    // 获取音频设备列表
+    useEffect(() => {
+        navigator.mediaDevices.enumerateDevices().then(function (devices) {
+            const audioDevicesList = devices.filter(device => device.kind === 'audioinput');
+            setAudioDevices(audioDevicesList);
+        });
+    }, []);
+
+    useEffect(() => {
+        setAudioIcon(audioEnabled ? AudioIcon : AudioIconDisabled);
+    }, [audioEnabled]);
+
+    // 渲染音频设备选项
+    const renderAudioDeviceOptions = () => {
+        return audioDevices.map(device => (
+            <option key={device.deviceId} value={device.deviceId}>{device.label || `音频设备 ${device.deviceId}`}</option>
+        ));
+    };
+
+    // 处理选择框变化
+    const handleSelectChange = (event) => {
+        setSelectedDevice(event.target.value);
+    };
+
+    // 音频开关
+    const toggleAudioOpen = () => {
+        setAudioEnabled((prev) => !prev);
+    };
+
+    return (
+        <div className="audio-device-selector-container">
+            <img src={audioIcon} alt="Audio" className="icon" onClick={toggleAudioOpen} />
+            {/* <label htmlFor="audioDevices" className="label">选择音频驱动:</label> */}
+            <select id="audioDevices" className="select" onChange={handleSelectChange}>
+                {renderAudioDeviceOptions()}
+            </select>
+            {/* {selectedDevice && <p className="selected-device">当前音频设备: {selectedDevice}</p>} */}
+        </div>
+    );
+}
+
+function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice }) {
+    const [videoDevices, setVideoDevices] = useState([]);
+    const [videoIcon, setVideoIcon] = useState(VideoIcon);
+
+    // 获取视频设备列表
+    useEffect(() => {
+        navigator.mediaDevices.enumerateDevices().then(function (devices) {
+            const videoDevicesList = devices.filter(device => device.kind === 'videoinput');
+            setVideoDevices(videoDevicesList);
+        });
+    }, []);
+
+    useEffect(() => {
+        setVideoIcon(videoEnabled ? VideoIcon : VideoIconDisabled);
+    }, [videoEnabled]);
+
+    // 渲染视频设备选项
+    const renderVideoDeviceOptions = () => {
+        return videoDevices.map(device => (
+            <option key={device.deviceId} value={device.deviceId}>{device.label || `视频设备 ${device.deviceId}`}</option>
+        ));
+    };
+
+    // 处理选择框变化
+    const handleSelectChange = (event) => {
+        setSelectedDevice(event.target.value);
+    };
+
+    // 视频开关
+    const toggleVideoOpen = () => {
+        setVideoEnabled((prev) => !prev);
+    };
+
+    return (
+        <div className="video-device-selector-container">
+            <img src={videoIcon} alt="Audio" className="icon" onClick={toggleVideoOpen} />
+            {/* <label htmlFor="videoDevices" className="label">选择视频驱动:</label> */}
+            <select id="videoDevices" className="select" onChange={handleSelectChange}>
+                {renderVideoDeviceOptions()}
+            </select>
+            {/* {selectedDevice && <p className="selected-device">当前视频设备: {selectedDevice}</p>} */}
+        </div>
+    );
+}
+
+// 包含两个按钮的组合框,自定义按钮文本(默认为 确定 取消 )和功能
+function ButtonBox({ onOkBtnClick, OnCancelBtnClick, okBtnInfo = '确定', cancelBtnInfo = '取消' }) {
+    return (
+        <div className='button-confirm-container'>
+            <button className='button-normal' variant="contained" color="primary" onClick={onOkBtnClick}>
+                {okBtnInfo}
+            </button>
+            <button className='button-normal' variant="contained" color="primary" onClick={OnCancelBtnClick}>
+                {cancelBtnInfo}
+            </button>
+        </div>
+    );
+}
+
+function OverlayArrow({ onClick, currentView }) {
     const handleClick = () => {
         onClick();
     };
 
     return (
-        <div className="overlay">
-            <div className="arrow-container" onClick={handleClick}>
-                <div className="arrow"></div>
-                <div className="arrow"></div>
-                <div className="arrow"></div>
+        <>
+            {currentView === View.Menu &&
+                (< div className="overlay" >
+                    <div className="arrow-container" onClick={handleClick}>
+                        <div className="arrow"></div>
+                        <div className="arrow"></div>
+                        <div className="arrow"></div>
+                    </div>
+                </div >)}
+        </>
+    );
+};
+
+function CallingModal({ modalInfo, onClick }) {
+    return (
+        <div className="modal-overlay">
+            <div className="modal">
+                <p>{modalInfo}</p>
+                <div className='button-confirm-container'>
+                    <Button onClick={onClick}>取消</Button>
+                </div>
             </div>
         </div>
     );
-};
+}
 
 export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,

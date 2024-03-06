@@ -24,6 +24,7 @@
     "react-copy-to-clipboard": "^5.1.0",
     "react-dom": "^18.2.0",
     "react-emotor": "^1.2.0",
+    "react-icons": "^5.0.1",
     "react-modal": "^3.16.1",
     "react-scripts": "5.0.1",
     "react-toastify": "^10.0.3",
