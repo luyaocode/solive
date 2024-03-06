@@ -1342,14 +1342,12 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
         });
 
         socket.on("callAccepted", (signal) => {
-            if (calling) {
-                setCallAccepted(true);
-                if (!peer.destroyed) {
-                    peer.signal(signal);
-                }
-                setCalling(false);
-                setAnother(idToCall);
+            setCallAccepted(true);
+            if (!peer.destroyed) {
+                peer.signal(signal);
             }
+            setCalling(false);
+            setAnother(idToCall);
         });
         return peer;
     }
