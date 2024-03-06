@@ -1236,6 +1236,8 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
 
     useEffect(() => {
         if (connectionRef.current && localStream) {
+            // 更新流
+            connectionRef.current.send(localStream);
         }
     }, [localStream]);
 
@@ -1245,9 +1247,6 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
             .then(stream => {
                 setLocalStream(stream);
                 myVideo.current.srcObject = stream;
-                if (connectionRef.current) {
-
-                }
             });
 
         return () => {
@@ -1294,6 +1293,10 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                     connectionRef.current.destroy();
                 }
             });
+
+            socket.on("callCanceled", () => {
+                setReceivingCall(false);
+            });
         }
     }, [socket, myVideo]);
 
@@ -1339,12 +1342,14 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
         });
 
         socket.on("callAccepted", (signal) => {
-            setCallAccepted(true);
-            if (!peer.destroyed) {
-                peer.signal(signal);
+            if (calling) {
+                setCallAccepted(true);
+                if (!peer.destroyed) {
+                    peer.signal(signal);
+                }
+                setCalling(false);
+                setAnother(idToCall);
             }
-            setCalling(false);
-            setAnother(idToCall);
         });
         return peer;
     }
@@ -1511,7 +1516,10 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                     </div>}
                 {calling &&
                     <CallingModal modalInfo={"正在呼叫 " + idToCall}
-                        onClick={() => setCalling(false)} />}
+                        onClick={() => {
+                            setCalling(false);
+                            socket.emit("callCanceled", { to: idToCall });
+                        }} />}
                 {callRejected &&
                     <Modal modalInfo="已挂断" setModalOpen={setCallRejected} />}
                 {noResponse &&
