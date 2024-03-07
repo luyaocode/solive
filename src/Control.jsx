@@ -17,8 +17,9 @@ import {
     View,
     AudioIcon, AudioIconDisabled,
     VideoIcon, VideoIconDisabled,
+    NoVideoIcon, SpeakerIcon,
     DeviceType,
-    root
+    root,
 } from './ConstDefine.jsx'
 import { Howl } from 'howler';
 import {
@@ -1206,6 +1207,11 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
     const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
     const [selectedVideoDevice, setSelectedVideoDevice] = useState('');
 
+    const [hasLocalVideoTrack, setHasLocalVideoTrack] = useState(true);
+    const [hasRemoteVideoTrack, setHasRemoteVideoTrack] = useState(true);
+    const [hasLocalAudioTrack, setHasLocalAudioTrack] = useState(true);
+    const [hasRemoteAudioTrack, setHasRemoteAudioTrack] = useState(true);
+
     const myVideo = useRef();
     const userVideo = useRef();
     const connectionRef = useRef();
@@ -1491,6 +1497,53 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
         socket.emit("endConnect", { me: me, another: another });
     }
 
+    useEffect(() => {
+        const checkVideoTrack = (stream) => {
+            if (stream) {
+                const videoTracks = stream.getVideoTracks();
+                return videoTracks.length > 0;
+            }
+            return false;
+        };
+
+        const checkAudioTrack = (stream) => {
+            if (stream) {
+                const audioTracks = stream.getAudioTracks();
+                return audioTracks.length > 0;
+            }
+            return false;
+        }
+
+        const checkTrack = (stream, type) => {
+            if (type === 'local') {
+                setHasLocalVideoTrack(() => checkVideoTrack(stream));
+                setHasLocalAudioTrack(() => checkAudioTrack(stream));
+            }
+            else if (type === 'remote') {
+                setHasRemoteVideoTrack(() => checkVideoTrack(stream));
+                setHasRemoteAudioTrack(() => checkAudioTrack(stream));
+            }
+        }
+
+        if (myVideo.current && myVideo.current.srcObject) {
+            myVideo.current.srcObject.addEventListener('loadedmetadata', () => checkTrack(localStream, 'local'));
+        }
+        if (userVideo.current && userVideo.current.srcObject) {
+            userVideo.current.srcObject.addEventListener('loadedmetadata', () => checkTrack(remoteStream, 'remote'));
+        }
+
+        checkTrack(localStream, 'local');
+        checkTrack(remoteStream, 'remote');
+        return () => {
+            if (myVideo.current && myVideo.current.srcObject) {
+                myVideo.current.srcObject.removeEventListener('loadedmetadata', () => checkTrack(localStream));
+            }
+            if (userVideo.current && userVideo.current.srcObject) {
+                userVideo.current.srcObject.removeEventListener('loadedmetadata', () => checkTrack(remoteStream));
+            }
+        };
+    }, [localStream, remoteStream]);
+
     return (
         <>
             <div className='video-chat-view'>
@@ -1507,14 +1560,32 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                 </button>
                 <div className="container">
                     <div className="video-container">
-                        <div className="video">
+                        {/* <div className="video">
                             {<video playsInline muted ref={myVideo} autoPlay style={{ width: "400px" }} />}
+                        </div> */}
+                        <div className='video'>
+                            <video ref={myVideo} controls={hasLocalVideoTrack} autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}>
+                            </video>
+                            {!hasLocalVideoTrack && !hasLocalAudioTrack && (
+                                <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
+                            )}
+                            {!hasLocalVideoTrack && hasLocalAudioTrack && (
+                                <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
+                            )}
                         </div>
-                        <div className="video">
-                            {callAccepted && !callEnded ?
-                                <video playsInline ref={userVideo} autoPlay style={{ width: "400px" }} /> :
-                                null}
-                        </div>
+                        {callAccepted && !callEnded ?
+                            <div className="video">
+                                <video ref={userVideo} controls={hasRemoteVideoTrack} autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }} >
+                                </video>
+                                {!hasRemoteVideoTrack && !hasRemoteAudioTrack && (
+                                    <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
+                                )}
+                                {!hasRemoteVideoTrack && hasRemoteAudioTrack && (
+                                    <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
+                                )}
+                            </div>
+                            : null
+                        }
                     </div>
                     <div className="myId">
                         {!callAccepted &&
