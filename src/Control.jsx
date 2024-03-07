@@ -1261,7 +1261,8 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                     }
                     else {
                         // No MediaStream
-                        connectionRef.current.peer.send('nomedia');
+                        // connectionRef.current.peer.send('nomedia');
+                        socket.emit("nomedia", { to: another });
                     }
                 }
                 setLocalStream(stream);
@@ -1308,6 +1309,11 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
 
             socket.on("callCanceled", () => {
                 setReceivingCall(false);
+            });
+
+            socket.on("nomedia", () => {
+                setHasRemoteVideoTrack(false);
+                setHasRemoteAudioTrack(false);
             });
         }
     }, [socket, myVideo]);
@@ -1396,11 +1402,12 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                         setRemoteStream(stream);
                     }
                 });
-                peer.on("data", (data) => {
-                    if (data === 'nomedia') {
-                        checkTrack(remoteStream, 'remote');
-                    }
-                });
+                // there is process not defined bug
+                // peer.on("data", (data) => {
+                //     if (data === 'nomedia') {
+                //         checkTrack(remoteStream, 'remote');
+                //     }
+                // });
             }
         }
     }, [connectionRef.current]);
@@ -1543,8 +1550,10 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
             setHasLocalAudioTrack(() => checkAudioTrack(stream));
         }
         else if (type === 'remote') {
-            setHasRemoteVideoTrack(() => checkVideoTrack(stream));
-            setHasRemoteAudioTrack(() => checkAudioTrack(stream));
+            const resV = checkVideoTrack(stream);
+            const resA = checkAudioTrack(stream);
+            setHasRemoteVideoTrack(resV);
+            setHasRemoteAudioTrack(resA);
         }
     }
 
@@ -1602,10 +1611,10 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                                 <video ref={userVideo} controls={hasRemoteVideoTrack} autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }} >
                                 </video>
                                 {!hasRemoteVideoTrack && !hasRemoteAudioTrack && (
-                                    <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
+                                    <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
                                 )}
                                 {!hasRemoteVideoTrack && hasRemoteAudioTrack && (
-                                    <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
+                                    <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
                                 )}
                             </div>
                             : null

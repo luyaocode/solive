@@ -1557,9 +1557,8 @@
 /* 修改此处以应对宽屏，改为自动缩放 */
 .video-container .video {
   position: relative;
-  max-width: 80vw;
-  max-height: 50vh;
   object-fit: contain;
+  /* 或者其他适当的 object-fit 属性值 */
   /* 按比例缩放视频，保持长宽比，同时填充整个容器 */
 }
 
