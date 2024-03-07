@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react';
+import { useParams } from 'react-router-dom';
 import './Game.css';
 import {
     Timer, GameLog, ItemManager, StartModal, Menu, Modal, ConfirmModal,
@@ -17,6 +18,7 @@ import {
     View,
 } from './ConstDefine.jsx'
 import Client from './Client.jsx'
+
 
 function ChaosGomoku() {
     const [boardWidth, setBoardWidth] = useState(0);
@@ -91,6 +93,14 @@ function ChaosGomoku() {
 
     // 系统界面
     const [currentView, setCurrentView] = useState(View.Menu);
+
+    // 路由
+    const { sid } = useParams();
+    useEffect(() => {
+        if (sid) {
+            setTimeout(() => enterVideoChatView(), 1000);
+        }
+    }, [sid]);
 
     const enterVideoChatView = () => {
         setCurrentView(View.VideoChat);
@@ -283,7 +293,7 @@ function ChaosGomoku() {
                                 isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
                                 setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} />
                             ) :
-                            (currentView === View.VideoChat ? <VideoChat deviceType={deviceType} socket={socket} returnMenuView={returnMenuView} /> : null))}
+                            (currentView === View.VideoChat ? <VideoChat sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView} /> : null))}
                 </>)
             }
             {gameMode !== GameMode.MODE_NONE && (

@@ -71,9 +71,9 @@ export const View = {
     Game: 3
 }
 
-export const AudioIcon = 'picture/svg/AudioIcon.svg';
-export const AudioIconDisabled = 'picture/svg/AudioIconDisabled.svg';
-export const VideoIcon = 'picture/svg/VideoIcon.svg';
-export const VideoIconDisabled = 'picture/svg/VideoIconDisabled.svg';
-export const NoVideoIcon = 'picture/svg/NoVideo.svg';
-export const SpeakerIcon = 'picture/svg/SpeakerIcon.svg';
+export const AudioIcon = '/picture/svg/AudioIcon.svg';
+export const AudioIconDisabled = '/picture/svg/AudioIconDisabled.svg';
+export const VideoIcon = '/picture/svg/VideoIcon.svg';
+export const VideoIconDisabled = '/picture/svg/VideoIconDisabled.svg';
+export const NoVideoIcon = '/picture/svg/NoVideo.svg';
+export const SpeakerIcon = '/picture/svg/SpeakerIcon.svg';

@@ -1,6 +1,6 @@
 {
-  "short_name": "React App",
-  "name": "Create React App Sample",
+  "short_name": "Chaos",
+  "name": "混乱五子棋",
   "icons": [
     {
       "src": "favicon.ico",

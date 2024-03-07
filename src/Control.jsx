@@ -1183,7 +1183,7 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, socket }) {
     );
 }
 
-function VideoChat({ deviceType, socket, returnMenuView }) {
+function VideoChat({ sid, deviceType, socket, returnMenuView }) {
     const [me, setMe] = useState("");               // 本地socketId
     const [localStream, setLocalStream] = useState();
     const [remoteStream, setRemoteStream] = useState();
@@ -1202,8 +1202,8 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
     const [noResponse, setNoResponse] = useState(false);
     const [confirmLeave, setConfirmLeave] = useState(false);
 
-    const [videoEnabled, setVideoEnabled] = useState(true);
-    const [audioEnabled, setAudioEnabled] = useState(true);
+    const [videoEnabled, setVideoEnabled] = useState(false);
+    const [audioEnabled, setAudioEnabled] = useState(false);
     const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
     const [selectedVideoDevice, setSelectedVideoDevice] = useState('');
 
@@ -1215,6 +1215,14 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
     const myVideo = useRef();
     const userVideo = useRef();
     const connectionRef = useRef();
+
+    useEffect(() => {
+        if (sid) {
+            setIdToCall(sid);
+            setName('大魔王');
+            setTimeout(() => callUser(sid), 1000);
+        }
+    }, [])
 
     useEffect(() => {
         switch (deviceType) {
@@ -1581,16 +1589,18 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
         <>
             <div className='video-chat-view'>
                 <h1 style={{ textAlign: "center", color: '#fff' }}>视频通话</h1>
-                <button className="button-normal" type="primary" onClick={() => {
-                    if (callAccepted) {
-                        setConfirmLeave(true);
-                    }
-                    else {
-                        returnMenuView();
-                    }
-                }}>
-                    &times; 返回主页
-                </button>
+                {!sid &&
+                    <button className="button-normal" type="primary" onClick={() => {
+                        if (callAccepted) {
+                            setConfirmLeave(true);
+                        }
+                        else {
+                            returnMenuView();
+                        }
+                    }}>
+                        &times; 返回主页
+                    </button>
+                }
                 <div className="container">
                     <div className="video-container">
                         {/* <div className="video">
@@ -1692,6 +1702,11 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                                             复制我的ID
                                         </Button>
                                     </CopyToClipboard>
+                                    <CopyToClipboard text={window.location.origin + '/call/' + me} style={{ marginRight: '10px' }}>
+                                        <Button variant="contained" color="primary">
+                                            分享链接
+                                        </Button>
+                                    </CopyToClipboard>
                                     <Button disabled={idToCall.length === 0} color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
                                         呼叫
                                     </Button>
@@ -1710,7 +1725,7 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                             </div>
                         </div>}
                     {calling &&
-                        <CallingModal modalInfo={"正在呼叫 " + idToCall}
+                        <CallingModal isDisabled={sid} modalInfo={"正在呼叫 " + idToCall}
                             onClick={() => {
                                 setCalling(false);
                                 socket.emit("callCanceled", { to: idToCall });
@@ -1859,13 +1874,13 @@ function OverlayArrow({ onClick, currentView }) {
     );
 };
 
-function CallingModal({ modalInfo, onClick }) {
+function CallingModal({ isDisabled, modalInfo, onClick }) {
     return (
         <div className="modal-overlay">
             <div className="modal">
                 <p>{modalInfo}</p>
                 <div className='button-confirm-container'>
-                    <Button onClick={onClick}>取消</Button>
+                    <Button disabled={isDisabled} onClick={onClick}>取消</Button>
                 </div>
             </div>
         </div>
