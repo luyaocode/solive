@@ -91,6 +91,7 @@ function ChaosGomoku() {
 
     // 系统界面
     const [currentView, setCurrentView] = useState(View.Menu);
+
     const enterVideoChatView = () => {
         setCurrentView(View.VideoChat);
     }
@@ -181,7 +182,23 @@ function ChaosGomoku() {
         }
         // 清空消息
         setMessages([]);
+
+        if (gameMode === GameMode.MODE_NONE) {
+            setCurrentView(View.Menu);
+        }
+        else {
+            setCurrentView(View.Game);
+        }
     }, [gameMode]);
+
+    useEffect(() => {
+        if (tableViewOpen) {
+            setCurrentView(View.Table);
+        }
+        else {
+            setCurrentView(View.Menu);
+        }
+    }, [tableViewOpen]);
 
     useEffect(() => {
         if (netConnected) {
@@ -227,7 +244,9 @@ function ChaosGomoku() {
 
     return (
         <React.StrictMode className='game-container'>
-            <OverlayArrow onClick={enterVideoChatView} currentView={currentView} />
+            {currentView === View.Menu &&
+                <OverlayArrow onClick={enterVideoChatView} currentView={currentView} />
+            }
             <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
                 gameMode={gameMode} setDeviceType={setDeviceType} setRoomDeviceType={setRoomDeviceType}
                 setBoardWidth={setBoardWidth} setBoardHeight={setBoardHeight} setSynchronized={setSynchronized}

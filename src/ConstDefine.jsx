@@ -68,6 +68,7 @@ export const View = {
     Menu: 0,
     Table: 1,
     VideoChat: 2,
+    Game: 3
 }
 
 export const AudioIcon = 'picture/svg/AudioIcon.svg';

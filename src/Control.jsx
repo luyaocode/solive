@@ -1733,6 +1733,7 @@ function ButtonBox({ onOkBtnClick, OnCancelBtnClick, okBtnInfo = '确定', cance
 }
 
 function OverlayArrow({ onClick, currentView }) {
+    const [isArrowVisible, setIsArrowVisible] = useState(false);
     const handleClick = () => {
         onClick();
     };
@@ -1740,12 +1741,15 @@ function OverlayArrow({ onClick, currentView }) {
     return (
         <>
             {currentView === View.Menu &&
-                (< div className="overlay" >
-                    <div className="arrow-container" onClick={handleClick}>
-                        <div className="arrow"></div>
-                        <div className="arrow"></div>
-                        <div className="arrow"></div>
-                    </div>
+                (< div className="overlay" onMouseEnter={() => setIsArrowVisible(true)}
+                    onMouseLeave={() => setIsArrowVisible(false)}>
+                    {isArrowVisible &&
+                        <div className="arrow-container" onClick={handleClick}>
+                            <div className="arrow"></div>
+                            <div className="arrow"></div>
+                            <div className="arrow"></div>
+                        </div>
+                    }
                 </div >)}
         </>
     );
