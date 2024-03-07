@@ -1554,6 +1554,7 @@
   /* 如果内容超出视口范围，显示滚动条 */
 }
 
+/* 修改此处以应对宽屏，改为自动缩放 */
 .video-container .video {
   position: relative;
   max-width: 80vw;

@@ -1259,6 +1259,10 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                             connectionRef.current.peer.addTrack(track, stream);
                         });
                     }
+                    else {
+                        // No MediaStream
+                        connectionRef.current.peer.send('nomedia');
+                    }
                 }
                 setLocalStream(stream);
                 myVideo.current.srcObject = stream;
@@ -1348,6 +1352,7 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
             const peer = connectionRef.current.peer;
             if (connectionRef.current.isCaller) {
                 peer.on("signal", (data) => {
+                    // const trackCount = parseSDP(data.sdp);
                     socket.emit("callUser", {
                         userToCall: connectionRef.current.idToCall,
                         signalData: data,
@@ -1389,6 +1394,11 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                     if (userVideo.current) {
                         userVideo.current.srcObject = stream;
                         setRemoteStream(stream);
+                    }
+                });
+                peer.on("data", (data) => {
+                    if (data === 'nomedia') {
+                        checkTrack(remoteStream, 'remote');
                     }
                 });
             }
@@ -1440,6 +1450,20 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
             setCallEnded(false);
         }
     }, [callEnded]);
+
+    const parseSDP = (sdpText) => {
+        var sdpLines = sdpText.split('\n');
+        var trackCount = 0;
+        sdpLines.forEach(function (line) {
+            if (line.startsWith('m=') && !line.startsWith('m=application')) {
+                console.log(line);
+                trackCount++;
+            }
+        });
+        console.log(new Date());
+        console.log('---------------');
+        return trackCount;
+    }
 
     const createCallPeer = (stream) => {
         const peer = new Peer({
@@ -1497,34 +1521,34 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
         socket.emit("endConnect", { me: me, another: another });
     }
 
+    const checkVideoTrack = (stream) => {
+        if (stream) {
+            const videoTracks = stream.getVideoTracks();
+            return videoTracks.length > 0;
+        }
+        return false;
+    };
+
+    const checkAudioTrack = (stream) => {
+        if (stream) {
+            const audioTracks = stream.getAudioTracks();
+            return audioTracks.length > 0;
+        }
+        return false;
+    }
+
+    const checkTrack = (stream, type) => {
+        if (type === 'local') {
+            setHasLocalVideoTrack(() => checkVideoTrack(stream));
+            setHasLocalAudioTrack(() => checkAudioTrack(stream));
+        }
+        else if (type === 'remote') {
+            setHasRemoteVideoTrack(() => checkVideoTrack(stream));
+            setHasRemoteAudioTrack(() => checkAudioTrack(stream));
+        }
+    }
+
     useEffect(() => {
-        const checkVideoTrack = (stream) => {
-            if (stream) {
-                const videoTracks = stream.getVideoTracks();
-                return videoTracks.length > 0;
-            }
-            return false;
-        };
-
-        const checkAudioTrack = (stream) => {
-            if (stream) {
-                const audioTracks = stream.getAudioTracks();
-                return audioTracks.length > 0;
-            }
-            return false;
-        }
-
-        const checkTrack = (stream, type) => {
-            if (type === 'local') {
-                setHasLocalVideoTrack(() => checkVideoTrack(stream));
-                setHasLocalAudioTrack(() => checkAudioTrack(stream));
-            }
-            else if (type === 'remote') {
-                setHasRemoteVideoTrack(() => checkVideoTrack(stream));
-                setHasRemoteAudioTrack(() => checkAudioTrack(stream));
-            }
-        }
-
         if (myVideo.current && myVideo.current.srcObject) {
             myVideo.current.srcObject.addEventListener('loadedmetadata', () => checkTrack(localStream, 'local'));
         }
