@@ -1493,135 +1493,137 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
 
     return (
         <>
-            <h1 style={{ textAlign: "center", color: '#fff' }}>视频通话</h1>
-            <button className="button-normal" type="primary" onClick={() => {
-                if (callAccepted) {
-                    setConfirmLeave(true);
-                }
-                else {
-                    returnMenuView();
-                }
-            }}>
-                &times; 返回主页
-            </button>
-            <div className="container">
-                <div className="video-container">
-                    <div className="video">
-                        {<video playsInline muted ref={myVideo} autoPlay style={{ width: "300px" }} />}
-                    </div>
-                    <div className="video">
-                        {callAccepted && !callEnded ?
-                            <video playsInline ref={userVideo} autoPlay style={{ width: "300px" }} /> :
-                            null}
-                    </div>
-                </div>
-                <div className="myId">
-                    {!callAccepted &&
-                        <>
-                            <textarea
-                                placeholder="我的昵称"
-                                id="filled-basic"
-                                label="Name"
-                                variant="filled"
-                                value={name}
-                                onChange={(e) => {
-                                    setName(e.target.value);
-                                    if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
-                                        e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
-                                        e.target.style.height = 'auto';
-                                        e.target.style.height = e.target.scrollHeight + 'px';
-                                    } else {
-                                        e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
-                                    }
-                                }}
-                                style={{
-                                    width: '100%',
-                                    height: '1.5em', // 设置初始高度为一行文本的高度
-                                    minHeight: 'auto', // 调整最小高度为自动
-                                    maxHeight: '100px', // 调整最大高度
-                                    fontSize: '20px', // 调整字体大小
-                                    border: '1px solid #ccc',
-                                    resize: 'none',
-                                    lineHeight: '1.2', // 设置行高与字体大小相同
-                                }}
-                            />
-                            <textarea
-                                placeholder="对方号码"
-                                id="filled-basic"
-                                label="ID to call"
-                                variant="filled"
-                                value={idToCall}
-                                onChange={(e) => {
-                                    setIdToCall(e.target.value);
-                                    if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
-                                        e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
-                                        e.target.style.height = 'auto';
-                                        e.target.style.height = e.target.scrollHeight + 'px';
-                                    } else {
-                                        e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
-                                    }
-                                }}
-                                style={{
-                                    width: '100%',
-                                    height: '1.5em', // 设置初始高度为一行文本的高度
-                                    minHeight: '20px', // 调整最小高度为自动
-                                    maxHeight: '100px', // 调整最大高度
-                                    fontSize: '20px', // 调整字体大小
-                                    border: '1px solid #ccc',
-                                    resize: 'none',
-                                    lineHeight: '1.2', // 设置行高与字体大小相同
-                                }}
-                            />
-                        </>}
-                    <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled} setSelectedDevice={setSelectedAudioDevice} />
-                    <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled} setSelectedDevice={setSelectedVideoDevice} />
-                    <div className="call-button">
-                        {callAccepted && !callEnded ? (
-                            <Button variant="contained" color="secondary" onClick={leaveCall} style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
-                                挂断
-                            </Button>
-                        ) : (
-                            <>
-                                <CopyToClipboard text={me} style={{ marginRight: '10px' }}>
-                                    <Button variant="contained" color="primary">
-                                        复制我的ID
-                                    </Button>
-                                </CopyToClipboard>
-                                <Button disabled={idToCall.length === 0} color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
-                                    呼叫
-                                </Button>
-                            </>
-                        )}
-                    </div>
-                </div>
-                {receivingCall && !callAccepted &&
-                    <div className='modal-overlay-receive-call'>
-                        <div className="modal-receive-call">
-                            <div className="caller">
-                                <h1 >{name === '' ? '未知号码' : name} 邀请视频通话...</h1>
-                                <ButtonBox onOkBtnClick={acceptCall} OnCancelBtnClick={rejectCall}
-                                    okBtnInfo='接听' cancelBtnInfo='拒绝' />
-                            </div>
+            <div className='video-chat-view'>
+                <h1 style={{ textAlign: "center", color: '#fff' }}>视频通话</h1>
+                <button className="button-normal" type="primary" onClick={() => {
+                    if (callAccepted) {
+                        setConfirmLeave(true);
+                    }
+                    else {
+                        returnMenuView();
+                    }
+                }}>
+                    &times; 返回主页
+                </button>
+                <div className="container">
+                    <div className="video-container">
+                        <div className="video">
+                            {<video playsInline muted ref={myVideo} autoPlay style={{ width: "400px" }} />}
                         </div>
-                    </div>}
-                {calling &&
-                    <CallingModal modalInfo={"正在呼叫 " + idToCall}
-                        onClick={() => {
-                            setCalling(false);
-                            socket.emit("callCanceled", { to: idToCall });
-                        }} />}
-                {callRejected &&
-                    <Modal modalInfo="已挂断" setModalOpen={setCallRejected} />}
-                {noResponse &&
-                    <Modal modalInfo="超时,无应答" setModalOpen={setNoResponse} />}
-                {confirmLeave &&
-                    <ConfirmModal modalInfo='确定挂断吗？' onOkBtnClick={() => {
-                        leaveCall();
-                        setConfirmLeave(false);
-                    }} OnCancelBtnClick={() => setConfirmLeave(false)} />}
-                {toCallIsBusy &&
-                    <Modal modalInfo='用户忙' setModalOpen={setToCallIsBusy} />}
-            </div >
+                        <div className="video">
+                            {callAccepted && !callEnded ?
+                                <video playsInline ref={userVideo} autoPlay style={{ width: "400px" }} /> :
+                                null}
+                        </div>
+                    </div>
+                    <div className="myId">
+                        {!callAccepted &&
+                            <>
+                                <textarea
+                                    placeholder="我的昵称"
+                                    id="filled-basic"
+                                    label="Name"
+                                    variant="filled"
+                                    value={name}
+                                    onChange={(e) => {
+                                        setName(e.target.value);
+                                        if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
+                                            e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
+                                            e.target.style.height = 'auto';
+                                            e.target.style.height = e.target.scrollHeight + 'px';
+                                        } else {
+                                            e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
+                                        }
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        height: '1.5em', // 设置初始高度为一行文本的高度
+                                        minHeight: 'auto', // 调整最小高度为自动
+                                        maxHeight: '100px', // 调整最大高度
+                                        fontSize: '20px', // 调整字体大小
+                                        border: '1px solid #ccc',
+                                        resize: 'none',
+                                        lineHeight: '1.2', // 设置行高与字体大小相同
+                                    }}
+                                />
+                                <textarea
+                                    placeholder="对方号码"
+                                    id="filled-basic"
+                                    label="ID to call"
+                                    variant="filled"
+                                    value={idToCall}
+                                    onChange={(e) => {
+                                        setIdToCall(e.target.value);
+                                        if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
+                                            e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
+                                            e.target.style.height = 'auto';
+                                            e.target.style.height = e.target.scrollHeight + 'px';
+                                        } else {
+                                            e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
+                                        }
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        height: '1.5em', // 设置初始高度为一行文本的高度
+                                        minHeight: '20px', // 调整最小高度为自动
+                                        maxHeight: '100px', // 调整最大高度
+                                        fontSize: '20px', // 调整字体大小
+                                        border: '1px solid #ccc',
+                                        resize: 'none',
+                                        lineHeight: '1.2', // 设置行高与字体大小相同
+                                    }}
+                                />
+                            </>}
+                        <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled} setSelectedDevice={setSelectedAudioDevice} />
+                        <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled} setSelectedDevice={setSelectedVideoDevice} />
+                        <div className="call-button">
+                            {callAccepted && !callEnded ? (
+                                <Button variant="contained" color="secondary" onClick={leaveCall} style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
+                                    挂断
+                                </Button>
+                            ) : (
+                                <>
+                                    <CopyToClipboard text={me} style={{ marginRight: '10px' }}>
+                                        <Button variant="contained" color="primary">
+                                            复制我的ID
+                                        </Button>
+                                    </CopyToClipboard>
+                                    <Button disabled={idToCall.length === 0} color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
+                                        呼叫
+                                    </Button>
+                                </>
+                            )}
+                        </div>
+                    </div>
+                    {receivingCall && !callAccepted &&
+                        <div className='modal-overlay-receive-call'>
+                            <div className="modal-receive-call">
+                                <div className="caller">
+                                    <h1 >{name === '' ? '未知号码' : name} 邀请视频通话...</h1>
+                                    <ButtonBox onOkBtnClick={acceptCall} OnCancelBtnClick={rejectCall}
+                                        okBtnInfo='接听' cancelBtnInfo='拒绝' />
+                                </div>
+                            </div>
+                        </div>}
+                    {calling &&
+                        <CallingModal modalInfo={"正在呼叫 " + idToCall}
+                            onClick={() => {
+                                setCalling(false);
+                                socket.emit("callCanceled", { to: idToCall });
+                            }} />}
+                    {callRejected &&
+                        <Modal modalInfo="已挂断" setModalOpen={setCallRejected} />}
+                    {noResponse &&
+                        <Modal modalInfo="超时,无应答" setModalOpen={setNoResponse} />}
+                    {confirmLeave &&
+                        <ConfirmModal modalInfo='确定挂断吗？' onOkBtnClick={() => {
+                            leaveCall();
+                            setConfirmLeave(false);
+                        }} OnCancelBtnClick={() => setConfirmLeave(false)} />}
+                    {toCallIsBusy &&
+                        <Modal modalInfo='用户忙' setModalOpen={setToCallIsBusy} />}
+                </div >
+            </div>
         </>
     )
 }

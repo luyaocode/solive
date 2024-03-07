@@ -1486,6 +1486,20 @@
 }
 
 /* 视频通话 */
+.video-chat-view {
+  overflow-y: scroll;
+  /* 始终显示滚动条 */
+  scrollbar-width: none;
+  /* Firefox */
+  -ms-overflow-style: none;
+  /* IE和Edge */
+}
+
+.video-chat-view::-webkit-scrollbar {
+  display: none;
+  /* 隐藏Chrome和Safari的滚动条 */
+}
+
 .container {
   display: flex;
   flex-direction: column;
@@ -1518,6 +1532,7 @@
   /* 防止水平溢出和水平滚动条出现 */
   overflow-x: hidden;
   max-width: 98vw;
+  margin-bottom: 1rem;
 }
 
 .call-button {
@@ -1540,8 +1555,8 @@
 }
 
 .video-container video {
-  max-width: 100vw;
-  max-height: 100vh;
+  max-width: 80vw;
+  max-height: 50vh;
   object-fit: contain;
   /* 按比例缩放视频，保持长宽比，同时填充整个容器 */
 }
