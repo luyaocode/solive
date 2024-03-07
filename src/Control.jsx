@@ -1597,7 +1597,7 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                             {<video playsInline muted ref={myVideo} autoPlay style={{ width: "400px" }} />}
                         </div> */}
                         <div className='video'>
-                            <video ref={myVideo} controls={hasLocalVideoTrack} autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}>
+                            <video ref={myVideo} playsInline muted controls={hasLocalVideoTrack} autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}>
                             </video>
                             {!hasLocalVideoTrack && !hasLocalAudioTrack && (
                                 <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
