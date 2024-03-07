@@ -27,6 +27,7 @@ import {
 } from './Item.ts';
 
 import _ from 'lodash';
+import { showNotification } from './Plugin.jsx'
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
     const [seconds, setSeconds] = useState(0);
@@ -1190,8 +1191,10 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
     const [caller, setCaller] = useState("");       // 拨打过来的socketId
     const [callerSignal, setCallerSignal] = useState();
     const [callAccepted, setCallAccepted] = useState(false);
+    const [callAcceptedSignalSend, setCallAcceptedSignalSend] = useState(false); // 接受信号送出
     const [callRejected, setCallRejected] = useState(false);
     const [idToCall, setIdToCall] = useState("");   // 要拨打的socketId
+    const [toCallIsBusy, setToCallIsBusy] = useState(false); // 拨打的用户通话中
     const [callEnded, setCallEnded] = useState(false);
     const [name, setName] = useState("");
     const [another, setAnother] = useState();       // 当前通话的socketId
@@ -1234,17 +1237,23 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
         }
     }
 
-    useEffect(() => {
-        if (connectionRef.current && localStream) {
-            // 更新流
-            connectionRef.current.send(localStream);
-        }
-    }, [localStream]);
-
     // 更新轨道
     useEffect(() => {
         getUserMediaStream()
             .then(stream => {
+                if (connectionRef.current) {
+                    // 替换轨道
+                    if (localStream) {
+                        localStream.getTracks().forEach(track => {
+                            connectionRef.current.peer.removeTrack(track, localStream);
+                        });
+                    }
+                    if (stream) {
+                        stream.getTracks().forEach(track => {
+                            connectionRef.current.peer.addTrack(track, stream);
+                        });
+                    }
+                }
                 setLocalStream(stream);
                 myVideo.current.srcObject = stream;
             });
@@ -1267,13 +1276,6 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                     }
                 });
 
-            socket.on("callUser", (data) => {
-                setReceivingCall(true);
-                setCaller(data.from);
-                setName(data.name);
-                setCallerSignal(data.signal);
-            });
-
             socket.on("callRejected", () => {
                 setCallAccepted(false);
                 setCallRejected(true);
@@ -1290,7 +1292,7 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                     userVideo.current.srcObject = null; // 清除引用，以便内存回收
                 }
                 if (connectionRef.current) {
-                    connectionRef.current.destroy();
+                    connectionRef.current.peer.destroy();
                 }
             });
 
@@ -1301,12 +1303,128 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
     }, [socket, myVideo]);
 
     useEffect(() => {
+        const handleToCallBusy = () => {
+            if (calling) {
+                setCalling(false);
+            }
+            setToCallIsBusy(true);
+        }
+        socket.off("isBusy", handleToCallBusy);
+        socket.on("isBusy", handleToCallBusy);
+
+        return () => {
+            socket.off("isBusy", handleToCallBusy);
+        }
+    }, [calling]);
+
+    useEffect(() => {
+        if (callAcceptedSignalSend) {
+            setCallAcceptedSignalSend(false);
+            // 重写peer监听器
+            const handleAnswerSignal = (data) => {
+                if (callAccepted) {
+                    socket.emit("changeTrack", { signal: data, to: caller });
+                } // 主叫方切换流
+                else {
+                    socket.emit("acceptCall", { signal: data, to: caller });
+                }
+            }
+
+            if (connectionRef.current && !connectionRef.current.isCaller) {
+                connectionRef.current.peer.removeAllListeners("signal");
+                connectionRef.current.peer.on("signal", handleAnswerSignal);
+            }
+        }
+    }, [callAcceptedSignalSend]);
+
+    useEffect(() => {
+        if (connectionRef.current) {
+            const peer = connectionRef.current.peer;
+            if (connectionRef.current.isCaller) {
+                peer.on("signal", (data) => {
+                    socket.emit("callUser", {
+                        userToCall: connectionRef.current.idToCall,
+                        signalData: data,
+                        from: me,
+                        name: name
+                    });
+                    setCallerSignal(data);
+                });
+                // 接收到流（stream）时触发
+                peer.on("stream", (stream) => {
+                    if (userVideo.current) {
+                        userVideo.current.srcObject = stream;
+                        setRemoteStream(stream);
+                    }
+                });
+
+                socket.on("callAccepted", (signal) => {
+                    setCallAccepted(true);
+                    if (!peer.destroyed) {
+                        peer.signal(signal);
+                    }
+                    setCalling(false);
+                    setAnother(idToCall);
+                });
+
+                socket.on("changeTrackAgreed", (signal) => {
+                    if (!peer.destroyed) {
+                        peer.signal(signal);
+                    }
+                });
+            } // 主叫方
+            else {
+                const handleAnswerSignal = (data) => {
+                    socket.emit("acceptCall", { signal: data, to: caller });
+                    setCallAcceptedSignalSend(true);
+                }
+                peer.on("signal", handleAnswerSignal);
+                peer.on("stream", (stream) => {
+                    if (userVideo.current) {
+                        userVideo.current.srcObject = stream;
+                        setRemoteStream(stream);
+                    }
+                });
+            }
+        }
+    }, [connectionRef.current]);
+
+    useEffect(() => {
+        const handleCallUser = (data) => {
+            if (callAccepted) {
+                if (another === data.from) {
+                    if (connectionRef.current) {
+                        connectionRef.current.peer.signal(data.signal);
+                    }
+                } // 主叫方切换流
+                else {
+                    showNotification((data.name === '' ? '未知号码' : data.name) + ' 请求视频通话...', 2000, '');
+                    socket.emit('isBusy', { to: data.from });
+                } // 新用户打进来
+            }
+            else {
+                setReceivingCall(true);
+                setCaller(data.from);
+                setName(data.name);
+                setCallerSignal(data.signal);
+            } // 处理初次连接
+        }
+
+        socket.off("callUser", handleCallUser);
+        socket.on("callUser", handleCallUser);
+
+        return () => {
+            socket.off("callUser", handleCallUser);
+        };
+    }, [callAccepted]);
+
+    useEffect(() => {
         if (socket) {
             setMe(socket.id);
         }
         return () => {
             if (connectionRef.current) {
-                connectionRef.current.destroy();
+                connectionRef.current.peer.destroy();
             }
         }
     }, []);
@@ -1317,44 +1435,23 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
         }
     }, [callEnded]);
 
-    const createCallPeer = (id, stream) => {
+    const createCallPeer = (stream) => {
         const peer = new Peer({
             initiator: true,
             trickle: false,
             stream: stream
-        });
-        // peer对象生成，在连接建立时或在需要更新连接状态时触发
-        peer.on("signal", (data) => {
-            socket.emit("callUser", {
-                userToCall: id,
-                signalData: data,
-                from: me,
-                name: name
-            });
-            setCallerSignal(data);
-        });
-        // 接收到流（stream）时触发
-        peer.on("stream", (stream) => {
-            if (userVideo.current) {
-                userVideo.current.srcObject = stream;
-                setRemoteStream(stream);
-            }
-        });
-
-        socket.on("callAccepted", (signal) => {
-            setCallAccepted(true);
-            if (!peer.destroyed) {
-                peer.signal(signal);
-            }
-            setCalling(false);
-            setAnother(idToCall);
         });
         return peer;
     }
 
     const callUser = (id) => {
         setCalling(true);
-        connectionRef.current = createCallPeer(id, localStream);
+        const peer = createCallPeer(localStream);
+        connectionRef.current = {
+            peer: peer,
+            isCaller: true,
+            idToCall: id
+        }
         setTimeout(() => {
             if (calling && !callAccepted) {
                 setNoResponse(true);
@@ -1369,15 +1466,7 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
             trickle: false,
             stream: stream
         });
-        peer.on("signal", (data) => {
-            socket.emit("acceptCall", { signal: data, to: caller });
-        });
-        peer.on("stream", (stream) => {
-            if (userVideo.current) {
-                userVideo.current.srcObject = stream;
-                setRemoteStream(stream);
-            }
-        });
+
         return peer;
     }
 
@@ -1386,7 +1475,10 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
         setCallAccepted(true);
         const peer = createAnswerPeer(localStream);
         peer.signal(callerSignal);
-        connectionRef.current = peer;
+        connectionRef.current = {
+            peer: peer,
+            isCaller: false
+        };
         setAnother(caller);
     }
 
@@ -1527,6 +1619,8 @@ function VideoChat({ deviceType, socket, returnMenuView }) {
                         leaveCall();
                         setConfirmLeave(false);
                     }} OnCancelBtnClick={() => setConfirmLeave(false)} />}
+                {toCallIsBusy &&
+                    <Modal modalInfo='用户忙' setModalOpen={setToCallIsBusy} />}
             </div >
         </>
     )

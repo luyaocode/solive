@@ -55,6 +55,12 @@
 失败                        failure
 
 
-
-
+1)peer1 create offer
+2)peer1 offer socket offer
+3)peer2 create
+4)peer2.signal(offer) :触发6)
+5)peer2.on(stream1) :接收到流自动触发
+6)peer2.on(signal) ->answer socket peer1
+7)peer1.signal(answer)
+8)peer1.stream(stream2)
 

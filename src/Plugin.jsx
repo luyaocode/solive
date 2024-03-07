@@ -1,10 +1,10 @@
 import Toastify from 'toastify-js';
 import 'toastify-js/src/toastify.css';
 
-export function showNotification(message, theme = 'dark') {
+export function showNotification(message, duration = 2000, theme = 'dark') {
     Toastify({
         text: message,
-        duration: 2000,
+        duration: duration,
         gravity: 'top',
         position: 'center',
         style: {
