@@ -1197,7 +1197,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
     const [idToCall, setIdToCall] = useState("");   // 要拨打的socketId
     const [toCallIsBusy, setToCallIsBusy] = useState(false); // 拨打的用户通话中
     const [callEnded, setCallEnded] = useState(false);
-    const [name, setName] = useState("");
+    const [name, setName] = useState("");   // 我的昵称
+    const [anotherName, setAnotherName] = useState(""); // 对方昵称
     const [another, setAnother] = useState();       // 当前通话的socketId
     const [noResponse, setNoResponse] = useState(false);
     const [confirmLeave, setConfirmLeave] = useState(false);
@@ -1436,7 +1437,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
             else {
                 setReceivingCall(true);
                 setCaller(data.from);
-                setName(data.name);
+                setAnotherName(data.name);
                 setCallerSignal(data.signal);
             } // 处理初次连接
         }
@@ -1718,7 +1719,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                         <div className='modal-overlay-receive-call'>
                             <div className="modal-receive-call">
                                 <div className="caller">
-                                    <h1 >{name === '' ? '未知号码' : name} 邀请视频通话...</h1>
+                                    <h1 >{anotherName === '' ? '未知号码' : anotherName} 邀请视频通话...</h1>
                                     <ButtonBox onOkBtnClick={acceptCall} OnCancelBtnClick={rejectCall}
                                         okBtnInfo='接听' cancelBtnInfo='拒绝' />
                                 </div>
