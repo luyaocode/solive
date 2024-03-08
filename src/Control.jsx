@@ -30,6 +30,7 @@ import {
 
 import _ from 'lodash';
 import { showNotification } from './Plugin.jsx'
+import Game from './Game.js';
 
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
@@ -406,12 +407,19 @@ function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, s
     const [secondText, setSecondText] = useState(text2);
     const [isShareModalOpen, setShareModalOpen] = useState(false);
     const [shareUrl, setShareUrl] = useState();
+    const [canShare, setCanShare] = useState(false);
 
     useEffect(() => {
         if (roomId) {
             setShareUrl(window.location.origin + '/room/' + roomId);
         }
     }, [roomId]);
+
+    useEffect(() => {
+        if (gameMode === GameMode.MODE_ROOM) {
+            setCanShare(true);
+        }
+    }, []);
 
     function getTexts() {
         let text, text2;
@@ -494,7 +502,7 @@ function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, s
                 <div className="loading-spinner"></div>
                 <p className="loading-text">{description}</p>
                 <button className="cancel-button" onClick={onCancelButtonClick}>取消</button>
-                <ShareButton onClick={() => setShareModalOpen(true)} />
+                {canShare && <ShareButton onClick={() => setShareModalOpen(true)} />}
             </div>
             {isModalOpen &&
                 <Modal modalInfo={secondText} setModalOpen={setModalOpen} timeDelay={1000} afterDelay={() => setAllIsOk(true)} />
