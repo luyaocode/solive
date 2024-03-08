@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button, Input, Form, Space, Radio, Table } from 'antd';
 import { CopyToClipboard } from "react-copy-to-clipboard"
 import Peer from "simple-peer"
+import QRCode from 'qrcode.react';
 
 import './Game.css';
 import {
@@ -17,7 +18,7 @@ import {
     View,
     AudioIcon, AudioIconDisabled,
     VideoIcon, VideoIconDisabled,
-    NoVideoIcon, SpeakerIcon,
+    NoVideoIcon, SpeakerIcon, ShareIcon,
     DeviceType,
     root,
 } from './ConstDefine.jsx'
@@ -29,6 +30,7 @@ import {
 
 import _ from 'lodash';
 import { showNotification } from './Plugin.jsx'
+
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
     const [seconds, setSeconds] = useState(0);
@@ -396,12 +398,20 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
 }
 
 function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket, matched,
-    joined, setAllIsOk, restartInSameRoom }) {
+    joined, setAllIsOk, restartInSameRoom, roomId }) {
     const [isModalOpen, setModalOpen] = useState(false);
 
     const { text, text2 } = getTexts();
     const [description, setDescription] = useState(text);
     const [secondText, setSecondText] = useState(text2);
+    const [isShareModalOpen, setShareModalOpen] = useState(false);
+    const [shareUrl, setShareUrl] = useState();
+
+    useEffect(() => {
+        if (roomId) {
+            setShareUrl(window.location.origin + '/room/' + roomId);
+        }
+    }, [roomId]);
 
     function getTexts() {
         let text, text2;
@@ -484,9 +494,39 @@ function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, s
                 <div className="loading-spinner"></div>
                 <p className="loading-text">{description}</p>
                 <button className="cancel-button" onClick={onCancelButtonClick}>取消</button>
+                <ShareButton onClick={() => setShareModalOpen(true)} />
             </div>
             {isModalOpen &&
-                <Modal modalInfo={secondText} setModalOpen={setModalOpen} timeDelay={1000} afterDelay={() => setAllIsOk(true)} />}
+                <Modal modalInfo={secondText} setModalOpen={setModalOpen} timeDelay={1000} afterDelay={() => setAllIsOk(true)} />
+            }
+            {isShareModalOpen &&
+                <div className="share-modal">
+                    <span className="close-button" onClick={() => setShareModalOpen(false)}>
+                        &times;
+                    </span>
+                    <div className='share-button-container'>
+                        <CopyToClipboard text={shareUrl} style={{ marginRight: '10px' }}>
+                            <Button variant="contained" color="primary" onClick={() => showNotification('链接已复制到剪切板', 2000, 'white')}>
+                                复制链接
+                            </Button>
+                        </CopyToClipboard>
+                        <Button variant="contained" color="primary">
+                            分享二维码
+                        </Button>
+                    </div>
+                    <div className='share-button-container'>
+                        <QRCode
+                            value={shareUrl}
+                            size={200} // 设置二维码的尺寸
+                            bgColor="transparent" // 设置背景颜色为透明
+                            fgColor="green" // 设置前景颜色（二维码颜色）
+                            level="H" // 设置容错级别（可选值：L、M、Q、H，默认为 L）
+                            includeMargin={false} // 设置是否包含二维码外边距（默认为 true）
+                            renderAs="svg" // 设置渲染格式（svg 或 canvas，默认为 svg）
+                        />
+                    </div>
+                </div>
+            }
         </>
     );
 }
@@ -1028,6 +1068,14 @@ function SettingsButton({ SwitchSoundButton, VolumeControlButton, isRestart }) {
                 <VolumeControlButton />
                 <MusicPlayer isRestart={isRestart} />
             </div>
+        </div>
+    );
+}
+
+function ShareButton({ onClick }) {
+    return (
+        <div className="share-button" onClick={onClick}>
+            <img src={ShareIcon} alt="ShareIcon" />
         </div>
     );
 }
@@ -1704,8 +1752,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                                         </Button>
                                     </CopyToClipboard>
                                     <CopyToClipboard text={window.location.origin + '/call/' + me} style={{ marginRight: '10px' }}>
-                                        <Button variant="contained" color="primary">
-                                            分享链接
+                                        <Button variant="contained" color="primary" onClick={() => showNotification('链接已复制到剪切板', 2000, 'white')}>
+                                            复制链接
                                         </Button>
                                     </CopyToClipboard>
                                     <Button disabled={idToCall.length === 0} color="primary" aria-label="call" onClick={() => callUser(idToCall)}>

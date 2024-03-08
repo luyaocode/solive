@@ -1727,3 +1727,44 @@
     /* 结束时完全不透明 */
   }
 }
+
+/* 分享按钮 */
+.share-button {
+  position: absolute;
+  top: 20px;
+  right: 20px;
+  cursor: pointer;
+}
+
+.share-button img {
+  width: 30px;
+  height: 30px;
+}
+
+.share-modal {
+  position: fixed;
+  /* 使用fixed定位，使其相对于浏览器视口固定位置 */
+  bottom: 0;
+  /* 位于屏幕底部 */
+  left: 0;
+  /* 从左侧开始 */
+  width: 100%;
+  /* 占据整个屏幕宽度 */
+  background-color: rgba(255, 255, 255, 0.9);
+  /* 设置背景颜色 */
+  padding: 20px;
+  /* 添加内边距 */
+  border-radius: 10px;
+  /* 添加边框圆角 */
+  box-shadow: 0 0 10px rgba(0, 0, 0, 0.2);
+  /* 添加阴影效果 */
+  z-index: 999;
+  /* 确保弹出窗口位于其他内容之上 */
+}
+
+.share-button-container {
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  padding: 1rem;
+}

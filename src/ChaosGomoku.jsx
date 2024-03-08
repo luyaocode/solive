@@ -348,7 +348,7 @@ function ChaosGomoku() {
                     ) : (
                         startModalOpen &&
                         <StartModal isRestart={isRestart} setStartModalOpen={setStartModalOpen} setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} matched={matched}
-                            joined={joined} setAllIsOk={setAllIsOk} restartInSameRoom={restartInSameRoom} />
+                            joined={joined} setAllIsOk={setAllIsOk} restartInSameRoom={restartInSameRoom} roomId={roomId} />
                     )}
                 </>)}
 

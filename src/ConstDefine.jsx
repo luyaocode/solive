@@ -77,3 +77,4 @@ export const VideoIcon = '/picture/svg/VideoIcon.svg';
 export const VideoIconDisabled = '/picture/svg/VideoIconDisabled.svg';
 export const NoVideoIcon = '/picture/svg/NoVideo.svg';
 export const SpeakerIcon = '/picture/svg/SpeakerIcon.svg';
+export const ShareIcon = '/picture/svg/ShareIcon.svg';
