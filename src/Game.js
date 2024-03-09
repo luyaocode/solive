@@ -1017,7 +1017,7 @@ function playSound(audioName) {
   if (_isMute) {
     return;
   }
-  let audioSrc = audioName ? 'audio/' + audioName : null;
+  let audioSrc = audioName ? '/audio/' + audioName : null;
   if (!audioSrc) {
     return;
   }

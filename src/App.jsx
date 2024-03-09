@@ -7,6 +7,7 @@ const App = () => {
             <Routes>
                 <Route path="/" element={<ChaosGomoku />} />
                 <Route path="/call/:sid" element={<ChaosGomoku />} />
+                <Route path="/room/:rid" element={<ChaosGomoku />} />
             </Routes>
         </Router>
     );

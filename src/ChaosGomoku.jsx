@@ -46,6 +46,7 @@ function ChaosGomoku() {
 
     const [nickName, setNickName] = useState();     // 昵称
     const [roomId, setRoomId] = useState();         // 房间号
+    const [roomIsFullModalOpen, setRoomIsFullModalOpen] = useState(false); // 房间满员
     const [pieceType, setPieceType] = useState(Piece_Type_Black); // 己方棋子颜色
     const [lastStep, setLastStep] = useState([]); // 对方棋子下的位置
     const [deviceType, setDeviceType] = useState(DeviceType.UNKNOWN);
@@ -95,12 +96,15 @@ function ChaosGomoku() {
     const [currentView, setCurrentView] = useState(View.Menu);
 
     // 路由
-    const { sid } = useParams();
+    const { sid } = useParams(); // socketId in url
     useEffect(() => {
         if (sid) {
             setTimeout(() => enterVideoChatView(), 1000);
         }
     }, [sid]);
+
+    const [enterRoomTried, setEnterRoomTried] = useState(false);
+    const { rid } = useParams(); // roomId in url
 
     const enterVideoChatView = () => {
         setCurrentView(View.VideoChat);
@@ -285,7 +289,8 @@ function ChaosGomoku() {
                             selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData, setTableViewOpen,
                             setLoginSuccess, logoutModalOpen, setLogoutModalOpen
                         }} /> : (currentView === View.Menu ?
-                            (<Menu setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
+                            (<Menu enterRoomTried={enterRoomTried} setEnterRoomTried={setEnterRoomTried}
+                                setRoomIsFullModalOpen={setRoomIsFullModalOpen} rid={rid} setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
                                 socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
                                 deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}
                                 headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
@@ -347,7 +352,9 @@ function ChaosGomoku() {
                         </>
                     ) : (
                         startModalOpen &&
-                        <StartModal isRestart={isRestart} setStartModalOpen={setStartModalOpen} setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} matched={matched}
+                        <StartModal
+                            roomIsFullModalOpen={roomIsFullModalOpen} setRoomIsFullModalOpen={setRoomIsFullModalOpen} isRestart={isRestart} setStartModalOpen={setStartModalOpen}
+                            setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} matched={matched}
                             joined={joined} setAllIsOk={setAllIsOk} restartInSameRoom={restartInSameRoom} roomId={roomId} />
                     )}
                 </>)}

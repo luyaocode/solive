@@ -1741,6 +1741,19 @@
   height: 30px;
 }
 
+.share-modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.8);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  z-index: 800;
+}
+
 .share-modal {
   position: fixed;
   /* 使用fixed定位，使其相对于浏览器视口固定位置 */
@@ -1767,4 +1780,34 @@
   flex-direction: row;
   justify-content: center;
   padding: 1rem;
+  position: relative;
+  margin-top: 0.5rem;
+}
+
+.text-container {
+  position: absolute;
+  top: 0;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  animation: jump 1s infinite alternate;
+  font-weight: bold;
+  /* 定义动画 */
+}
+
+.jumping-text {
+  color: #525147;
+  border-radius: 5px;
+  font-size: 16px;
+  text-align: center;
+}
+
+/* 定义跳动动画 */
+@keyframes jump {
+  from {
+    top: -10px;
+  }
+
+  to {
+    top: 0px;
+  }
 }

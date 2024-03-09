@@ -78,3 +78,6 @@ export const VideoIconDisabled = '/picture/svg/VideoIconDisabled.svg';
 export const NoVideoIcon = '/picture/svg/NoVideo.svg';
 export const SpeakerIcon = '/picture/svg/SpeakerIcon.svg';
 export const ShareIcon = '/picture/svg/ShareIcon.svg';
+
+export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
+export const BGM2 = '/audio/bgm/after_the_rain.mp3';

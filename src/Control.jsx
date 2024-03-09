@@ -19,6 +19,7 @@ import {
     AudioIcon, AudioIconDisabled,
     VideoIcon, VideoIconDisabled,
     NoVideoIcon, SpeakerIcon, ShareIcon,
+    BGM1, BGM2,
     DeviceType,
     root,
 } from './ConstDefine.jsx'
@@ -30,7 +31,6 @@ import {
 
 import _ from 'lodash';
 import { showNotification } from './Plugin.jsx'
-import Game from './Game.js';
 
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
@@ -230,8 +230,8 @@ function MusicPlayer({ audioSrc, isRestart }) {
     const [isPlaying, setIsPlaying] = useState(true);
     const [description, setDescription] = useState('暂停背景音乐');
     const [volume, setVolume] = useState(0.3);
-    const audioSrc1 = 'audio/bgm/cruising-down-8bit-lane.mp3';
-    const audioSrc2 = 'audio/bgm/after_the_rain.mp3';
+    const audioSrc1 = BGM1;
+    const audioSrc2 = BGM2;
     const soundRef = useRef(null);
 
     const playMusic = () => {
@@ -398,7 +398,7 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
     return null;
 }
 
-function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket, matched,
+function StartModal({ roomIsFullModalOpen, setRoomIsFullModalOpen, isRestart, setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket, matched,
     joined, setAllIsOk, restartInSameRoom, roomId }) {
     const [isModalOpen, setModalOpen] = useState(false);
 
@@ -408,6 +408,8 @@ function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, s
     const [isShareModalOpen, setShareModalOpen] = useState(false);
     const [shareUrl, setShareUrl] = useState();
     const [canShare, setCanShare] = useState(false);
+    const qrCodeContainerRef = useRef(null);
+    const shareModalRef = useRef(null);
 
     useEffect(() => {
         if (roomId) {
@@ -443,7 +445,7 @@ function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, s
                 }
             case GameMode.MODE_ROOM:
                 {
-                    text = '正在进入房间...'
+                    text = '正在进入房间 ' + roomId;
                     text2 = '进入成功';
                     break;
                 }
@@ -496,6 +498,63 @@ function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, s
         }
     }, [restartInSameRoom]);
 
+    useEffect(() => {
+        if (isShareModalOpen && qrCodeContainerRef.current) {
+            // 在分享模态框打开时且qrCodeContainerRef.current存在时注册保存函数
+            window.saveQRCode = saveQRCode;
+        }
+    }, [isShareModalOpen, qrCodeContainerRef.current]);
+
+    const handleClickOutSide = (event) => {
+        if (isShareModalOpen && shareModalRef.current && !shareModalRef.current.contains(event.target)) {
+            setShareModalOpen(false);
+        }
+    };
+
+    useEffect(() => {
+        if (isShareModalOpen && shareModalRef.current) {
+            document.addEventListener('mousedown', handleClickOutSide);
+        }
+        return () => {
+            document.removeEventListener('mousedown', handleClickOutSide);
+        };
+    }, [isShareModalOpen, shareModalRef.current]);
+
+    const saveQRCode = () => {
+        if (!qrCodeContainerRef.current) return;
+
+        const qrCodeContainer = qrCodeContainerRef.current;
+        const qrCodeComponent = qrCodeContainer.querySelector('svg');
+
+        const svgData = new XMLSerializer().serializeToString(qrCodeComponent);
+        const canvas = document.createElement('canvas');
+
+        // 获取SVG元素的尺寸
+        const svgSize = qrCodeComponent.getBoundingClientRect();
+
+        // 设置Canvas的宽度和高度为SVG元素的实际像素大小
+        canvas.width = Math.ceil(svgSize.width);
+        canvas.height = Math.ceil(svgSize.height);
+
+        const ctx = canvas.getContext('2d');
+
+        const img = new Image();
+        img.onload = function () {
+            ctx.drawImage(img, 0, 0, canvas.width, canvas.height); // 绘制整个图像
+            const dataURL = canvas.toDataURL('image/png');
+
+            const a = document.createElement('a');
+            a.href = dataURL;
+            const picName = "chaosgomoku-room-" + roomId + ".png";
+            a.download = picName;
+            a.click();
+        };
+
+        // 使用 decodeURIComponent 替代 unescape
+        img.src = 'data:image/svg+xml;base64,' + btoa(decodeURIComponent(encodeURIComponent(svgData)));
+
+    };
+
     return (
         <>
             <div className="loading-overlay">
@@ -508,32 +567,43 @@ function StartModal({ isRestart, setStartModalOpen, setItemsLoading, gameMode, s
                 <Modal modalInfo={secondText} setModalOpen={setModalOpen} timeDelay={1000} afterDelay={() => setAllIsOk(true)} />
             }
             {isShareModalOpen &&
-                <div className="share-modal">
-                    <span className="close-button" onClick={() => setShareModalOpen(false)}>
-                        &times;
-                    </span>
-                    <div className='share-button-container'>
-                        <CopyToClipboard text={shareUrl} style={{ marginRight: '10px' }}>
-                            <Button variant="contained" color="primary" onClick={() => showNotification('链接已复制到剪切板', 2000, 'white')}>
-                                复制链接
+                <div className='share-modal-overlay'>
+                    <div className="share-modal" ref={shareModalRef}>
+                        <span className="close-button" onClick={() => setShareModalOpen(false)}>
+                            &times;
+                        </span>
+                        <div className='share-button-container'>
+                            <CopyToClipboard text={shareUrl} style={{ marginRight: '10px' }}>
+                                <Button variant="contained" color="primary" onClick={() => showNotification('链接已复制到剪切板', 2000, 'white')}>
+                                    复制链接
+                                </Button>
+                            </CopyToClipboard>
+                            <Button variant="contained" color="primary" onClick={() => {
+                                window.saveQRCode();
+                                showNotification('二维码已保存', 2000, 'white');
+                            }}>
+                                保存二维码
                             </Button>
-                        </CopyToClipboard>
-                        <Button variant="contained" color="primary">
-                            分享二维码
-                        </Button>
-                    </div>
-                    <div className='share-button-container'>
-                        <QRCode
-                            value={shareUrl}
-                            size={200} // 设置二维码的尺寸
-                            bgColor="transparent" // 设置背景颜色为透明
-                            fgColor="green" // 设置前景颜色（二维码颜色）
-                            level="H" // 设置容错级别（可选值：L、M、Q、H，默认为 L）
-                            includeMargin={false} // 设置是否包含二维码外边距（默认为 true）
-                            renderAs="svg" // 设置渲染格式（svg 或 canvas，默认为 svg）
-                        />
+                        </div>
+                        <div className='share-button-container' ref={qrCodeContainerRef}>
+                            <QRCode
+                                value={shareUrl}
+                                size={200} // 设置二维码的尺寸
+                                bgColor="transparent" // 设置背景颜色为透明
+                                fgColor="green" // 设置前景颜色（二维码颜色）
+                                level="H" // 设置容错级别（可选值：L、M、Q、H，默认为 L）
+                                includeMargin={false} // 设置是否包含二维码外边距（默认为 true）
+                                renderAs="svg" // 设置渲染格式（svg 或 canvas，默认为 svg）
+                            />
+                            <div className="text-container">
+                                <span className="jumping-text">扫码进入房间</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
+            }
+            {roomIsFullModalOpen &&
+                <Modal modalInfo='房间已满员' setModalOpen={setRoomIsFullModalOpen} timeDelay={10000} />
             }
         </>
     );
@@ -620,7 +690,7 @@ function FancyTitle2({ text }) {
     );
 }
 
-function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
+function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, setGameMode, setItemsLoading, setStartModalOpen,
     socket, setNickName, setRoomId, setSeeds,
     deviceType, boardWidth, boardHeight,
     headCount, historyPeekUsers, netConnected, generateSeeds,
@@ -630,6 +700,25 @@ function Menu({ setGameMode, setItemsLoading, setStartModalOpen,
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
     const [loginResultModalOpen, setLoginResultModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (socket) {
+            socket.on('roomIsFull', () => {
+                setTimeout(() => {
+                    setRoomIsFullModalOpen(true);
+                }, 1000);
+            });
+        }
+    }, [socket]);
+
+    useEffect(() => {
+        if (rid && socket && deviceType && boardWidth !== 0 && boardHeight !== 0 && !enterRoomTried) {
+            setTimeout(() => {
+                enterRoom(rid, '大魔王');
+                setEnterRoomTried(true);
+            }, 1000);
+        }
+    }, [rid, socket, boardWidth, boardHeight]);
 
     function onButtonClick(mode) {
         if (mode === GameMode.MODE_ROOM) {
@@ -1125,7 +1214,7 @@ function PlayerAvatar({ avatarIndex, name, info, isMyTurn, pieceType, setChatPan
             const avatarDataURL = canvas.toDataURL();
             setSelectedAvatar(avatarDataURL);
         }
-        img.src = 'picture/avatar/avatar.png';
+        img.src = '/picture/avatar/avatar.png';
 
     }, []);
 
