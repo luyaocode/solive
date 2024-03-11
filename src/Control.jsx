@@ -375,8 +375,8 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
 
     function loadMoreItems() {
         let temp = [];
-        for (let i = 0; i < ITEM_LOAD_PER_TIME; i++) {
-            const seed = seeds[i];
+        for (let i = 0, j = seeds[ITEM_LOAD_PER_TIME] + 1; i < ITEM_LOAD_PER_TIME; i++, j = Math.pow(Math.sin(j), 2) * ITEM_LOAD_PER_TIME + seeds[ITEM_LOAD_PER_TIME]) {
+            const seed = seeds[Math.floor(j) % ITEM_LOAD_PER_TIME];
             const item = _.cloneDeep(getItem(seed));
             temp.push(item);
         }
@@ -384,7 +384,7 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
         //     let item = temp[i];
         //     console.log('more:' + i + '：' + item.name);
         // }
-        setItems(prevItems => [...prevItems, temp]);
+        setItems(prevItems => [...prevItems, ...temp]);
     };
 
     useEffect(() => {
@@ -1396,6 +1396,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
             console.error('获取媒体流失败：');
         }
     }
+
+    // 获取屏幕共享流
+
 
     // 更新轨道
     useEffect(() => {
