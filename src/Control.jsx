@@ -630,7 +630,7 @@ function Footer() {
                 </div>
             )}
             <div style={{ marginTop: 10 + 'px' }}>
-                <a href='https://beian.miit.gov.cn' target='_blank' className='record-number'>鄂ICP备2024037650号</a>
+                <a href='https://beian.miit.gov.cn' target='_blank' className='record-number'>鄂ICP备2024037650号-1</a>
             </div>
 
         </footer>
@@ -1402,7 +1402,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
             });
             return stream;
         } catch (error) {
-            console.error('获取媒体流失败：');
+            // console.log('未打开摄像头和麦克风');
         }
     }
 
