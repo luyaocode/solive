@@ -94,6 +94,15 @@ function ChaosGomoku() {
 
     // 系统界面
     const [currentView, setCurrentView] = useState(View.Menu);
+    const [showOverlayArrow, setShowOverlayArrow] = useState(false);
+    useEffect(() => {
+        if (currentView === View.Menu && !isLoginModalOpen) {
+            setShowOverlayArrow(true);
+        }
+        else {
+            setShowOverlayArrow(false);
+        }
+    }, [currentView, isLoginModalOpen]);
 
     // 路由
     const { sid } = useParams(); // socketId in url
@@ -258,7 +267,7 @@ function ChaosGomoku() {
 
     return (
         <React.StrictMode className='game-container'>
-            {currentView === View.Menu &&
+            {showOverlayArrow &&
                 <OverlayArrow onClick={enterVideoChatView} currentView={currentView} />
             }
             <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
@@ -296,7 +305,7 @@ function ChaosGomoku() {
                                 headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
                                 generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
                                 isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
-                                setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} />
+                                setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} setShowOverlayArrow={setShowOverlayArrow} />
                             ) :
                             (currentView === View.VideoChat ? <VideoChat sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView} /> : null))}
                 </>)

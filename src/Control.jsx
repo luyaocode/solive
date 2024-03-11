@@ -695,11 +695,20 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
     deviceType, boardWidth, boardHeight,
     headCount, historyPeekUsers, netConnected, generateSeeds,
     isLoginModalOpen, setLoginModalOpen, isLoginSuccess,
-    selectedTable, setSelectedTable, setTableViewOpen, avatarIndex }) {
+    selectedTable, setSelectedTable, setTableViewOpen, avatarIndex, setShowOverlayArrow }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
     const [loginResultModalOpen, setLoginResultModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (enterRoomModalOpen) {
+            setShowOverlayArrow(false);
+        }
+        else {
+            setShowOverlayArrow(true);
+        }
+    }, [enterRoomModalOpen]);
 
     useEffect(() => {
         if (socket) {
