@@ -74,29 +74,8 @@ const VOLUME_PER_TIME = 10;
 let _isMute = false;
 let _volume = 100;
 
-// 其他
-const EventEmitter = require('events');
-const emitter = new EventEmitter();
-emitter.on('updateBoardWidth', (message) => {
-
-  this.setState({}); // 通过setState来更新组件状态，从而触发重新渲染
-});
-// const Square_Size_Pc = '1.39em';
-// 获取设备的屏幕分辨率
-// const screenWidth = window.screen.width;
-// const screenHeight = window.screen.height;
-// const square_width = Math.floor(screenWidth / (1.39 * 24));
 let Board_Width;
 let Board_Height;
-// const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
-// if (isMobile) {
-//   Board_Width = square_width;
-//   Board_Height = square_width;
-//   root.style.setProperty('--gamelog-button-width', '45vh');
-// } else {
-//   Board_Width = 18;
-//   Board_Height = 18;
-// }
 
 // 状态
 const Item = {
@@ -875,10 +854,12 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
         openModal(winnerInfo[0] + '胜利！', 60000);
         setGameOver(true);
         logAction(nextBoard[i][j], nextBoard[i][j], selectedItem, true);
-        for (const arr of winnerInfo[1]) {
-          const x = arr[0];
-          const y = arr[1];
-          nextBoard[x][y].setWinnerPiece();
+        if (winnerInfo[1]) {
+          for (const arr of winnerInfo[1]) {
+            const x = arr[0];
+            const y = arr[1];
+            nextBoard[x][y].setWinnerPiece();
+          }
         }
         playSound(Win);
         break;
@@ -1931,6 +1912,25 @@ function calculateWinner(board, x, y) {
     const winnerInfo = checkDirection(dx, dy);
     if (winnerInfo[0] !== null) {
       return winnerInfo;
+    }
+  }
+  let nWhitePiece = nBlackPiece = 0;
+  board.map((row, rowIndex) => {
+    row.map((cell, colIndex) => {
+      if (cell.type === Piece_Type_Black) {
+        nBlackPiece++;
+      }
+      else if (cell.type === Piece_Type_White) {
+        nWhitePiece++;
+      }
+    });
+  });
+  if ((nWhitePiece + nBlackPiece) === Board_Width * Board_Height) {
+    if (nWhitePiece >= nBlackPiece) {
+      return [Piece_Type_White, [null, null]];
+    }
+    else {
+      return [Piece_Type_Black, [null, null]];
     }
   }
 
