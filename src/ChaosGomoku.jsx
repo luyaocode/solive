@@ -59,6 +59,8 @@ function ChaosGomoku() {
     const [isPlayerDisconnectedModalOpen, setPlayerDisconnectedModalOpen] = useState(false);
     const [isRestartRequestModalOpen, setRestartRequestModalOpen] = useState(false);
     const [restartResponseModalOpen, setRestartResponseModalOpen] = useState(false);
+    const [receiveInviteModalOpen, setReceiveInviteModalOpen] = useState(false);
+    const [gameInviteAccepted, setGameInviteAccepted] = useState(false);
 
     // 通用弹窗
     const [commonModalText, setCommonModalText] = useState('');
@@ -114,6 +116,12 @@ function ChaosGomoku() {
 
     const [enterRoomTried, setEnterRoomTried] = useState(false);
     const { rid } = useParams(); // roomId in url
+
+    useEffect(() => {
+        if (gameInviteAccepted) {
+            setGameInviteAccepted(false);
+        }
+    }, [gameInviteAccepted]);
 
     const enterVideoChatView = () => {
         setCurrentView(View.VideoChat);
@@ -267,6 +275,13 @@ function ChaosGomoku() {
 
     return (
         <React.StrictMode className='game-container'>
+            {receiveInviteModalOpen &&
+                <ConfirmModal modalInfo='有人邀请您开始游戏，是否同意？' onOkBtnClick={() => {
+                    setGameInviteAccepted(true);
+                    setReceiveInviteModalOpen(false);
+                }}
+                    OnCancelBtnClick={() => setReceiveInviteModalOpen(false)} />
+            }
             {showOverlayArrow &&
                 <OverlayArrow onClick={enterVideoChatView} currentView={currentView} />
             }
@@ -288,7 +303,7 @@ function ChaosGomoku() {
                 setLoginSuccess={setLoginSuccess}
                 setClientIpsData={setClientIpsData} setGameInfoData={setGameInfoData} setStepInfoData={setStepInfoData}
                 setAvatarIndex={setAvatarIndex} setAvatarIndexPB={setAvatarIndexPB}
-                setMessages={setMessages}
+                setMessages={setMessages} setReceiveInviteModalOpen={setReceiveInviteModalOpen}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
@@ -305,7 +320,8 @@ function ChaosGomoku() {
                                 headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
                                 generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
                                 isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
-                                setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} setShowOverlayArrow={setShowOverlayArrow} />
+                                setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} setShowOverlayArrow={setShowOverlayArrow}
+                                gameInviteAccepted={gameInviteAccepted} />
                             ) :
                             (currentView === View.VideoChat ? <VideoChat sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView} /> : null))}
                 </>)
@@ -364,7 +380,7 @@ function ChaosGomoku() {
                         <StartModal
                             roomIsFullModalOpen={roomIsFullModalOpen} setRoomIsFullModalOpen={setRoomIsFullModalOpen} isRestart={isRestart} setStartModalOpen={setStartModalOpen}
                             setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} matched={matched}
-                            joined={joined} setAllIsOk={setAllIsOk} restartInSameRoom={restartInSameRoom} roomId={roomId} />
+                            joined={joined} setAllIsOk={setAllIsOk} restartInSameRoom={restartInSameRoom} roomId={roomId} headCount={headCount} />
                     )}
                 </>)}
 

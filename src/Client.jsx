@@ -19,7 +19,7 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setUndoRoundRequestModalOpen, setUndoRoundResponseModalOpen,
     setLoginSuccess,
     setClientIpsData, setGameInfoData, setStepInfoData, setAvatarIndex, setAvatarIndexPB,
-    setMessages }) {
+    setMessages, setReceiveInviteModalOpen }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -207,6 +207,10 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
 
             socket.on('disconnect', () => {
                 setNetConnected(false);
+            });
+
+            socket.on('inviteGame', () => {
+                setReceiveInviteModalOpen(true);
             });
         });
         return () => {

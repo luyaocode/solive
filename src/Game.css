@@ -782,6 +782,7 @@
   cursor: pointer;
   font-size: 16px;
   margin-top: 10px;
+  margin-bottom: 2rem;
   transition: background-color 0.3s ease;
 }
 
@@ -1811,3 +1812,6 @@
     top: 0px;
   }
 }
+
+/* three.js  */
+/* #renderer-container {} */

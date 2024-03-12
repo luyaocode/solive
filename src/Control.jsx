@@ -3,6 +3,8 @@ import { Button, Input, Form, Space, Radio, Table } from 'antd';
 import { CopyToClipboard } from "react-copy-to-clipboard"
 import Peer from "simple-peer"
 import QRCode from 'qrcode.react';
+import * as THREE from 'three';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 
 import './Game.css';
 import {
@@ -399,7 +401,7 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
 }
 
 function StartModal({ roomIsFullModalOpen, setRoomIsFullModalOpen, isRestart, setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket, matched,
-    joined, setAllIsOk, restartInSameRoom, roomId }) {
+    joined, setAllIsOk, restartInSameRoom, roomId, headCount }) {
     const [isModalOpen, setModalOpen] = useState(false);
 
     const { text, text2 } = getTexts();
@@ -408,6 +410,7 @@ function StartModal({ roomIsFullModalOpen, setRoomIsFullModalOpen, isRestart, se
     const [isShareModalOpen, setShareModalOpen] = useState(false);
     const [shareUrl, setShareUrl] = useState();
     const [canShare, setCanShare] = useState(false);
+    const [inviteModalOpen, setInviteModalOpen] = useState(false); // 邀请弹窗
     const qrCodeContainerRef = useRef(null);
     const shareModalRef = useRef(null);
 
@@ -459,7 +462,6 @@ function StartModal({ roomIsFullModalOpen, setRoomIsFullModalOpen, isRestart, se
     function onCancelButtonClick() {
         setItemsLoading(false);
         setStartModalOpen(false);
-        //
         if (gameMode === GameMode.MODE_ROOM) {
             socket.emit('leaveRoom');
         }
@@ -470,6 +472,10 @@ function StartModal({ roomIsFullModalOpen, setRoomIsFullModalOpen, isRestart, se
         setGameMode(GameMode.MODE_NONE);
     }
 
+    function onBubbleClick(index) {
+        setInviteModalOpen(true);
+    }
+
     useEffect(() => {
         if (matched || joined) {
             setModalOpen(true);
@@ -478,7 +484,6 @@ function StartModal({ roomIsFullModalOpen, setRoomIsFullModalOpen, isRestart, se
 
     useEffect(() => {
         if (isRestart) {
-            // setDescription('正在重新开始...');
             setModalOpen(false);
             setAllIsOk(true);
         }
@@ -558,13 +563,24 @@ function StartModal({ roomIsFullModalOpen, setRoomIsFullModalOpen, isRestart, se
     return (
         <>
             <div className="loading-overlay">
-                <div className="loading-spinner"></div>
+                {
+                    gameMode === GameMode.MODE_MATCH &&
+                    <BubbleScene headCount={headCount} onBubbleClick={onBubbleClick} />
+                }
+                {gameMode !== GameMode.MODE_MATCH && <div className="loading-spinner"></div>}
                 <p className="loading-text">{description}</p>
                 <button className="cancel-button" onClick={onCancelButtonClick}>取消</button>
                 {canShare && <ShareButton onClick={() => setShareModalOpen(true)} />}
             </div>
             {isModalOpen &&
                 <Modal modalInfo={secondText} setModalOpen={setModalOpen} timeDelay={1000} afterDelay={() => setAllIsOk(true)} />
+            }
+            {inviteModalOpen &&
+                <ConfirmModal modalInfo='邀请Ta开始游戏吗？' onOkBtnClick={() => {
+                    socket.emit('inviteGame');
+                    setInviteModalOpen(false);
+                }}
+                    OnCancelBtnClick={() => setInviteModalOpen(false)} />
             }
             {isShareModalOpen &&
                 <div className='share-modal-overlay'>
@@ -695,11 +711,18 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
     deviceType, boardWidth, boardHeight,
     headCount, historyPeekUsers, netConnected, generateSeeds,
     isLoginModalOpen, setLoginModalOpen, isLoginSuccess,
-    selectedTable, setSelectedTable, setTableViewOpen, avatarIndex, setShowOverlayArrow }) {
+    selectedTable, setSelectedTable, setTableViewOpen, avatarIndex, setShowOverlayArrow,
+    gameInviteAccepted }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
     const [loginResultModalOpen, setLoginResultModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (gameInviteAccepted) {
+            matchRoom(GameMode.MODE_MATCH);
+        }
+    }, [gameInviteAccepted]);
 
     useEffect(() => {
         if (enterRoomModalOpen) {
@@ -2044,6 +2067,130 @@ function CallingModal({ isDisabled, modalInfo, onClick }) {
         </div>
     );
 }
+
+function BubbleScene({ headCount, onBubbleClick }) {
+    const mount = useRef(null);
+
+    useEffect(() => {
+        let scene, camera, renderer, controls, bubbles = [];
+
+        const init = () => {
+            scene = new THREE.Scene();
+            scene.background = null;
+
+            camera = new THREE.PerspectiveCamera(75, window.innerWidth / window.innerHeight, 0.1, 1000);
+            camera.position.z = 10;
+
+            renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true });
+            renderer.setSize(window.innerWidth, window.innerHeight);
+
+            mount.current.appendChild(renderer.domElement);
+
+            // 创建控制器
+            controls = new OrbitControls(camera, renderer.domElement);
+            controls.enableDamping = true;
+            controls.dampingFactor = 0.25;
+            controls.enableZoom = true;
+
+            const generateStarColor = () => {
+                const colors = [
+                    0xffffff, 0xffd700, 0xffa500, 0xff7f50, 0xff6347, 0xff4500,
+                    0xff1493, 0xff69b4, 0xff00ff, 0xda70d6, 0xba55d3, 0x8a2be2,
+                    0x483d8b, 0x0000ff, 0x00ffff, 0x7fff00, 0x32cd32, 0x228b22,
+                    0x006400, 0x556b2f
+                ];
+                return colors[Math.floor(Math.random() * colors.length)];
+            };
+
+            const checkIntersection = (position, bubbles) => {
+                for (let i = 0; i < bubbles.length; i++) {
+                    const distance = position.distanceTo(bubbles[i].position);
+                    if (distance < 1) {
+                        return true;
+                    }
+                }
+                return false;
+            };
+
+            const handleBubbleClick = (index) => {
+                onBubbleClick(index);
+            };
+
+            // 创建小气泡
+            const smallBubbleGeometry = new THREE.SphereGeometry(1, 32, 32);
+            for (let i = 0; i < headCount - 1; i++) {
+                let isIntersecting = true;
+                let position;
+                while (isIntersecting) {
+                    const theta = Math.random() * Math.PI * 2;
+                    const phi = Math.acos(Math.random() * 2 - 1);
+                    const radius = Math.random() * 20;
+                    position = new THREE.Vector3(
+                        radius * Math.sin(phi) * Math.cos(theta),
+                        radius * Math.sin(phi) * Math.sin(theta),
+                        radius * Math.cos(phi)
+                    );
+                    isIntersecting = checkIntersection(position, bubbles);
+                }
+
+                const smallBubbleMaterial = new THREE.MeshBasicMaterial({ color: generateStarColor() });
+                const smallBubble = new THREE.Mesh(smallBubbleGeometry, smallBubbleMaterial);
+                smallBubble.position.copy(position);
+                smallBubble.userData.index = i; // 保存小气泡的索引
+                bubbles.push(smallBubble);
+                scene.add(smallBubble);
+            }
+
+            const handleMouseClick = (event) => {
+                const raycaster = new THREE.Raycaster();
+                const mouse = new THREE.Vector2();
+
+                mouse.x = (event.clientX / window.innerWidth) * 2 - 1;
+                mouse.y = -(event.clientY / window.innerHeight) * 2 + 1;
+
+                raycaster.setFromCamera(mouse, camera);
+
+                const intersects = raycaster.intersectObjects(bubbles, true);
+
+                if (intersects.length > 0) {
+                    const clickedBubble = intersects[0].object;
+                    const bubbleIndex = clickedBubble.userData.index;
+                    handleBubbleClick(bubbleIndex);
+                }
+            };
+
+            window.addEventListener('click', handleMouseClick, false);
+
+            const animate = () => {
+                requestAnimationFrame(animate);
+
+                bubbles.forEach(bubble => {
+                    const radius = 10;
+                    const angle = 0.002;
+                    const x = bubble.position.x;
+                    const y = bubble.position.y;
+                    const z = bubble.position.z;
+
+                    bubble.position.x = x * Math.cos(angle) + z * Math.sin(angle);
+                    bubble.position.z = z * Math.cos(angle) - x * Math.sin(angle);
+                });
+
+                controls.update();
+                renderer.render(scene, camera);
+            };
+
+            animate();
+        };
+
+        init();
+
+        return () => {
+            if (mount.current) mount.current.removeChild(renderer.domElement);
+        };
+    }, []);
+
+    return <div style={{ borderRadius: '50%', overflow: 'hidden' }} ref={mount} />;
+};
 
 export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
