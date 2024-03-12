@@ -1914,7 +1914,8 @@ function calculateWinner(board, x, y) {
       return winnerInfo;
     }
   }
-  let nWhitePiece = nBlackPiece = 0;
+  let nWhitePiece = 0;
+  let nBlackPiece = 0;
   board.map((row, rowIndex) => {
     row.map((cell, colIndex) => {
       if (cell.type === Piece_Type_Black) {
