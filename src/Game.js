@@ -1924,7 +1924,9 @@ function calculateWinner(board, x, y) {
       else if (cell.type === Piece_Type_White) {
         nWhitePiece++;
       }
+      return null;
     });
+    return null;
   });
   if ((nWhitePiece + nBlackPiece) === Board_Width * Board_Height) {
     if (nWhitePiece >= nBlackPiece) {

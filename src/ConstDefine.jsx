@@ -81,3 +81,7 @@ export const ShareIcon = '/picture/svg/ShareIcon.svg';
 
 export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
 export const BGM2 = '/audio/bgm/after_the_rain.mp3';
+
+export const PublicMsg_Max_Length = 5000;
+export const Notice_Max_Length = 1000;
+

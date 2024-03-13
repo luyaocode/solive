@@ -1,12 +1,13 @@
 import React, { useEffect, useState } from 'react';
 import { useParams } from 'react-router-dom';
+import axios from 'axios';
 import './Game.css';
 import {
     Timer, GameLog, ItemManager, StartModal, Menu, Modal, ConfirmModal,
     TableViewer,
     ChatPanel,
     VideoChat,
-    OverlayArrow,
+    OverlayArrow, NoticeBoard
 } from './Control.jsx'
 import Game from './Game.js'
 import {
@@ -15,7 +16,7 @@ import {
     LoginStatus,
     Avatar_Number_X,
     Avatar_Number_Y,
-    View,
+    View, PublicMsg_Max_Length, Notice_Max_Length
 } from './ConstDefine.jsx'
 import Client from './Client.jsx'
 
@@ -93,7 +94,22 @@ function ChaosGomoku() {
     // 文本消息
     const [messages, setMessages] = useState([]);
     const [chatPanelOpen, setChatPanelOpen] = useState(false);
+    const [locationData, setLocationData] = useState(null);
 
+    // 公告板
+    const [notices, setNotices] = useState([]);
+    useEffect(() => {
+        if (notices.length > Notice_Max_Length) {
+            setNotices(prev => prev.slice(prev.length / 2));
+        }
+    }, [notices]);
+
+    const [publicMsgs, setPublicMsgs] = useState([]);
+    useEffect(() => {
+        if (publicMsgs.length > PublicMsg_Max_Length) {
+            setPublicMsgs(prev => prev.slice(prev.length / 2));
+        }
+    }, [publicMsgs]);
     // 系统界面
     const [currentView, setCurrentView] = useState(View.Menu);
     const [showOverlayArrow, setShowOverlayArrow] = useState(false);
@@ -116,6 +132,25 @@ function ChaosGomoku() {
 
     const [enterRoomTried, setEnterRoomTried] = useState(false);
     const { rid } = useParams(); // roomId in url
+
+    // 获取地理位置信息
+    const fetchLocation = async (api = 'https://ipinfo.io/json/') => {
+        try {
+            const response = await axios.get(api);
+            setLocationData({
+                country: response.data.country,
+                city: response.data.city
+            });
+        } catch (error) {
+            console.error('获取地理位置信息失败', error);
+        }
+    };
+
+    useEffect(() => {
+        if (!locationData) {
+            fetchLocation();
+        }
+    }, []);
 
     useEffect(() => {
         if (gameInviteAccepted) {
@@ -282,6 +317,9 @@ function ChaosGomoku() {
                 }}
                     OnCancelBtnClick={() => setReceiveInviteModalOpen(false)} />
             }
+            {true && <NoticeBoard currentView={currentView} notices={notices} publicMsgs={publicMsgs}
+                setPublicMsgs={setPublicMsgs} socket={socket} locationData={locationData}
+                fetchLocation={fetchLocation} />}
             {showOverlayArrow &&
                 <OverlayArrow onClick={enterVideoChatView} currentView={currentView} />
             }
@@ -304,6 +342,7 @@ function ChaosGomoku() {
                 setClientIpsData={setClientIpsData} setGameInfoData={setGameInfoData} setStepInfoData={setStepInfoData}
                 setAvatarIndex={setAvatarIndex} setAvatarIndexPB={setAvatarIndexPB}
                 setMessages={setMessages} setReceiveInviteModalOpen={setReceiveInviteModalOpen}
+                setPublicMsgs={setPublicMsgs} setNotices={setNotices}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
@@ -321,7 +360,7 @@ function ChaosGomoku() {
                                 generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
                                 isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
                                 setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} setShowOverlayArrow={setShowOverlayArrow}
-                                gameInviteAccepted={gameInviteAccepted} />
+                                gameInviteAccepted={gameInviteAccepted} locationData={locationData} />
                             ) :
                             (currentView === View.VideoChat ? <VideoChat sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView} /> : null))}
                 </>)

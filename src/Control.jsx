@@ -712,7 +712,7 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
     headCount, historyPeekUsers, netConnected, generateSeeds,
     isLoginModalOpen, setLoginModalOpen, isLoginSuccess,
     selectedTable, setSelectedTable, setTableViewOpen, avatarIndex, setShowOverlayArrow,
-    gameInviteAccepted }) {
+    gameInviteAccepted, locationData }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
@@ -777,7 +777,7 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
         setStartModalOpen(true);
         setGameMode(mode);
         setItemsLoading(true);
-        socket.emit('matchRoom', { deviceType, boardWidth, boardHeight, avatarIndex });
+        socket.emit('matchRoom', { deviceType, boardWidth, boardHeight, avatarIndex, locationData });
     }
 
     function enterRoom(roomId, nickName) {
@@ -2055,6 +2055,194 @@ function OverlayArrow({ onClick, currentView }) {
     );
 };
 
+// 公告栏
+function NoticeBoard({ currentView, notices, publicMsgs, setPublicMsgs, socket, locationData, fetchLocation }) {
+    const [showLine, setShowLine] = useState(true);
+    const [selectedOption, setSelectedOption] = useState(2);
+    const [inputText, setInputText] = useState('');
+    const [isTyping, setIsTyping] = useState(false);
+    const textareaRef = useRef(null);
+    const Max_Length = 50;
+    function handleClick() {
+        root.style.setProperty('--overlay-notice-board-height', '60%');
+        root.style.setProperty('--overlay-notice-board-width', '98%');
+        setShowLine(false);
+    }
+
+    function handleMouseLeave() {
+        if (isTyping) return;
+        root.style.setProperty('--overlay-notice-board-height', '2rem');
+        root.style.setProperty('--overlay-notice-board-width', '52%');
+        setShowLine(true);
+    };
+
+    const handleOptionClick = (option) => {
+        setSelectedOption(option);
+    };
+
+    const handleChange = (e) => {
+        setInputText(e.target.value.substring(0, Max_Length));
+        e.target.style.height = 'auto';
+        e.target.style.height = e.target.scrollHeight + 'px';
+        setIsTyping(e.target.value.length > 0);
+    };
+
+    const handleSendMessage = () => {
+        if (inputText !== '') {
+            const newMessage = {
+                message: inputText.substring(0, Max_Length),
+                timestamp: Date.now(),
+                locationData: locationData,
+                id: socket.id,
+            };
+            // 发送到服务器
+            socket.emit('publishPublicMsg', newMessage);
+            setPublicMsgs(prev => [...prev, newMessage]);
+            setInputText('');
+            setIsTyping(false);
+            setTimeout(() => adjustNoticeAreaHeight(), 10);
+        }
+    };
+
+    // 气泡高度自适应
+    const adjustNoticeAreaHeight = () => {
+        // 获取所有的气泡元素
+        const noticeItems = document.querySelectorAll('.notice-item');
+
+        // 遍历每个气泡元素
+        noticeItems.forEach(item => {
+            // 获取气泡内容元素和时间戳元素
+            const noticeContent = item.querySelector('.notice');
+            const timestamp = item.querySelector('.timestamp');
+            if (noticeContent && timestamp) {
+                // 计算气泡内容的高度
+                const contentHeight = noticeContent.offsetHeight;
+                // 计算时间戳的高度
+                const timestampHeight = timestamp.offsetHeight;
+
+                // 计算气泡的总高度（内容高度 + 时间戳高度 + padding）
+                const totalHeight = contentHeight + timestampHeight + 10; // 这里的10是额外的 padding 和 margin
+
+                // 将计算出的总高度应用到气泡元素上
+                item.style.height = totalHeight + 'px';
+            }
+        });
+    }
+
+    setTimeout(adjustNoticeAreaHeight, 10);
+
+    const formatDate = (timestamp) => {
+        // 根据时间戳生成格式化的时间字符串
+        const date = new Date(timestamp);
+        return `${date.toLocaleDateString()} ${date.toLocaleTimeString()}`;
+    };
+
+    const formatLoc = (locationData) => {
+        return locationData ? (locationData.country ? (locationData.city ? (locationData.country + ' ' + locationData.city) : locationData.country) : '未知地区') : '获取地理信息失败';
+    }
+    const formatID = (id) => {
+        if (!id) {
+            return '未知用户';
+        }
+        if (id.length <= 8) {
+            return id;
+        }
+        const firstFour = id.slice(0, 4);
+        const lastFour = id.slice(-4);
+        const maskedMiddle = '*'.repeat(4); // 构造与中间字符串长度相同的 '*' 字符串
+        return firstFour + maskedMiddle + lastFour; // 返回遮蔽后的字符串
+    }
+
+    const formatNotice = (notice) => {
+        let nt;
+        let socketId = formatID(notice.id);
+        if (notice.type === 'startMatch') {
+            nt = '刚刚，' + socketId + '开始了匹配';
+        }
+        else if (notice.type === 'createRoom') {
+            nt = '刚刚，' + socketId + '【 ' + notice.nickName + ' 】' + '创建了房间【 ' + notice.roomId + ' 】';
+        }
+        return nt;
+    }
+
+
+    useEffect(() => {
+        if (!locationData) {
+            fetchLocation();
+        }
+    }, []);
+
+    return (
+        <>
+            {currentView === View.Menu &&
+                (<div className="overlay-notice-board"
+                    onMouseLeave={handleMouseLeave}>
+                    {showLine ?
+                        (<div className="line-container" onClick={handleClick}>
+                            <div style={{ cursor: 'pointer' }}>
+                                <div className="line"></div>
+                                <div className="line"></div>
+                                <div className="line"></div>
+                            </div>
+                        </div>) :
+                        (<>
+                            <div className='vertical-layout'>
+                                <div className='option-container'>
+                                    <Button className={`option ${selectedOption === 1 ? 'selected' : ''}`}
+                                        onClick={() => handleOptionClick(1)}><span>组队</span></Button>
+                                    <Button className={`option ${selectedOption === 2 ? 'selected' : ''}`}
+                                        onClick={() => handleOptionClick(2)}><span>世界</span></Button>
+                                </div>
+                                {selectedOption === 1 && (
+                                    <div className='text-contianer'>
+                                        {notices.map((notice, index) => (
+                                            <div key={index} className='notice-item'>
+                                                <div className="notice">{formatNotice(notice)}</div>
+                                                <div className="timestamp">{formatDate(notice.timestamp) + ' ' + formatLoc(notice.locationData)}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                {selectedOption === 2 && (
+                                    <div className='text-contianer'>
+                                        {publicMsgs.map((notice, index) => (
+                                            <div key={index} className='notice-item'>
+                                                <div className="notice">{notice.message}</div>
+                                                <div className="timestamp">{formatID(notice.id) + ' ' + formatDate(notice.timestamp) + ' ' + formatLoc(notice.locationData)}</div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                )}
+                                <div className="input-container">
+                                    <textarea
+                                        ref={textareaRef}
+                                        value={inputText}
+                                        onChange={handleChange}
+                                        placeholder="请输入..."
+                                        style={{
+                                            width: '80%',
+                                            height: '2.2rem', // 设置初始高度为一行文本的高度
+                                            minHeight: 'auto', // 调整最小高度为自动
+                                            maxHeight: '100px', // 调整最大高度
+                                            fontSize: '16px', // 调整字体大小
+                                            border: '1px solid #ccc',
+                                            resize: 'none',
+                                            overflowY: 'auto',
+                                            lineHeight: '1.2', // 设置行高与字体大小相同
+                                            padding: '8px', // 调整内边距
+                                        }}
+                                    />
+                                    <button onClick={handleSendMessage}>发送</button>
+                                </div>
+                            </div>
+                        </>)
+                    }
+                </div>)
+            }
+        </>
+    );
+};
+
 function CallingModal({ isDisabled, modalInfo, onClick }) {
     return (
         <div className="modal-overlay">
@@ -2195,5 +2383,5 @@ function BubbleScene({ headCount, onBubbleClick }) {
 export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
     Menu, ConfirmModal, InfoModal, Modal, SettingsButton, LoginButton, LoginModal,
-    TableViewer, PlayerAvatar, ChatPanel, VideoChat, OverlayArrow
+    TableViewer, PlayerAvatar, ChatPanel, VideoChat, OverlayArrow, NoticeBoard
 };
