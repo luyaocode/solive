@@ -84,4 +84,13 @@ export const BGM2 = '/audio/bgm/after_the_rain.mp3';
 
 export const PublicMsg_Max_Length = 5000;
 export const Notice_Max_Length = 1000;
+export const TitleNotice = {
+    message: '富强、民主、文明、和谐。自由、平等、公正、法治。爱国、敬业、诚信、友善。',
+    id: '小棋',
+    timestamp: Date.now(),
+    locationData: {
+        country: '中国',
+        city: '湖北'
+    }
+}
 

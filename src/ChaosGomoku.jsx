@@ -16,7 +16,7 @@ import {
     LoginStatus,
     Avatar_Number_X,
     Avatar_Number_Y,
-    View, PublicMsg_Max_Length, Notice_Max_Length
+    View, PublicMsg_Max_Length, Notice_Max_Length, TitleNotice
 } from './ConstDefine.jsx'
 import Client from './Client.jsx'
 
@@ -110,6 +110,33 @@ function ChaosGomoku() {
             setPublicMsgs(prev => prev.slice(prev.length / 2));
         }
     }, [publicMsgs]);
+
+    const [currentOutsideText, setCurrentOutsideText] = useState(TitleNotice); // 公告板显示的最新消息
+    const [currentMsgIndex, setCurrentMsgIndex] = useState();
+    const [firstLoad, setFirstLoad] = useState(true);
+
+    useEffect(() => {
+        if (publicMsgs.length === 0) {
+            return;
+        }
+        if (firstLoad) {
+            setCurrentMsgIndex(publicMsgs.length > 10 ? publicMsgs.length - 10 : 0);
+            setFirstLoad(false);
+            return;
+        }
+        const interval = setInterval(() => {
+            if (currentMsgIndex < publicMsgs.length) {
+                setCurrentOutsideText(publicMsgs[currentMsgIndex]);
+                setCurrentMsgIndex(prev => prev + 1);
+            } else {
+                setCurrentOutsideText({});
+                clearInterval(interval);
+            }
+        }, 3000);
+
+        return () => clearInterval(interval);
+    }, [publicMsgs, currentMsgIndex]);
+
     // 系统界面
     const [currentView, setCurrentView] = useState(View.Menu);
     const [showOverlayArrow, setShowOverlayArrow] = useState(false);
@@ -319,7 +346,7 @@ function ChaosGomoku() {
             }
             {true && <NoticeBoard currentView={currentView} notices={notices} publicMsgs={publicMsgs}
                 setPublicMsgs={setPublicMsgs} socket={socket} locationData={locationData}
-                fetchLocation={fetchLocation} />}
+                fetchLocation={fetchLocation} currentOutsideText={currentOutsideText} />}
             {showOverlayArrow &&
                 <OverlayArrow onClick={enterVideoChatView} currentView={currentView} />
             }

@@ -2056,7 +2056,8 @@ function OverlayArrow({ onClick, currentView }) {
 };
 
 // 公告栏
-function NoticeBoard({ currentView, notices, publicMsgs, setPublicMsgs, socket, locationData, fetchLocation }) {
+function NoticeBoard({ currentView, notices, publicMsgs, setPublicMsgs, socket, locationData, fetchLocation,
+    currentOutsideText }) {
     const [showLine, setShowLine] = useState(true);
     const [selectedOption, setSelectedOption] = useState(2);
     const [inputText, setInputText] = useState('');
@@ -2178,13 +2179,16 @@ function NoticeBoard({ currentView, notices, publicMsgs, setPublicMsgs, socket, 
                 (<div className="overlay-notice-board"
                     onMouseLeave={handleMouseLeave}>
                     {showLine ?
-                        (<div className="line-container" onClick={handleClick}>
-                            <div style={{ cursor: 'pointer' }}>
-                                <div className="line"></div>
-                                <div className="line"></div>
-                                <div className="line"></div>
+                        (<>
+                            {<div className='outside-text'>{currentOutsideText.message}</div>}
+                            <div className="line-container" onClick={handleClick}>
+                                <div style={{ cursor: 'pointer' }}>
+                                    <div className="line"></div>
+                                    <div className="line"></div>
+                                    <div className="line"></div>
+                                </div>
                             </div>
-                        </div>) :
+                        </>) :
                         (<>
                             <div className='vertical-layout'>
                                 <div className='option-container'>

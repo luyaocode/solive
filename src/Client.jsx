@@ -19,7 +19,7 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setUndoRoundRequestModalOpen, setUndoRoundResponseModalOpen,
     setLoginSuccess,
     setClientIpsData, setGameInfoData, setStepInfoData, setAvatarIndex, setAvatarIndexPB,
-    setMessages, setReceiveInviteModalOpen, setPublicMsgs, setNotices }) {
+    setMessages, setReceiveInviteModalOpen, setPublicMsgs, setNotices, }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
