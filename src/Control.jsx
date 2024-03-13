@@ -2062,12 +2062,14 @@ function NoticeBoard({ currentView, notices, publicMsgs, setPublicMsgs, socket, 
     const [selectedOption, setSelectedOption] = useState(2);
     const [inputText, setInputText] = useState('');
     const [isTyping, setIsTyping] = useState(false);
+    const [isBoardExpand, setIsBoardExpand] = useState(false);
     const textareaRef = useRef(null);
     const Max_Length = 50;
     function handleClick() {
         root.style.setProperty('--overlay-notice-board-height', '60%');
         root.style.setProperty('--overlay-notice-board-width', '98%');
         setShowLine(false);
+        setTimeout(() => setIsBoardExpand(true), 500);
     }
 
     function handleMouseLeave() {
@@ -2075,6 +2077,7 @@ function NoticeBoard({ currentView, notices, publicMsgs, setPublicMsgs, socket, 
         root.style.setProperty('--overlay-notice-board-height', '2rem');
         root.style.setProperty('--overlay-notice-board-width', '52%');
         setShowLine(true);
+        setTimeout(() => setIsBoardExpand(false), 500);
     };
 
     const handleOptionClick = (option) => {
@@ -2173,11 +2176,26 @@ function NoticeBoard({ currentView, notices, publicMsgs, setPublicMsgs, socket, 
         }
     }, []);
 
+    useEffect(() => {
+        const handleClickOutside = (event) => {
+            const overlayNoticeBoard = document.querySelector('.overlay-notice-board');
+            if (overlayNoticeBoard && isBoardExpand && !overlayNoticeBoard.contains(event.target)) {
+                handleMouseLeave();
+            }
+        };
+        document.addEventListener('click', handleClickOutside);
+
+        return () => {
+            document.removeEventListener('click', handleClickOutside);
+        };
+    }, [isBoardExpand]);
+
     return (
         <>
             {currentView === View.Menu &&
                 (<div className="overlay-notice-board"
-                    onMouseLeave={handleMouseLeave}>
+                    onMouseLeave={handleMouseLeave}
+                >
                     {showLine ?
                         (<>
                             {<div className='outside-text'>{currentOutsideText.message}</div>}

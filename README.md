@@ -22,7 +22,7 @@ Play Now: http://47.97.186.50
 
 1. Version 0.1: Added Sword, Shield, Bow, Potion, Bomb, Flower, and Ice Magic props, along with sound effects, undo functionality, and other regular features. ——2024/1/26
 2. Version 0.2: Add online multiplayer functionality.——2024/2/15
-3. Version 0.3: Added AI mode, added text chat and video call functionality.
+3. Version 0.3: Added AI mode, added text chat and video call functionality.——2024/3/5
 
 ### Preparatory Stage
 Make sure you have installed **Node.js** and **npm**
