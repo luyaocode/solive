@@ -780,9 +780,9 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
         socket.emit('matchRoom', { deviceType, boardWidth, boardHeight, avatarIndex, locationData });
     }
 
-    function enterRoom(roomId, nickName) {
+    function enterRoom(roomId, nickName, shareRoom) {
         setStartModalOpen(true);
-        sendMessage(roomId, nickName);
+        sendMessage(roomId, nickName, shareRoom);
         setItemsLoading(true);
         setGameMode(GameMode.MODE_ROOM);
     }
@@ -794,9 +794,9 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
         socket.emit('login', { account, passwd });
     }
 
-    function sendMessage(roomId, nickName) {
+    function sendMessage(roomId, nickName, shareRoom) {
         // 向服务器发送加入房间的请求，附带房间 ID 和昵称
-        socket.emit('joinRoom', { roomId, nickName, deviceType, boardWidth, boardHeight });
+        socket.emit('joinRoom', { roomId, nickName, deviceType, boardWidth, boardHeight, locationData, shareRoom });
         setNickName(nickName);
         setRoomId(roomId);
     }
@@ -1100,14 +1100,30 @@ function Modal({ modalInfo, setModalOpen, timeDelay = 1000, afterDelay }) {
     );
 }
 
+function Switch({ isOn, setIsOn, onInfo, offInfo }) {
+
+    const toggleSwitch = () => {
+        setIsOn(prev => !prev);
+    };
+
+    return (
+        <div className={`switch ${isOn ? 'on' : 'off'}`} onClick={toggleSwitch}>
+            <div className="switch-toggle"></div>
+            <span className="switch-label">{isOn ? onInfo : offInfo}</span>
+        </div>
+    );
+}
+
 function EnterRoomModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
+    const [shareRoom, setShareRoom] = useState(true);
+
     function closeModal() {
         OnCancelBtnClick();
     }
 
     function onFinish(values) {
         const { roomId, nickName } = values;
-        onOkBtnClick(roomId, nickName);
+        onOkBtnClick(roomId, nickName, shareRoom);
     }
     return (
         <div className="modal-overlay">
@@ -1140,6 +1156,8 @@ function EnterRoomModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
 
                     <Form.Item wrapperCol={{ span: 24 }} style={{ textAlign: 'right' }}>
                         <Space size={10}>
+                            <Switch isOn={shareRoom} setIsOn={setShareRoom}
+                                onInfo='公开房间号' offInfo='隐藏房间号' />
                             <Button type="primary" htmlType="submit">
                                 确定
                             </Button>
@@ -2164,7 +2182,7 @@ function NoticeBoard({ currentView, notices, publicMsgs, setPublicMsgs, socket, 
             nt = '刚刚，' + socketId + '开始了匹配';
         }
         else if (notice.type === 'createRoom') {
-            nt = '刚刚，' + socketId + '【 ' + notice.nickName + ' 】' + '创建了房间【 ' + notice.roomId + ' 】';
+            nt = '刚刚，' + socketId + '【' + notice.nickName + '】' + '创建了房间【' + notice.roomId + '】';
         }
         return nt;
     }
