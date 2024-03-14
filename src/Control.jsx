@@ -1478,11 +1478,19 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
         }
     }
 
-    const stopShareScreen = () => {
+    // 停止分享本地屏幕
+    const notifyShareScreenStopped = () => {
         stopMediaTracks(localScreenStream);
         if (shareScreenConnRef.current && shareScreenConnRef.current.peer) {
-            shareScreenConnRef.current.peer.destroy();
+            // shareScreenConnRef.current.peer.destroy();
         }
+        if (another) {
+            socket.emit("shareScreenStopped", { to: another });
+        }
+    };
+
+    // 使对方停止分享屏幕
+    const stopAnotherScreenSharing = () => {
         if (another) {
             socket.emit("stopShareScreen", { to: another });
         }
@@ -1490,7 +1498,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
 
     useEffect(() => {
         if (!isShareScreen) {
-            stopShareScreen();
+            notifyShareScreenStopped();
         }
         else if (isShareScreen && shareScreenVideo.current && !shareScreenVideo.current.srcObject) {
             getDisplayMediaStream()
@@ -1652,13 +1660,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                     }
                 });
 
-                socket.on("callAccepted", (signal) => {
+                socket.on("callAccepted", (data) => {
                     setCallAccepted(true);
                     if (!peer.destroyed) {
-                        peer.signal(signal);
+                        peer.signal(data.signal);
                     }
                     setCalling(false);
                     setAnother(idToCall);
+                    setAnotherName(data.name);
                 });
 
                 socket.on("changeTrackAgreed", (signal) => {
@@ -1669,7 +1678,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
             } // 主叫方
             else {
                 const handleAnswerSignal = (data) => {
-                    socket.emit("acceptCall", { signal: data, to: caller });
+                    socket.emit("acceptCall", { signal: data, to: caller, name: name });
                     setCallAcceptedSignalSend(true);
                 }
                 peer.on("signal", handleAnswerSignal);
@@ -1727,12 +1736,15 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                         setRemoteScreenStream(stream);
                     }
                 });
-
-                socket.on("shareScreenStopped", () => {
-                    setIsReceiveShareScreen(false);
-                    shareScreenConnRef.current.peer.destroy();
-                });
             }
+            socket.on("shareScreenStopped", () => {
+                setIsReceiveShareScreen(false);
+                // shareScreenConnRef.current.peer.destroy();
+            });
+
+            socket.on("stopShareScreen", () => {
+                setIsShareScreen(false);
+            });
         }
     }, [shareScreenConnRef.current]);
 
@@ -1945,6 +1957,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                             {!hasLocalVideoTrack && hasLocalAudioTrack && (
                                 <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
                             )}
+                            <TextOverlay
+                                position="top-left"
+                                content={name}
+                            />
                         </div>
                         {callAccepted && !callEnded ?
                             <div className="video">
@@ -1955,17 +1971,29 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                                 {!hasRemoteVideoTrack && hasRemoteAudioTrack && (
                                     <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
                                 )}
+                                <TextOverlay
+                                    position="top-left"
+                                    content={anotherName}
+                                />
                             </div>
                             : null
                         }
                         {isShareScreen &&
                             <div className='video'>
                                 <video ref={shareScreenVideo} playsInline muted controls autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }} />
+                                <TextOverlay
+                                    position="top-left"
+                                    content={name + '的屏幕'}
+                                />
                             </div>
                         }
                         {isReceiveShareScreen &&
                             <div className='video'>
                                 <video ref={remoteShareScreenVideo} playsInline controls autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }} />
+                                <TextOverlay
+                                    position="top-left"
+                                    content={anotherName + '的屏幕'}
+                                />
                             </div>
                         }
                     </div>
@@ -2038,7 +2066,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                         </div>
                         <div className="call-button">
                             {callAccepted && !callEnded ? (
-                                <Button variant="contained" color="secondary" onClick={leaveCall} style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
+                                <Button variant="contained" color="secondary" onClick={() => {
+                                    leaveCall();
+                                    setIsShareScreen(false);
+                                    stopAnotherScreenSharing();
+                                }} style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
                                     挂断
                                 </Button>
                             ) : (
@@ -2098,6 +2130,39 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
             </div>
         </>
     )
+}
+
+function TextOverlay({ position, content }) {
+    // 根据位置设置文本的定位样式
+    const getPositionStyle = () => {
+        switch (position) {
+            case 'top-left':
+                return { top: 0, left: 0 };
+            case 'top-right':
+                return { top: 0, right: 0 };
+            case 'bottom-left':
+                return { bottom: 0, left: 0 };
+            case 'bottom-right':
+                return { bottom: 0, right: 0 };
+            default:
+                return { top: 0, left: 0 };
+        }
+    };
+
+    return (
+        <div
+            style={{
+                position: 'absolute',
+                padding: '10px',
+                color: 'white',
+                backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                fontSize: '12px',
+                ...getPositionStyle(), // 应用位置样式
+            }}
+        >
+            {content}
+        </div>
+    );
 }
 
 function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice }) {
