@@ -78,7 +78,9 @@ export const VideoIcon = '/picture/svg/VideoIcon.svg';
 export const VideoIconDisabled = '/picture/svg/VideoIconDisabled.svg';
 export const NoVideoIcon = '/picture/svg/NoVideo.svg';
 export const SpeakerIcon = '/picture/svg/SpeakerIcon.svg';
-export const ShareIcon = '/picture/svg/ShareIcon.svg';
+export const ShareIcon = '/picture/svg/ShareIcon.svg'; // share page
+export const ShareScreenIcon = '/picture/svg/ShareScreenIcon.svg';
+export const StopShareScreenIcon = '/picture/svg/StopShareScreenIcon.svg';
 
 export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
 export const BGM2 = '/audio/bgm/after_the_rain.mp3';

@@ -21,6 +21,7 @@ import {
     AudioIcon, AudioIconDisabled,
     VideoIcon, VideoIconDisabled,
     NoVideoIcon, SpeakerIcon, ShareIcon,
+    ShareScreenIcon, StopShareScreenIcon,
     BGM1, BGM2,
     DeviceType,
     root,
@@ -1037,20 +1038,22 @@ function LoginModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
     );
 }
 
-function ConfirmModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
+function ConfirmModal({ modalInfo, onOkBtnClick, OnCancelBtnClick, noCancelBtn }) {
     function closeModal() {
         OnCancelBtnClick();
     }
     return (
         <div className="modal-overlay">
             <div className="modal">
-                <span className="close-button" onClick={closeModal}>
-                    &times;
-                </span>
+                {!noCancelBtn &&
+                    <span className="close-button" onClick={closeModal}>
+                        &times;
+                    </span>}
                 <p>{modalInfo}</p>
                 <div className='button-confirm-container'>
                     <Button onClick={onOkBtnClick}>确定</Button>
-                    <Button onClick={OnCancelBtnClick}>取消</Button>
+                    {!noCancelBtn &&
+                        <Button onClick={OnCancelBtnClick}>取消</Button>}
                 </div>
 
             </div>
@@ -1381,7 +1384,9 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, socket }) {
 function VideoChat({ sid, deviceType, socket, returnMenuView }) {
     const [me, setMe] = useState("");               // 本地socketId
     const [localStream, setLocalStream] = useState();
+    const [localScreenStream, setLocalScreenStream] = useState();
     const [remoteStream, setRemoteStream] = useState();
+    const [remoteScreenStream, setRemoteScreenStream] = useState();
     const [calling, setCalling] = useState(false);
     const [receivingCall, setReceivingCall] = useState(false);
     const [caller, setCaller] = useState("");       // 拨打过来的socketId
@@ -1390,16 +1395,20 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
     const [callAcceptedSignalSend, setCallAcceptedSignalSend] = useState(false); // 接受信号送出
     const [callRejected, setCallRejected] = useState(false);
     const [idToCall, setIdToCall] = useState("");   // 要拨打的socketId
+    const [isIdToCallReadOnly, setIsIdToCallReadOnly] = useState(false);
     const [toCallIsBusy, setToCallIsBusy] = useState(false); // 拨打的用户通话中
     const [callEnded, setCallEnded] = useState(false);
     const [name, setName] = useState("");   // 我的昵称
+    const [isNameReadOnly, setIsNameReadOnly] = useState(false);
     const [anotherName, setAnotherName] = useState(""); // 对方昵称
     const [another, setAnother] = useState();       // 当前通话的socketId
     const [noResponse, setNoResponse] = useState(false);
     const [confirmLeave, setConfirmLeave] = useState(false);
+    const [prepareCallModal, setPrepareCallModal] = useState(false);
 
     const [videoEnabled, setVideoEnabled] = useState(false);
     const [audioEnabled, setAudioEnabled] = useState(false);
+    const [screenAudioEnabled, setScreenAudioEnabled] = useState(true); // display media audio
     const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
     const [selectedVideoDevice, setSelectedVideoDevice] = useState('');
 
@@ -1408,15 +1417,23 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
     const [hasLocalAudioTrack, setHasLocalAudioTrack] = useState(true);
     const [hasRemoteAudioTrack, setHasRemoteAudioTrack] = useState(true);
 
+    const [isShareScreen, setIsShareScreen] = useState(false);
+    const [isReceiveShareScreen, setIsReceiveShareScreen] = useState(false);
+
     const myVideo = useRef();
     const userVideo = useRef();
+    const shareScreenVideo = useRef();
+    const remoteShareScreenVideo = useRef();
     const connectionRef = useRef();
+    const shareScreenConnRef = useRef();
 
     useEffect(() => {
         if (sid) {
             setIdToCall(sid);
             setName('大魔王');
-            setTimeout(() => callUser(sid), 1000);
+            setIsIdToCallReadOnly(true);
+            setIsNameReadOnly(true);
+            setPrepareCallModal(true);
         }
     }, [])
 
@@ -1443,15 +1460,63 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
             });
             return stream;
         } catch (error) {
-            // console.log('未打开摄像头和麦克风');
+            console.log('未打开摄像头和麦克风');
         }
     }
 
     // 获取屏幕共享流
+    async function getDisplayMediaStream() {
+        try {
+            // 请求用户选择屏幕或应用程序窗口
+            const stream = await navigator.mediaDevices.getDisplayMedia({
+                video: true,
+                audio: screenAudioEnabled
+            });
+            return stream;
+        } catch (error) {
+            console.error('Error accessing screen:', error);
+        }
+    }
 
+    const stopShareScreen = () => {
+        stopMediaTracks(localScreenStream);
+        if (shareScreenConnRef.current && shareScreenConnRef.current.peer) {
+            shareScreenConnRef.current.peer.destroy();
+        }
+        if (another) {
+            socket.emit("stopShareScreen", { to: another });
+        }
+    };
+
+    useEffect(() => {
+        if (!isShareScreen) {
+            stopShareScreen();
+        }
+        else if (isShareScreen && shareScreenVideo.current && !shareScreenVideo.current.srcObject) {
+            getDisplayMediaStream()
+                .then(stream => {
+                    if (stream) {
+                        setLocalScreenStream(stream);
+                        shareScreenVideo.current.srcObject = stream;
+                    }
+                    shareScreen(stream, another);
+                });
+        }
+    }, [isShareScreen]);
+
+    const stopMediaTracks = (stream) => {
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.stop();
+            });
+        }
+    };
 
     // 更新轨道
     useEffect(() => {
+        if (!videoEnabled) {
+            stopMediaTracks(localStream);
+        }
         getUserMediaStream()
             .then(stream => {
                 if (connectionRef.current) {
@@ -1521,6 +1586,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
             socket.on("nomedia", () => {
                 setHasRemoteVideoTrack(false);
                 setHasRemoteAudioTrack(false);
+            });
+
+            socket.on("shareScreen", (data) => {
+                setIsReceiveShareScreen(true);
+                acceptShareScreen(data.signal);
             });
         }
     }, [socket, myVideo]);
@@ -1620,6 +1690,53 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
     }, [connectionRef.current]);
 
     useEffect(() => {
+        if (shareScreenConnRef.current) {
+            const peer = shareScreenConnRef.current.peer;
+            if (shareScreenConnRef.current.isSharer) {
+                peer.on("signal", (data) => {
+                    if (shareScreenConnRef.current.idToShare) {
+                        socket.emit("shareScreen", {
+                            idToShare: shareScreenConnRef.current.idToShare,
+                            from: socket.id,
+                            signalData: data,
+                        });
+                    }
+                });
+                // 接收到流（stream）时触发
+                peer.on("stream", (stream) => {
+                    if (remoteShareScreenVideo.current) {
+                        remoteShareScreenVideo.current.srcObject = stream;
+                        setRemoteStream(stream);
+                    }
+                });
+
+                socket.on("shareScreenAccepted", (signal) => {
+                    if (!peer.destroyed) {
+                        peer.signal(signal);
+                    }
+                });
+            }
+            else {
+                const handleAnswerSignal = (data) => {
+                    socket.emit("acceptShareScreen", { signal: data, to: another });
+                }
+                peer.on("signal", handleAnswerSignal);
+                peer.on("stream", (stream) => {
+                    if (remoteShareScreenVideo.current) {
+                        remoteShareScreenVideo.current.srcObject = stream;
+                        setRemoteScreenStream(stream);
+                    }
+                });
+
+                socket.on("shareScreenStopped", () => {
+                    setIsReceiveShareScreen(false);
+                    shareScreenConnRef.current.peer.destroy();
+                });
+            }
+        }
+    }, [shareScreenConnRef.current]);
+
+    useEffect(() => {
         const handleCallUser = (data) => {
             if (callAccepted) {
                 if (another === data.from) {
@@ -1678,6 +1795,24 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
         console.log('---------------');
         return trackCount;
     }
+
+    const shareScreen = (stream, id) => {
+        const peer = createCallPeer(stream);
+        shareScreenConnRef.current = {
+            peer: peer,
+            isSharer: true,
+            idToShare: id,
+        }
+    }
+
+    const acceptShareScreen = (signal) => {
+        const peer = createAnswerPeer();
+        peer.signal(signal);
+        shareScreenConnRef.current = {
+            peer: peer,
+            isSharer: false
+        };
+    };
 
     const createCallPeer = (stream) => {
         const peer = new Peer({
@@ -1802,12 +1937,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                 }
                 <div className="container">
                     <div className="video-container">
-                        {/* <div className="video">
-                            {<video playsInline muted ref={myVideo} autoPlay style={{ width: "400px" }} />}
-                        </div> */}
                         <div className='video'>
-                            <video ref={myVideo} playsInline muted controls={hasLocalVideoTrack} autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}>
-                            </video>
+                            <video ref={myVideo} playsInline muted controls={hasLocalVideoTrack} autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }} />
                             {!hasLocalVideoTrack && !hasLocalAudioTrack && (
                                 <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
                             )}
@@ -1817,8 +1948,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                         </div>
                         {callAccepted && !callEnded ?
                             <div className="video">
-                                <video ref={userVideo} controls={hasRemoteVideoTrack} autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }} >
-                                </video>
+                                <video ref={userVideo} playsInline controls={hasRemoteVideoTrack} autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }} />
                                 {!hasRemoteVideoTrack && !hasRemoteAudioTrack && (
                                     <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
                                 )}
@@ -1828,11 +1958,22 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                             </div>
                             : null
                         }
+                        {isShareScreen &&
+                            <div className='video'>
+                                <video ref={shareScreenVideo} playsInline muted controls autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }} />
+                            </div>
+                        }
+                        {isReceiveShareScreen &&
+                            <div className='video'>
+                                <video ref={remoteShareScreenVideo} playsInline controls autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }} />
+                            </div>
+                        }
                     </div>
                     <div className="myId">
                         {!callAccepted &&
                             <>
                                 <textarea
+                                    readOnly={isNameReadOnly}
                                     placeholder="我的昵称"
                                     id="filled-basic"
                                     label="Name"
@@ -1860,6 +2001,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                                     }}
                                 />
                                 <textarea
+                                    readOnly={isIdToCallReadOnly}
                                     placeholder="对方号码"
                                     id="filled-basic"
                                     label="ID to call"
@@ -1889,6 +2031,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                             </>}
                         <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled} setSelectedDevice={setSelectedAudioDevice} />
                         <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled} setSelectedDevice={setSelectedVideoDevice} />
+                        <div className="video-device-selector-container">
+                            <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
+                                setIsShareScreen(prev => !prev);
+                            }} />
+                        </div>
                         <div className="call-button">
                             {callAccepted && !callEnded ? (
                                 <Button variant="contained" color="secondary" onClick={leaveCall} style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
@@ -1897,7 +2044,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                             ) : (
                                 <>
                                     <CopyToClipboard text={me} style={{ marginRight: '10px' }}>
-                                        <Button variant="contained" color="primary">
+                                        <Button variant="contained" color="primary" onClick={() => showNotification('ID已复制到剪切板', 2000, 'white')}>
                                             复制我的ID
                                         </Button>
                                     </CopyToClipboard>
@@ -1940,6 +2087,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                         }} OnCancelBtnClick={() => setConfirmLeave(false)} />}
                     {toCallIsBusy &&
                         <Modal modalInfo='用户忙' setModalOpen={setToCallIsBusy} />}
+                    {prepareCallModal &&
+                        <ConfirmModal modalInfo="将要发起视频通话，是否继续？" onOkBtnClick={() => {
+                            setPrepareCallModal(false);
+                            setTimeout(() => callUser(sid), 1000);
+                        }}
+                            noCancelBtn={true} />
+                    }
                 </div >
             </div>
         </>
