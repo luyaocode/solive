@@ -2160,7 +2160,15 @@ function NoticeBoard({ currentView, notices, publicMsgs, setPublicMsgs, socket, 
     };
 
     const formatLoc = (locationData) => {
-        return locationData ? (locationData.country ? (locationData.city ? (locationData.country + ' ' + locationData.city) : locationData.country) : '未知地区') : '获取地理信息失败';
+        return locationData
+            ? locationData.country
+                ? locationData.region
+                    ? locationData.city
+                        ? locationData.country + ' ' + locationData.region + ' ' + locationData.city
+                        : locationData.country + ' ' + locationData.region + ' 未知城市'
+                    : locationData.country + ' 未知地区'
+                : '未知国家'
+            : '获取地理信息失败';
     }
     const formatID = (id) => {
         if (!id) {

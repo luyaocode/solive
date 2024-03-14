@@ -166,6 +166,7 @@ function ChaosGomoku() {
             const response = await axios.get(api);
             setLocationData({
                 country: response.data.country,
+                region: response.data.region,
                 city: response.data.city
             });
         } catch (error) {
