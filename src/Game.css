@@ -883,6 +883,7 @@
 .menu-header h1 span[class^="letter-"] {
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
+  opacity: 0.2;
 }
 
 .menu-header h1 span[class^="letter-"].letter-0 {
@@ -954,6 +955,7 @@
 .menu-header2 h1 span[class^="letter-"] {
   animation-timing-function: ease-in-out;
   animation-iteration-count: infinite;
+  color: rgb(239, 219, 219);
 }
 
 .menu-header2 h1 span[class^="letter-"].letter-0 {
@@ -999,7 +1001,6 @@
   position: relative;
   /* 添加相对定位 */
   overflow: hidden;
-  /* 添加溢出隐藏 */
 }
 
 .menu-item::before {
