@@ -163,26 +163,28 @@ function GameLog({ isRestart, gameLog, setGameLog, roomId, nickName, setChatPane
 
     return (
         <>
-            <Button
-                onTouchStart={handleTouchStart}
-                onTouchEnd={handleTouchEnd}
-                onTouchMove={handleTouchMove}
-                onMouseDown={startPress}
-                onMouseUp={cancelPress}
-                onMouseLeave={cancelPress}
-                className='gamelog-button'
-                onClick={handleButtonClick}>{gameLog[gameLog.length - 1][0]}</Button>
-            <span>房间号: {roomId}</span><span className='span-blank'></span>
-            <span>昵称: {nickName}</span>
-            {isModalOpen && (
-                <div className="gamelog-modal-overlay" onClick={handleCloseModalOutside}>
-                    <div className="gamelog-modal">
-                        <span className="gamelog-modal-close-btn" onClick={closeModal}>X</span>
-                        <h4>本局记录：</h4>
-                        {allInfo}
+            <div className='gamelog-container'>
+                <Button
+                    onTouchStart={handleTouchStart}
+                    onTouchEnd={handleTouchEnd}
+                    onTouchMove={handleTouchMove}
+                    onMouseDown={startPress}
+                    onMouseUp={cancelPress}
+                    onMouseLeave={cancelPress}
+                    className='gamelog-button'
+                    onClick={handleButtonClick}>{gameLog[gameLog.length - 1][0]}</Button>
+                <span>房间号: {roomId}</span><span className='span-blank'></span>
+                <span>昵称: {nickName}</span>
+                {isModalOpen && (
+                    <div className="gamelog-modal-overlay" onClick={handleCloseModalOutside}>
+                        <div className="gamelog-modal">
+                            <span className="gamelog-modal-close-btn" onClick={closeModal}>X</span>
+                            <h4>本局记录：</h4>
+                            {allInfo}
+                        </div>
                     </div>
-                </div>
-            )}
+                )}
+            </div>
         </>
     );
 }
@@ -2756,8 +2758,37 @@ function BubbleScene({ headCount, onBubbleClick }) {
     return <div style={{ borderRadius: '50%', overflow: 'hidden' }} ref={mount} />;
 };
 
+function AudioIconComponent({ audioEnabled, setAudioEnabled, isAnother }) {
+    const [audioIcon, setAudioIcon] = useState(AudioIcon);
+
+    useEffect(() => {
+        if (audioEnabled) {
+            setAudioIcon(AudioIcon);
+        }
+        else {
+            setAudioIcon(AudioIconDisabled);
+        }
+    }, [audioEnabled]);
+
+    return (
+        <>
+            {
+                < div className='audio-icon-container'>
+                    <img src={audioIcon} alt="Audio" className={`audio-icon${isAnother ? '-another' : ''}`}
+                        onClick={() => {
+                            if (!isAnother) {
+                                setAudioEnabled(prev => !prev)
+                            }
+                        }} />
+                </div >
+            }
+        </>
+    );
+}
+
 export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
     Menu, ConfirmModal, InfoModal, Modal, SettingsButton, LoginButton, LoginModal,
-    TableViewer, PlayerAvatar, ChatPanel, VideoChat, OverlayArrow, NoticeBoard
+    TableViewer, PlayerAvatar, ChatPanel, VideoChat, OverlayArrow, NoticeBoard,
+    AudioIconComponent
 };

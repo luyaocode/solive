@@ -7,7 +7,7 @@ import {
     TableViewer,
     ChatPanel,
     VideoChat,
-    OverlayArrow, NoticeBoard
+    OverlayArrow, NoticeBoard, AudioIconComponent
 } from './Control.jsx'
 import Game from './Game.js'
 import {
