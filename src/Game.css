@@ -995,6 +995,11 @@
   border-radius: 10px;
   box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
   transition: transform 0.3s ease;
+
+  position: relative;
+  /* 添加相对定位 */
+  overflow: hidden;
+  /* 添加溢出隐藏 */
 }
 
 .menu-item::before {

@@ -2197,7 +2197,6 @@ function InviteVideoChatModal({ closeModal, me, name, socket, inviteVideoChatMod
                     <CopyToClipboard text={url} style={{ marginRight: '10px' }}>
                         <Button variant="contained" color="primary" onClick={() => {
                             showNotification('链接已复制到剪切板', 2000, 'white');
-                            setTimeout(closeModal, 1000);
                         }
                         }>
                             复制链接
@@ -2211,7 +2210,6 @@ function InviteVideoChatModal({ closeModal, me, name, socket, inviteVideoChatMod
                     }}>
                         <Button variant="contained" onClick={() => {
                             showNotification('全部信息已复制到剪切板', 2000, 'white');
-                            setTimeout(closeModal, 1000);
                         }}>
                             复制完整信息
                         </Button>
@@ -2219,7 +2217,6 @@ function InviteVideoChatModal({ closeModal, me, name, socket, inviteVideoChatMod
                     <CopyToClipboard text={me} style={{ marginRight: '10px' }}>
                         <Button variant="contained" color="primary" onClick={() => {
                             showNotification('ID已复制到剪切板', 2000, 'white');
-                            setTimeout(closeModal, 1000);
                         }
                         }>
                             复制我的ID
