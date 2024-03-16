@@ -1079,12 +1079,30 @@
 
 /* 菜单footer */
 .menu-footer {
-  border-top: 1px solid #ccc;
+  position: fixed;
+  bottom: 10px;
+  left: 0;
+  width: 100%;
   background-color: #ffffff, transparent;
   color: #5d5656;
   padding: 20px;
   text-align: center;
   /* 使用百分比宽度 */
+}
+
+.menu-footer::before {
+  content: '';
+  position: absolute;
+  top: -1px;
+  /* 边框位置 */
+  left: 50%;
+  /* 边框水平居中 */
+  width: 80%;
+  /* 边框宽度 */
+  border-top: 1px solid #ccc;
+  /* 边框样式 */
+  transform: translateX(-50%);
+  /* 水平居中 */
 }
 
 .record-number {
@@ -1496,6 +1514,8 @@
   /* Firefox */
   -ms-overflow-style: none;
   /* IE和Edge */
+  display: flex;
+  flex-direction: column;
 }
 
 .video-chat-view::-webkit-scrollbar {
@@ -1513,10 +1533,12 @@
   /* 垂直居中 */
   gap: 20px;
   /* 设置组件之间的间距 */
-  margin-top: 20px;
+  margin-top: 10px;
+  min-height: 90vh;
 }
 
 .myId {
+  margin-top: auto;
   border-radius: 5px;
   background: #c9d6ff;
   /* fallback for old browsers */
@@ -1672,7 +1694,7 @@
   bottom: 0;
   left: 0;
   width: 100%;
-  height: 1rem;
+  height: 2rem;
   max-height: 2rem;
   /* 遮罩层的高度，可以根据需要调整 */
   background-color: transparent;
@@ -2086,4 +2108,40 @@
   margin-left: 10px;
   margin-right: 10px;
   word-wrap: break-word;
+}
+
+.return-menu-button {
+  display: inline-block;
+  padding: 5px 10px;
+  font-size: 16px;
+  font-weight: bold;
+  text-align: center;
+  text-decoration: none;
+  color: #3a3e39;
+  background-color: #7d7676;
+  /* 按钮背景色 */
+  border: none;
+  border-radius: 5px;
+  cursor: pointer;
+  box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
+  /* 添加轻微阴影 */
+  transition: background-color 0.3s, color 0.3s;
+  /* 添加悬停效果过渡 */
+  position: fixed;
+  right: 0;
+  top: 0;
+}
+
+.return-menu-button[disabled] {
+  background-color: #dddddd;
+  /* 设置禁用状态背景色为灰色 */
+  color: #999999;
+  /* 设置禁用状态文字颜色为灰色 */
+  cursor: not-allowed;
+  /* 设置禁用状态鼠标样式为禁止 */
+}
+
+/* 悬停效果 */
+.return-menu-button:not([disabled]):hover {
+  background-color: #e28271;
 }

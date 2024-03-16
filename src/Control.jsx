@@ -1968,7 +1968,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
             <div className='video-chat-view'>
                 <h1 style={{ textAlign: "center", color: '#fff' }}>视频通话</h1>
                 {!sid &&
-                    <button className="button-normal" type="primary" onClick={() => {
+                    <button className="return-menu-button" onClick={() => {
                         if (callAccepted) {
                             setConfirmLeave(true);
                         }
@@ -1976,7 +1976,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                             returnMenuView();
                         }
                     }}>
-                        &times; 返回主页
+                        返回主页
                     </button>
                 }
                 <div className="container">
