@@ -1545,11 +1545,10 @@
   gap: 20px;
   /* 设置组件之间的间距 */
   margin-top: 10px;
-  min-height: 90vh;
+  /* min-height: 90vh; */
 }
 
 .myId {
-  margin-top: auto;
   border-radius: 5px;
   background: #c9d6ff;
   /* fallback for old browsers */
