@@ -811,10 +811,14 @@
 
 /* 菜单 */
 .menu-container {
-  max-width: 1200px;
   margin: 0 auto;
   padding: 20px;
   text-align: center;
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto;
+  min-height: 100%;
+  max-width: 100%;
 }
 
 .menu-header {
@@ -1079,7 +1083,8 @@
 
 /* 菜单footer */
 .menu-footer {
-  position: fixed;
+  /* position: fixed; */
+  margin-top: auto;
   bottom: 10px;
   left: 0;
   width: 100%;
