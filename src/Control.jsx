@@ -1421,6 +1421,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
     const [isShareScreen, setIsShareScreen] = useState(false);
     const [isReceiveShareScreen, setIsReceiveShareScreen] = useState(false);
     const [inviteVideoChatModalOpen, setInviteVideoChatModalOpen] = useState(false);
+    const [strNowDate, setStrNowDate] = useState(); // current time formatted from server
 
     const myVideo = useRef();
     const userVideo = useRef();
@@ -1428,6 +1429,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
     const remoteShareScreenVideo = useRef();
     const connectionRef = useRef();
     const shareScreenConnRef = useRef();
+
+    useEffect(() => {
+        if (socket) {
+            socket.on("formatDateGot", (data) => {
+                setStrNowDate(data);
+            });
+        }
+    }, [socket]);
 
     useEffect(() => {
         if (another && isShareScreen && localScreenStream) {
@@ -2150,7 +2159,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                     }
                     {inviteVideoChatModalOpen &&
                         <InviteVideoChatModal closeModal={() => setInviteVideoChatModalOpen(false)}
-                            me={me} name={name} />
+                            me={me} name={name} socket={socket} inviteVideoChatModalOpen={inviteVideoChatModalOpen}
+                            strNowDate={strNowDate} />
                     }
                 </div >
             </div>
@@ -2158,10 +2168,17 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
     )
 }
 
-function InviteVideoChatModal({ closeModal, me, name }) {
+function InviteVideoChatModal({ closeModal, me, name, socket, inviteVideoChatModalOpen, strNowDate }) {
     const url = window.location.origin + '/call/' + me;
-    const date = formatDate(Date.now());
-    const inviteInfo = name + ' 邀请您进行视频通话，时间：' + date;
+    const text = '，点击链接直接通话：';
+
+    const inviteInfo = name + ' 邀请您进行视频通话，时间：' + strNowDate;
+
+    useEffect(() => {
+        if (inviteVideoChatModalOpen) {
+            socket.emit("getFormatDate");
+        }
+    }, [inviteVideoChatModalOpen]);
 
     return (
         <div className="modal-overlay">
@@ -2170,7 +2187,7 @@ function InviteVideoChatModal({ closeModal, me, name }) {
                     &times;
                 </span>
                 <p>{inviteInfo}</p>
-                <p>{'点击链接直接通话：'}</p><p style={{
+                <p>{text}</p><p style={{
                     color: 'blue',
                 }}>{url}</p>
                 <div className='button-confirm-container'>
@@ -2183,7 +2200,7 @@ function InviteVideoChatModal({ closeModal, me, name }) {
                             复制链接
                         </Button>
                     </CopyToClipboard>
-                    <CopyToClipboard text={inviteInfo} style={{
+                    <CopyToClipboard text={inviteInfo + text + url} style={{
                         marginRight: '10px',
                         fontWeight: 'bold',
                         backgroundColor: '#3b5eec',
