@@ -1916,7 +1916,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const createCallPeer = (stream) => {
         const peer = new Peer({
             initiator: true,
-            // trickle: false,
+            trickle: false,
             stream: stream
         });
         return peer;
@@ -1942,7 +1942,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const createAnswerPeer = (stream) => {
         const peer = new Peer({
             initiator: false,
-            // trickle: false,
+            trickle: false,
             stream: stream
         });
 
@@ -2195,7 +2195,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             <div className="modal-receive-call">
                                 <div className="caller">
                                     <h1 >{anotherName === '' ? '未知号码' : anotherName} 邀请视频通话...</h1>
-                                    <ButtonBox onOkBtnClick={acceptCall} OnCancelBtnClick={rejectCall}
+                                    <ButtonBox onOkBtnClick={() => acceptCall()} OnCancelBtnClick={rejectCall}
                                         okBtnInfo='接听' cancelBtnInfo='拒绝' />
                                 </div>
                             </div>
