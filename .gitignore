@@ -27,3 +27,4 @@ yarn-error.log*
 # other
 .vscode/
 !.gitignore
+deploy.sh
