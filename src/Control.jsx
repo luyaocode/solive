@@ -2416,12 +2416,17 @@ function TextOverlay({ position, content, audioEnabled }) {
 function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice, callAccepted }) {
     const [audioDevices, setAudioDevices] = useState([]);
     const [audioIcon, setAudioIcon] = useState(AudioIcon);
+    const [canToggleAudio, setCanToggleAudio] = useState(true);
 
     // 获取音频设备列表
     useEffect(() => {
         navigator.mediaDevices.enumerateDevices().then(function (devices) {
             const audioDevicesList = devices.filter(device => device.kind === 'audioinput');
             setAudioDevices(audioDevicesList);
+            if (audioDevicesList.length === 0) {
+                setAudioEnabled(false);
+                setCanToggleAudio(false);
+            }
         });
     }, []);
 
@@ -2443,6 +2448,9 @@ function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice,
 
     // 音频开关
     const toggleAudioOpen = () => {
+        if (!canToggleAudio) {
+            return;
+        }
         if (audioEnabled) {
             if (callAccepted) {
                 setAudioEnabled((prev) => !prev);
@@ -2468,12 +2476,17 @@ function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice,
 function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice }) {
     const [videoDevices, setVideoDevices] = useState([]);
     const [videoIcon, setVideoIcon] = useState(VideoIcon);
+    const [canToggleVideo, setCanToggleVideo] = useState(true);
 
     // 获取视频设备列表
     useEffect(() => {
         navigator.mediaDevices.enumerateDevices().then(function (devices) {
             const videoDevicesList = devices.filter(device => device.kind === 'videoinput');
             setVideoDevices(videoDevicesList);
+            if (videoDevicesList.length === 0) {
+                setVideoEnabled(false);
+                setCanToggleVideo(false);
+            }
         });
     }, []);
 
@@ -2495,6 +2508,9 @@ function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice 
 
     // 视频开关
     const toggleVideoOpen = () => {
+        if (!canToggleVideo) {
+            return;
+        }
         setVideoEnabled((prev) => !prev);
     };
 
