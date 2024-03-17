@@ -741,7 +741,8 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton,
   VolumeControlButton, logAction, isRestart, lastClick, setLastClick,
   socket, pieceType, lastStep, gameMode, skipRound, isSkipRound,
-  ExitButton, SkipButton, avatarIndex, avatarIndexPB, setChatPanelOpen }) {
+  ExitButton, SkipButton, avatarIndex, avatarIndexPB, setChatPanelOpen,
+  setCompletelyReady }) {
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const [pieceClicked, setPieceClicked] = useState(false); // 落子但未使用道具
@@ -874,6 +875,10 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
       socket.emit('step', { i, j, currItem, nextItem });
     }
   }
+
+  useEffect(() => {
+    socket.emit('completelyReady');
+  }, []);
 
   useEffect(() => {
     if (lastStep.length === 0) {
@@ -1309,7 +1314,8 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   gameOver, setGameOver, isRestartRequestModalOpen, setRestartRequestModalOpen,
   restartResponseModalOpen, setRestartResponseModalOpen,
   isSkipRound, setRestartInSameRoom, isUndoRound,
-  setUndoRoundRequestModalOpen, avatarIndex, avatarIndexPB, setChatPanelOpen }) {
+  setUndoRoundRequestModalOpen, avatarIndex, avatarIndexPB, setChatPanelOpen,
+  setCompletelyReady }) {
 
   const [canSkipRound, setCanSkipRound] = useState(true);
   // 消息弹窗
@@ -1795,6 +1801,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
           socket={socket} pieceType={pieceType} lastStep={lastStep} gameMode={gameMode}
           skipRound={skipRound} isSkipRound={isSkipRound} ExitButton={ExitButton} SkipButton={SkipButton}
           avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB} setChatPanelOpen={setChatPanelOpen}
+          setCompletelyReady={setCompletelyReady}
         />
       </div>
       {isModalOpen && (

@@ -723,6 +723,7 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
     const [loginResultModalOpen, setLoginResultModalOpen] = useState(false);
+    const [confirmEnterRoomModalOpen, setConfirmEnterRoomModalOpen] = useState(false);
 
     useEffect(() => {
         if (gameInviteAccepted) {
@@ -751,12 +752,14 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
 
     useEffect(() => {
         if (rid && socket && deviceType && boardWidth !== 0 && boardHeight !== 0 && !enterRoomTried) {
-            setTimeout(() => {
-                enterRoom(rid, '大魔王');
-                setEnterRoomTried(true);
-            }, 1000);
+            setConfirmEnterRoomModalOpen(true);
         }
     }, [rid, socket, boardWidth, boardHeight]);
+
+    const enterRoomByUrl = () => {
+        enterRoom(rid, '大魔王');
+        setEnterRoomTried(true);
+    }
 
     function onButtonClick(mode) {
         if (mode === GameMode.MODE_ROOM) {
@@ -853,6 +856,17 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
                 OnCancelBtnClick={() => setLoginModalOpen(false)} />}
             {
                 loginResultModalOpen && <Modal modalInfo={isLoginSuccess === LoginStatus.OK ? '登录成功！' : '登录失败！'} setModalOpen={setLoginResultModalOpen} />
+            }
+            {
+                confirmEnterRoomModalOpen &&
+                <ConfirmModal modalInfo={'是否进入房间[' + rid + '] ？'}
+                    onOkBtnClick={() => {
+                        enterRoomByUrl();
+                        setConfirmEnterRoomModalOpen(false);
+                    }
+                    }
+                    noCancelBtn={true}
+                />
             }
         </div>
     );
@@ -1386,7 +1400,11 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, socket }) {
     );
 }
 
-function VideoChat({ sid, deviceType, socket, returnMenuView }) {
+function VideoChat({ sid, deviceType, socket, returnMenuView,
+    peerSocketId/* 游戏中对方的socke id*/,
+    pieceType,/*用于确定主动方 */
+    localAudioEnabled, setLocalAudioEnabled, peerAudioEnabled, setPeerAudioEnabled
+}) {
     const [me, setMe] = useState("");               // 本地socketId
     const [localStream, setLocalStream] = useState();
     const [localScreenStream, setLocalScreenStream] = useState();
@@ -1434,6 +1452,26 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
     const remoteShareScreenVideo = useRef();
     const connectionRef = useRef();
     const shareScreenConnRef = useRef();
+
+    useEffect(() => {
+        if (localAudioEnabled !== undefined) {
+            setAudioEnabled(localAudioEnabled);
+        }
+    }, [localAudioEnabled]);
+
+    useEffect(() => {
+        if (peerAudioEnabled !== undefined) {
+            setPeerAudioEnabled(hasRemoteAudioTrack);
+        }
+    }, [hasRemoteAudioTrack]);
+
+    useEffect(() => {
+        if (peerSocketId && pieceType === Piece_Type_Black) {
+            setIdToCall(peerSocketId);
+            setIsIdToCallReadOnly(true);
+            setTimeout(() => callUser(peerSocketId, true), 1000);
+        }
+    }, []);
 
     useEffect(() => {
         if (socket) {
@@ -1680,7 +1718,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                         userToCall: connectionRef.current.idToCall,
                         signalData: data,
                         from: me,
-                        name: name
+                        name: name,
+                        isInGame: connectionRef.current.isInGame
                     });
                     setCallerSignal(data);
                 });
@@ -1794,10 +1833,18 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                 } // 新用户打进来
             }
             else {
-                setReceivingCall(true);
-                setCaller(data.from);
-                setAnotherName(data.name);
-                setCallerSignal(data.signal);
+                if (data.isInGame) { // 游戏语音
+                    setCaller(data.from);
+                    setAnotherName(data.name);
+                    setCallerSignal(data.signal);
+                    setTimeout(() => acceptCall(data.signal, data.from), 1000);
+                }
+                else {
+                    setReceivingCall(true);
+                    setCaller(data.from);
+                    setAnotherName(data.name);
+                    setCallerSignal(data.signal);
+                }
             } // 处理初次连接
         }
 
@@ -1867,13 +1914,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
         return peer;
     }
 
-    const callUser = (id) => {
+    const callUser = (id, isInGame) => {
         setCalling(true);
         const peer = createCallPeer(localStream);
         connectionRef.current = {
             peer: peer,
             isCaller: true,
-            idToCall: id
+            idToCall: id,
+            isInGame: isInGame
         }
         setTimeout(() => {
             if (calling && !callAccepted) {
@@ -1893,16 +1941,22 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
         return peer;
     }
 
-    const acceptCall = () => {
+    const acceptCall = (signal, from) => {
         setReceivingCall(false);
         setCallAccepted(true);
         const peer = createAnswerPeer(localStream);
-        peer.signal(callerSignal);
+        if (signal) { // 游戏语音
+            peer.signal(signal);
+            setAnother(from);
+        }
+        else {
+            peer.signal(callerSignal);
+            setAnother(caller);
+        }
         connectionRef.current = {
             peer: peer,
             isCaller: false
         };
-        setAnother(caller);
     }
 
     const rejectCall = () => {
@@ -2138,8 +2192,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView }) {
                                 </div>
                             </div>
                         </div>}
-                    {calling &&
-                        <CallingModal isDisabled={sid} modalInfo={"正在呼叫 " + idToCall}
+                    {calling && !peerSocketId && /**仅游戏语音时取消弹窗 */
+                        < CallingModal isDisabled={sid} modalInfo={"正在呼叫 " + idToCall}
                             onClick={() => {
                                 setCalling(false);
                                 socket.emit("callCanceled", { to: idToCall });

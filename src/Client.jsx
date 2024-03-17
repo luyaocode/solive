@@ -19,7 +19,8 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setUndoRoundRequestModalOpen, setUndoRoundResponseModalOpen,
     setLoginSuccess,
     setClientIpsData, setGameInfoData, setStepInfoData, setAvatarIndex, setAvatarIndexPB,
-    setMessages, setReceiveInviteModalOpen, setPublicMsgs, setNotices, }) {
+    setMessages, setReceiveInviteModalOpen, setPublicMsgs, setNotices,
+    setPeerSocketId, setCompletelyReady }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -86,11 +87,12 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
                 console.log('Server[广播]:', '道具已经生成');
             });
 
-            socket.on('setRoomDeviceType', ({ roomDType, bWidth, bHeight }) => {
+            socket.on('setRoomDeviceType', ({ roomDType, bWidth, bHeight, data }) => {
                 setRoomDeviceType(roomDType);
                 setBoardWidth(bWidth);
                 setBoardHeight(bHeight);
                 setSynchronized(true);
+                setPeerSocketId(data.sid === socket.id ? data.asid : data.sid);
                 console.log('Server[广播]:', '调整棋盘完成，采用模式:' + roomDType + '， ' + bWidth + ' x ' + bHeight);
             });
 
@@ -148,6 +150,10 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
 
             socket.on('skipRound', () => {
                 setSkipRound(true);
+            });
+
+            socket.on('completelyReady', () => {
+                setCompletelyReady(true);
             });
 
             socket.on('undoRoundRequest', () => {

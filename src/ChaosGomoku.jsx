@@ -54,6 +54,8 @@ function ChaosGomoku() {
     const [roomDeviceType, setRoomDeviceType] = useState(DeviceType.UNKNOWN);
     const [allIsOk, setAllIsOk] = useState(false);
     const [synchronized, setSynchronized] = useState(false); // 和对方同步
+    const [completelyReady, setCompletelyReady] = useState(false); // 标志游戏双方是否完全准备好了
+    const [peerSocketId, setPeerSocketId] = useState(); // 游戏中对方socketId
     const [matched, setMatched] = useState(false); // 匹配是否成功
     const [joined, setJoined] = useState(false); // 进入房间是否成功
     const [isPlayerLeaveRoomModalOpen, setPlayerLeaveRoomModalOpen] = useState(false);
@@ -95,6 +97,10 @@ function ChaosGomoku() {
     const [messages, setMessages] = useState([]);
     const [chatPanelOpen, setChatPanelOpen] = useState(false);
     const [locationData, setLocationData] = useState(null);
+
+    // 语音通话
+    const [localAudioEnabled, setLocalAudioEnabled] = useState(false);
+    const [peerAudioEnabled, setPeerAudioEnabled] = useState(false);
 
     // 公告板
     const [notices, setNotices] = useState([]);
@@ -265,6 +271,7 @@ function ChaosGomoku() {
     useEffect(() => {
         if (gameMode === GameMode.MODE_NONE) {
             setRestartInSameRoom(false);
+            setPeerSocketId();
         }
         if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
             setPieceType(Piece_Type_Black);
@@ -273,6 +280,7 @@ function ChaosGomoku() {
             if (boardWidth !== 0 && boardHeight !== 0) {
                 setAllIsOk(true);
             }
+            setPeerSocketId();
         }
         // 清空消息
         setMessages([]);
@@ -370,7 +378,8 @@ function ChaosGomoku() {
                 setClientIpsData={setClientIpsData} setGameInfoData={setGameInfoData} setStepInfoData={setStepInfoData}
                 setAvatarIndex={setAvatarIndex} setAvatarIndexPB={setAvatarIndexPB}
                 setMessages={setMessages} setReceiveInviteModalOpen={setReceiveInviteModalOpen}
-                setPublicMsgs={setPublicMsgs} setNotices={setNotices}
+                setPublicMsgs={setPublicMsgs} setNotices={setNotices} setPeerSocketId={setPeerSocketId}
+                setCompletelyReady={setCompletelyReady}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
@@ -395,6 +404,21 @@ function ChaosGomoku() {
             }
             {gameMode !== GameMode.MODE_NONE && (
                 <>
+                    {completelyReady &&
+                        <>
+                            <AudioIconComponent audioEnabled={localAudioEnabled} setAudioEnabled={setLocalAudioEnabled} isAnother={false} />
+                            <AudioIconComponent audioEnabled={peerAudioEnabled} setAudioEnabled={setPeerAudioEnabled} isAnother={true} />
+                        </>
+                    }
+                    {
+                        peerSocketId &&
+                        <div className='audio-call'>
+                            <VideoChat deviceType={deviceType} socket={socket} returnMenuView={returnMenuView}
+                                peerSocketId={peerSocketId} pieceType={pieceType}
+                                localAudioEnabled={localAudioEnabled} setLocalAudioEnabled={setLocalAudioEnabled}
+                                peerAudioEnabled={peerAudioEnabled} setPeerAudioEnabled={setPeerAudioEnabled} />
+                        </div>
+                    }
                     <ItemManager pageLoaded={pageLoaded} isRestart={isRestart} timeDelay={timeDelay}
                         items={items} setItems={setItems} itemsLoaded={itemsLoaded} setItemsLoaded={setItemsLoaded}
                         seeds={seeds} gameMode={gameMode} />
@@ -417,6 +441,7 @@ function ChaosGomoku() {
                                 isUndoRound={isUndoRound}
                                 setUndoRoundRequestModalOpen={setUndoRoundRequestModalOpen}
                                 avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB} setChatPanelOpen={setChatPanelOpen}
+                                setCompletelyReady={setCompletelyReady}
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
                                 roomId={roomId} nickName={nickName} setChatPanelOpen={setChatPanelOpen}
