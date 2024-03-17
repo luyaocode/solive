@@ -99,7 +99,7 @@ function ChaosGomoku() {
     const [locationData, setLocationData] = useState(null);
 
     // 语音通话
-    const [localAudioEnabled, setLocalAudioEnabled] = useState(false);
+    const [localAudioEnabled, setLocalAudioEnabled] = useState(true);
     const [peerAudioEnabled, setPeerAudioEnabled] = useState(false);
 
     // 公告板
