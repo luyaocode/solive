@@ -1742,8 +1742,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     }, [callAcceptedSignalSend]);
 
-    const canvas = document.createElement('canvas'); // 创建画布元素
-    const ctx = canvas.getContext('2d'); // 获取画布上下文对象
+    // const canvas = document.createElement('canvas'); // 创建画布元素
+    // const ctx = canvas.getContext('2d'); // 获取画布上下文对象
     useEffect(() => {
         if (connectionRef.current) {
             const peer = connectionRef.current.peer;
