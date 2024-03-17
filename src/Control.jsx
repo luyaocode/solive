@@ -2155,9 +2155,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 {!hasRemoteVideoTrack && !hasRemoteAudioTrack && (
                                     <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
                                 )}
-                                {!hasRemoteVideoTrack && hasRemoteAudioTrack && (
+                                {/* {!hasRemoteVideoTrack && hasRemoteAudioTrack && (
                                     <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
-                                )}
+                                )} */}
                                 <TextOverlay
                                     position="top-left"
                                     content={anotherName}
