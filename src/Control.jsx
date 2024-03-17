@@ -1757,8 +1757,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             } // 主叫方
             else {
                 const handleAnswerSignal = (data) => {
-                    socket.emit("acceptCall", { signal: data, to: caller, name: name });
-                    setCallAcceptedSignalSend(true);
+                    if (data.type === 'answer') {
+                        socket.emit("acceptCall", { signal: data, to: caller, name: name });
+                        setCallAcceptedSignalSend(true);
+                    }
                 }
                 peer.on("signal", handleAnswerSignal);
                 peer.on("stream", (stream) => {
