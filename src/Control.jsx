@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { Button, Input, Form, Space, Radio, Table } from 'antd';
 import { CopyToClipboard } from "react-copy-to-clipboard"
 import Peer from "simple-peer"
+import wrtc from "wrtc"
 import QRCode from 'qrcode.react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
@@ -1453,6 +1454,24 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const connectionRef = useRef();
     const shareScreenConnRef = useRef();
 
+    const [peerConfig, setPeerConfig] = useState();
+
+    useEffect(() => {
+        const iceServers = [];
+        iceServers.push({ urls: 'stun:stun.l.google.com:19302' });
+        if (process.env.REACT_APP_STUN_URL) {
+            iceServers.push({
+                urls: process.env.REACT_APP_STUN_URL,
+                username: process.env.REACT_APP_STUN_USERNAME,
+                credential: process.env.REACT_APP_STUN_CREDENTIAL
+            });
+        }
+
+        setPeerConfig({
+            iceServers: iceServers
+        });
+    }, []);
+
     useEffect(() => {
         if (localAudioEnabled !== undefined) {
             setAudioEnabled(localAudioEnabled);
@@ -1476,6 +1495,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     // 组件卸载时关闭流
     useEffect(() => {
         return () => {
+            window.cleanupMediaTracks();
+            delete window.cleanupMediaTracks;
+        };
+    }, []);
+
+    useEffect(() => {
+        window.cleanupMediaTracks = () => {
             stopMediaTracks(localStream);
             stopMediaTracks(localScreenStream);
         };
@@ -1716,20 +1742,25 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     }, [callAcceptedSignalSend]);
 
+    const canvas = document.createElement('canvas'); // 创建画布元素
+    const ctx = canvas.getContext('2d'); // 获取画布上下文对象
     useEffect(() => {
         if (connectionRef.current) {
             const peer = connectionRef.current.peer;
             if (connectionRef.current.isCaller) {
                 peer.on("signal", (data) => {
+                    const dataType = data.type;
                     // const trackCount = parseSDP(data.sdp);
-                    socket.emit("callUser", {
-                        userToCall: connectionRef.current.idToCall,
-                        signalData: data,
-                        from: me,
-                        name: name,
-                        isInGame: connectionRef.current.isInGame
-                    });
-                    setCallerSignal(data);
+                    if (dataType === 'offer') {
+                        socket.emit("callUser", {
+                            userToCall: connectionRef.current.idToCall,
+                            signalData: data,
+                            from: me,
+                            name: name,
+                            isInGame: connectionRef.current.isInGame
+                        });
+                        setCallerSignal(data);
+                    }
                 });
                 // 接收到流（stream）时触发
                 peer.on("stream", (stream) => {
@@ -1754,10 +1785,15 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         peer.signal(signal);
                     }
                 });
+
+                peer.on('error', (err) => {
+                    console.error(err);
+                });
             } // 主叫方
             else {
                 const handleAnswerSignal = (data) => {
-                    if (data.type === 'answer') {
+                    const dataType = data.type;
+                    if (dataType === 'answer') {
                         socket.emit("acceptCall", { signal: data, to: caller, name: name });
                         setCallAcceptedSignalSend(true);
                     }
@@ -1768,6 +1804,23 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         userVideo.current.srcObject = stream;
                         setRemoteStream(stream);
                     }
+
+                    // 测试
+                    // 由于通信双方处于对称NAT网络，需要配置stun服务器进行流量中继。
+                    // setInterval(() => {
+                    //     // 将视频帧绘制到画布上
+                    //     ctx.drawImage(userVideo.current, 0, 0, canvas.width, canvas.height);
+
+                    //     // 从画布中获取图像数据
+                    //     const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height);
+
+                    //     // 这里可以将图像数据发送到服务器或者进行其他处理
+                    //     console.log(imageData); // 举例：在控制台输出图像数据
+                    // }, 5000); // 每1秒执行一次
+                });
+
+                peer.on('error', (err) => {
+                    console.error(err);
                 });
                 // there is process not defined bug
                 // peer.on("data", (data) => {
@@ -1800,6 +1853,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     }
                 });
 
+                peer.on('error', (err) => {
+                    console.error(err);
+                });
+
                 socket.on("shareScreenAccepted", (signal) => {
                     if (!peer.destroyed) {
                         peer.signal(signal);
@@ -1816,6 +1873,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         remoteShareScreenVideo.current.srcObject = stream;
                         setRemoteScreenStream(stream);
                     }
+                });
+                peer.on('error', (err) => {
+                    console.error(err);
                 });
             }
             socket.on("shareScreenStopped", () => {
@@ -1919,7 +1979,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         const peer = new Peer({
             initiator: true,
             trickle: false,
-            stream: stream
+            stream: stream,
+            wrtc: wrtc,
+            config: peerConfig,
         });
         return peer;
     }
@@ -1945,7 +2007,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         const peer = new Peer({
             initiator: false,
             trickle: false,
-            stream: stream
+            stream: stream,
+            wrtc: wrtc,
+            config: peerConfig,
         });
 
         return peer;
