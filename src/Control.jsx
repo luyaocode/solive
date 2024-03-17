@@ -1431,7 +1431,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [prepareCallModal, setPrepareCallModal] = useState(false);
 
     const [videoEnabled, setVideoEnabled] = useState(false);
-    const [audioEnabled, setAudioEnabled] = useState(false);
+    const [audioEnabled, setAudioEnabled] = useState(true);
     const [screenAudioEnabled, setScreenAudioEnabled] = useState(true); // display media audio
     const [remoteScreenAudioEnabled, setRemoteScreenAudioEnabled] = useState(true);
     const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
@@ -1462,8 +1462,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (process.env.REACT_APP_STUN_URL) {
             iceServers.push({
                 urls: process.env.REACT_APP_STUN_URL,
-                username: process.env.REACT_APP_STUN_USERNAME,
-                credential: process.env.REACT_APP_STUN_CREDENTIAL
+            });
+        }
+        if (process.env.REACT_APP_TURN_URL) {
+            iceServers.push({
+                urls: process.env.REACT_APP_TURN_URL,
+                credential: process.env.REACT_APP_TURN_CREDENTIAL,
+                username: process.env.REACT_APP_TURN_USERNAME,
             });
         }
 
@@ -1987,6 +1992,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     }
 
     const callUser = (id, isInGame) => {
+        if (!audioEnabled) {
+            showNotification("请打开麦克风");
+            return;
+        }
         setCalling(true);
         const peer = createCallPeer(localStream);
         connectionRef.current = {
@@ -2228,7 +2237,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     }}
                                 />
                             </>}
-                        <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled} setSelectedDevice={setSelectedAudioDevice} />
+                        <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled} setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted} />
                         <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled} setSelectedDevice={setSelectedVideoDevice} />
                         <div className="video-device-selector-container">
                             <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
@@ -2404,7 +2413,7 @@ function TextOverlay({ position, content, audioEnabled }) {
     );
 }
 
-function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice }) {
+function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice, callAccepted }) {
     const [audioDevices, setAudioDevices] = useState([]);
     const [audioIcon, setAudioIcon] = useState(AudioIcon);
 
@@ -2434,7 +2443,14 @@ function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice 
 
     // 音频开关
     const toggleAudioOpen = () => {
-        setAudioEnabled((prev) => !prev);
+        if (audioEnabled) {
+            if (callAccepted) {
+                setAudioEnabled((prev) => !prev);
+            }
+        }
+        else {
+            setAudioEnabled((prev) => !prev);
+        }
     };
 
     return (

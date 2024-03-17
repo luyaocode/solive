@@ -16,7 +16,7 @@ The project is built using **create-react-app**.
 
 <img src="./public/game-demo.png" style="zoom:33%;" />
 
-Play Now: http://47.97.186.50
+Play Now: https://chaosgomoku.fun
 
 ### Update Log
 
