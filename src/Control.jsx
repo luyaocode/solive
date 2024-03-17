@@ -1473,6 +1473,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     }, []);
 
+    // 组件卸载时关闭流
+    useEffect(() => {
+        return () => {
+            stopMediaTracks(localStream);
+            stopMediaTracks(localScreenStream);
+        };
+    }, [localStream, localScreenStream]);
+
     useEffect(() => {
         if (socket) {
             socket.on("formatDateGot", (data) => {
@@ -1495,7 +1503,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             setIsNameReadOnly(true);
             setPrepareCallModal(true);
         }
-    }, [])
+    }, []);
 
     useEffect(() => {
         switch (deviceType) {

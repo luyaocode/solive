@@ -272,6 +272,7 @@ function ChaosGomoku() {
         if (gameMode === GameMode.MODE_NONE) {
             setRestartInSameRoom(false);
             setPeerSocketId();
+            setCompletelyReady(false); // 清除状态
         }
         if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
             setPieceType(Piece_Type_Black);
