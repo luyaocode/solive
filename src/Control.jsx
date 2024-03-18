@@ -26,6 +26,7 @@ import {
     BGM1, BGM2,
     DeviceType,
     root,
+    Piece_Type_White,
 } from './ConstDefine.jsx'
 import { Howl } from 'howler';
 import {
@@ -1453,8 +1454,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const remoteShareScreenVideo = useRef();
     const connectionRef = useRef();
     const shareScreenConnRef = useRef();
+    // 在组件外部创建持久化引用
+    const timerRef = useRef();
 
     const [peerConfig, setPeerConfig] = useState();
+
+    // 游戏内语音
+    const [haveCalledOnce, setHaveCalledOnce] = useState(false);
 
     useEffect(() => {
         const iceServers = [];
@@ -1480,22 +1486,34 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     useEffect(() => {
         if (localAudioEnabled !== undefined) {
             setAudioEnabled(localAudioEnabled);
+            if (socket && peerSocketId) {
+                socket.emit("peerAudioStatus", { to: peerSocketId, status: localAudioEnabled });
+            }
+            if (!localAudioEnabled) {
+                stopMediaTracks(localStream);
+            }
         }
-    }, [localAudioEnabled]);
+    }, [localAudioEnabled]); // 游戏语音通话
 
     useEffect(() => {
-        if (peerAudioEnabled !== undefined) {
-            setPeerAudioEnabled(hasRemoteAudioTrack);
+        clearTimeout(timerRef.current);
+        if (peerSocketId && localStream) {
+            if (peerSocketId && pieceType === Piece_Type_White) {
+                setIdToCall(peerSocketId);
+                setIsIdToCallReadOnly(true);
+                timerRef.current = setTimeout(() => callUser(peerSocketId, true), 1000);
+            }
         }
-    }, [hasRemoteAudioTrack]);
+        return () => clearTimeout(timerRef.current);
+    }, [localStream]);
 
     useEffect(() => {
-        if (peerSocketId && pieceType === Piece_Type_Black) {
-            setIdToCall(peerSocketId);
-            setIsIdToCallReadOnly(true);
-            setTimeout(() => callUser(peerSocketId, true), 1000);
+        if (socket) {
+            socket.on("peerAudioStatus", (status) => {
+                setPeerAudioEnabled(status);
+            });
         }
-    }, []);
+    }, [socket]);
 
     // 组件卸载时关闭流
     useEffect(() => {
@@ -1631,14 +1649,16 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     // 更新轨道
     useEffect(() => {
-        if (!videoEnabled) {
-            stopMediaTracks(localStream);
+        if (!peerSocketId) {
+            if (!videoEnabled) {
+                stopMediaTracks(localStream);
+            }
         }
         getUserMediaStream()
             .then(stream => {
                 if (connectionRef.current && connectionRef.current.peer && !connectionRef.current.peer.destroyed) {
                     // 替换轨道
-                    if (localStream) {
+                    if (localStream && localStream.isActive) {
                         localStream.getTracks().forEach(track => {
                             connectionRef.current.peer.removeTrack(track, localStream);
                         });
@@ -1760,7 +1780,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         socket.emit("callUser", {
                             userToCall: connectionRef.current.idToCall,
                             signalData: data,
-                            from: me,
+                            from: me ? me : socket.id,
                             name: name,
                             isInGame: connectionRef.current.isInGame
                         });
@@ -1912,7 +1932,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     setCaller(data.from);
                     setAnotherName(data.name);
                     setCallerSignal(data.signal);
-                    setTimeout(() => acceptCall(data.signal, data.from), 1000);
+                    setTimeout(() => acceptCall(data.signal, data.from), 5000);
                 }
                 else {
                     setReceivingCall(true);
@@ -1992,6 +2012,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     }
 
     const callUser = (id, isInGame) => {
+        if (isInGame) {
+            if (haveCalledOnce) {
+                return;
+            }
+            else {
+                setHaveCalledOnce(true);
+            }
+        }
         if (!audioEnabled) {
             showNotification("请打开麦克风");
             return;
@@ -2177,132 +2205,139 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             </div>
                         }
                     </div>
-                    <div className="myId">
-                        {!callAccepted &&
-                            <>
-                                <textarea
-                                    readOnly={isNameReadOnly}
-                                    placeholder="我的昵称"
-                                    id="filled-basic"
-                                    label="Name"
-                                    variant="filled"
-                                    value={name}
-                                    onChange={(e) => {
-                                        setName(e.target.value);
-                                        if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
-                                            e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
-                                            e.target.style.height = 'auto';
-                                            e.target.style.height = e.target.scrollHeight + 'px';
-                                        } else {
-                                            e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
-                                        }
-                                    }}
-                                    style={{
-                                        width: '100%',
-                                        height: '1.5em', // 设置初始高度为一行文本的高度
-                                        minHeight: 'auto', // 调整最小高度为自动
-                                        maxHeight: '100px', // 调整最大高度
-                                        fontSize: '20px', // 调整字体大小
-                                        border: '1px solid #ccc',
-                                        resize: 'none',
-                                        lineHeight: '1.2', // 设置行高与字体大小相同
-                                    }}
-                                />
-                                <textarea
-                                    readOnly={isIdToCallReadOnly}
-                                    placeholder="对方号码"
-                                    id="filled-basic"
-                                    label="ID to call"
-                                    variant="filled"
-                                    value={idToCall}
-                                    onChange={(e) => {
-                                        setIdToCall(e.target.value);
-                                        if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
-                                            e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
-                                            e.target.style.height = 'auto';
-                                            e.target.style.height = e.target.scrollHeight + 'px';
-                                        } else {
-                                            e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
-                                        }
-                                    }}
-                                    style={{
-                                        width: '100%',
-                                        height: '1.5em', // 设置初始高度为一行文本的高度
-                                        minHeight: '20px', // 调整最小高度为自动
-                                        maxHeight: '100px', // 调整最大高度
-                                        fontSize: '20px', // 调整字体大小
-                                        border: '1px solid #ccc',
-                                        resize: 'none',
-                                        lineHeight: '1.2', // 设置行高与字体大小相同
-                                    }}
-                                />
-                            </>}
-                        <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled} setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted} />
-                        <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled} setSelectedDevice={setSelectedVideoDevice} />
-                        <div className="video-device-selector-container">
-                            <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
-                                setIsShareScreen(prev => !prev);
-                            }} />
-                        </div>
-                        <div className="call-button">
-                            {callAccepted && !callEnded ? (
-                                <Button variant="contained" color="secondary" onClick={() => {
-                                    leaveCall();
-                                    setIsShareScreen(false);
-                                    stopAnotherScreenSharing();
-                                }} style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
-                                    挂断
-                                </Button>
-                            ) : (
-                                <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'center' }}>
-                                    <Button variant="contained" color="primary" onClick={() => setInviteVideoChatModalOpen(true)} style={{ marginRight: '2rem' }}>
-                                        邀请通话
-                                    </Button>
-                                    <Button disabled={idToCall.length === 0} color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
-                                        呼叫
-                                    </Button>
-                                </div>
-                            )}
-                        </div>
-                    </div>
-                    {receivingCall && !callAccepted &&
-                        <div className='modal-overlay-receive-call'>
-                            <div className="modal-receive-call">
-                                <div className="caller">
-                                    <h1 >{anotherName === '' ? '未知号码' : anotherName} 邀请视频通话...</h1>
-                                    <ButtonBox onOkBtnClick={() => acceptCall()} OnCancelBtnClick={rejectCall}
-                                        okBtnInfo='接听' cancelBtnInfo='拒绝' />
-                                </div>
+                    {!peerSocketId &&
+                        <div className="myId">
+                            {!callAccepted &&
+                                <>
+                                    <textarea
+                                        readOnly={isNameReadOnly}
+                                        placeholder="我的昵称"
+                                        id="filled-basic"
+                                        label="Name"
+                                        variant="filled"
+                                        value={name}
+                                        onChange={(e) => {
+                                            setName(e.target.value);
+                                            if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
+                                                e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
+                                                e.target.style.height = 'auto';
+                                                e.target.style.height = e.target.scrollHeight + 'px';
+                                            } else {
+                                                e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
+                                            }
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            height: '1.5em', // 设置初始高度为一行文本的高度
+                                            minHeight: 'auto', // 调整最小高度为自动
+                                            maxHeight: '100px', // 调整最大高度
+                                            fontSize: '20px', // 调整字体大小
+                                            border: '1px solid #ccc',
+                                            resize: 'none',
+                                            lineHeight: '1.2', // 设置行高与字体大小相同
+                                        }}
+                                    />
+                                    <textarea
+                                        readOnly={isIdToCallReadOnly}
+                                        placeholder="对方号码"
+                                        id="filled-basic"
+                                        label="ID to call"
+                                        variant="filled"
+                                        value={idToCall}
+                                        onChange={(e) => {
+                                            setIdToCall(e.target.value);
+                                            if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
+                                                e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
+                                                e.target.style.height = 'auto';
+                                                e.target.style.height = e.target.scrollHeight + 'px';
+                                            } else {
+                                                e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
+                                            }
+                                        }}
+                                        style={{
+                                            width: '100%',
+                                            height: '1.5em', // 设置初始高度为一行文本的高度
+                                            minHeight: '20px', // 调整最小高度为自动
+                                            maxHeight: '100px', // 调整最大高度
+                                            fontSize: '20px', // 调整字体大小
+                                            border: '1px solid #ccc',
+                                            resize: 'none',
+                                            lineHeight: '1.2', // 设置行高与字体大小相同
+                                        }}
+                                    />
+                                </>}
+                            <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled} setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted} />
+                            <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled} setSelectedDevice={setSelectedVideoDevice} />
+                            <div className="video-device-selector-container">
+                                <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
+                                    setIsShareScreen(prev => !prev);
+                                }} />
                             </div>
-                        </div>}
-                    {calling && !peerSocketId && /**仅游戏语音时取消弹窗 */
-                        < CallingModal isDisabled={sid} modalInfo={"正在呼叫 " + idToCall}
-                            onClick={() => {
-                                setCalling(false);
-                                socket.emit("callCanceled", { to: idToCall });
-                            }} />}
-                    {callRejected &&
-                        <Modal modalInfo="已挂断" setModalOpen={setCallRejected} />}
-                    {noResponse &&
-                        <Modal modalInfo="超时,无应答" setModalOpen={setNoResponse} />}
-                    {confirmLeave &&
-                        <ConfirmModal modalInfo='确定挂断吗？' onOkBtnClick={() => {
-                            leaveCall();
-                            setConfirmLeave(false);
-                        }} OnCancelBtnClick={() => setConfirmLeave(false)} />}
-                    {toCallIsBusy &&
-                        <Modal modalInfo='用户忙' setModalOpen={setToCallIsBusy} />}
-                    {prepareCallModal &&
-                        <ConfirmModal modalInfo="将要发起视频通话，是否继续？" onOkBtnClick={() => {
-                            setPrepareCallModal(false);
-                            setTimeout(() => callUser(sid), 1000);
-                        }}
-                            noCancelBtn={true} />
+                            <div className="call-button">
+                                {callAccepted && !callEnded ? (
+                                    <Button variant="contained" color="secondary" onClick={() => {
+                                        leaveCall();
+                                        setIsShareScreen(false);
+                                        stopAnotherScreenSharing();
+                                    }} style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
+                                        挂断
+                                    </Button>
+                                ) : (
+                                    <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'center' }}>
+                                        <Button variant="contained" color="primary" onClick={() => setInviteVideoChatModalOpen(true)} style={{ marginRight: '2rem' }}>
+                                            邀请通话
+                                        </Button>
+                                        <Button disabled={idToCall.length === 0} color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
+                                            呼叫
+                                        </Button>
+                                    </div>
+                                )}
+                            </div>
+                        </div>
                     }
-                    {inviteVideoChatModalOpen &&
-                        <InviteVideoChatModal closeModal={() => setInviteVideoChatModalOpen(false)}
-                            me={me} name={name} socket={socket} inviteVideoChatModalOpen={inviteVideoChatModalOpen}
-                            strNowDate={strNowDate} />
+                    {!peerSocketId &&
+                        <div>
+                            {receivingCall && !callAccepted &&
+                                <div className='modal-overlay-receive-call'>
+                                    <div className="modal-receive-call">
+                                        <div className="caller">
+                                            <h1 >{anotherName === '' ? '未知号码' : anotherName} 邀请视频通话...</h1>
+                                            <ButtonBox onOkBtnClick={() => acceptCall()} OnCancelBtnClick={rejectCall}
+                                                okBtnInfo='接听' cancelBtnInfo='拒绝' />
+                                        </div>
+                                    </div>
+                                </div>}
+                            {calling && !peerSocketId && /**仅游戏语音时取消弹窗 */
+                                < CallingModal isDisabled={sid} modalInfo={"正在呼叫 " + idToCall}
+                                    onClick={() => {
+                                        setCalling(false);
+                                        socket.emit("callCanceled", { to: idToCall });
+                                    }} />}
+                            {callRejected &&
+                                <Modal modalInfo="已挂断" setModalOpen={setCallRejected} />}
+                            {noResponse &&
+                                <Modal modalInfo="超时,无应答" setModalOpen={setNoResponse} />}
+                            {confirmLeave &&
+                                <ConfirmModal modalInfo='确定挂断吗？' onOkBtnClick={() => {
+                                    leaveCall();
+                                    setConfirmLeave(false);
+                                }} OnCancelBtnClick={() => setConfirmLeave(false)} />}
+                            {toCallIsBusy &&
+                                <Modal modalInfo='用户忙' setModalOpen={setToCallIsBusy} />}
+
+                            {inviteVideoChatModalOpen &&
+                                <InviteVideoChatModal closeModal={() => setInviteVideoChatModalOpen(false)}
+                                    me={me} name={name} socket={socket} inviteVideoChatModalOpen={inviteVideoChatModalOpen}
+                                    strNowDate={strNowDate} />
+                            }
+                            {prepareCallModal &&
+                                <ConfirmModal modalInfo="将要发起视频通话，是否继续？" onOkBtnClick={() => {
+                                    setPrepareCallModal(false);
+                                    setTimeout(() => callUser(peerSocketId, true), 1000);
+                                }}
+                                    noCancelBtn={true} />
+                            }
+                        </div>
                     }
                 </div >
             </div>

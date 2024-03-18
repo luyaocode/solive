@@ -100,7 +100,7 @@ function ChaosGomoku() {
 
     // 语音通话
     const [localAudioEnabled, setLocalAudioEnabled] = useState(true);
-    const [peerAudioEnabled, setPeerAudioEnabled] = useState(false);
+    const [peerAudioEnabled, setPeerAudioEnabled] = useState(true);
 
     // 公告板
     const [notices, setNotices] = useState([]);
@@ -158,10 +158,10 @@ function ChaosGomoku() {
     // 路由
     const { sid } = useParams(); // socketId in url
     useEffect(() => {
-        if (sid) {
-            setTimeout(() => enterVideoChatView(), 1000);
+        if (sid && socket) {
+            enterVideoChatView();
         }
-    }, [sid]);
+    }, [sid, socket]);
 
     const [enterRoomTried, setEnterRoomTried] = useState(false);
     const { rid } = useParams(); // roomId in url
