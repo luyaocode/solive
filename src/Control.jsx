@@ -1463,6 +1463,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [haveCalledOnce, setHaveCalledOnce] = useState(false);
 
     useEffect(() => {
+        if (socket) {
+            setMe(socket.id);
+        }
+    }, [socket]);
+
+    useEffect(() => {
         const iceServers = [];
         iceServers.push({ urls: 'stun:stun.l.google.com:19302' });
         if (process.env.REACT_APP_STUN_URL) {
@@ -1952,9 +1958,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     }, [callAccepted]);
 
     useEffect(() => {
-        if (socket) {
-            setMe(socket.id);
-        }
         return () => {
             if (connectionRef.current) {
                 connectionRef.current.peer.destroy();
@@ -2302,7 +2305,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     <div className="modal-receive-call">
                                         <div className="caller">
                                             <h1 >{anotherName === '' ? '未知号码' : anotherName} 邀请视频通话...</h1>
-                                            <ButtonBox onOkBtnClick={() => acceptCall()} OnCancelBtnClick={rejectCall}
+                                            <ButtonBox onOkBtnClick={() => {
+                                                acceptCall();
+                                                setInviteVideoChatModalOpen(false);
+                                            }} OnCancelBtnClick={rejectCall}
                                                 okBtnInfo='接听' cancelBtnInfo='拒绝' />
                                         </div>
                                     </div>
@@ -2333,7 +2339,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             {prepareCallModal &&
                                 <ConfirmModal modalInfo="将要发起视频通话，是否继续？" onOkBtnClick={() => {
                                     setPrepareCallModal(false);
-                                    setTimeout(() => callUser(peerSocketId, true), 1000);
+                                    setTimeout(() => callUser(sid), 1000);
                                 }}
                                     noCancelBtn={true} />
                             }

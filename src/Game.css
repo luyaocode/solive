@@ -1623,7 +1623,10 @@
 .video-container .video {
   position: relative;
   object-fit: contain;
-  border: none;
+  border: 2px solid black;
+  /* 设置视频边框样式 */
+  padding: -2px;
+  /* 设置负外边距，使边框不会重叠 */
   /* width: 50%; */
   /* 或者其他适当的 object-fit 属性值 */
   /* 按比例缩放视频，保持长宽比，同时填充整个容器 */
