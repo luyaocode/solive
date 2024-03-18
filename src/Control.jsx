@@ -1681,7 +1681,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     }
                 }
                 setLocalStream(stream);
-                myVideo.current.srcObject = stream;
+                if (myVideo.current) {
+                    myVideo.current.srcObject = stream;
+                }
             });
 
         return () => {

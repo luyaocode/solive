@@ -360,7 +360,7 @@ function ChaosGomoku() {
             {showOverlayArrow &&
                 <OverlayArrow onClick={enterVideoChatView} currentView={currentView} />
             }
-            <Client setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
+            <Client socket={socket} setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
                 gameMode={gameMode} setDeviceType={setDeviceType} setRoomDeviceType={setRoomDeviceType}
                 setBoardWidth={setBoardWidth} setBoardHeight={setBoardHeight} setSynchronized={setSynchronized}
                 setHeadCount={setHeadCount} setHistoryPeekUsers={setHistoryPeekUsers} setRoomId={setRoomId}
@@ -380,7 +380,7 @@ function ChaosGomoku() {
                 setAvatarIndex={setAvatarIndex} setAvatarIndexPB={setAvatarIndexPB}
                 setMessages={setMessages} setReceiveInviteModalOpen={setReceiveInviteModalOpen}
                 setPublicMsgs={setPublicMsgs} setNotices={setNotices} setPeerSocketId={setPeerSocketId}
-                setCompletelyReady={setCompletelyReady}
+                setCompletelyReady={setCompletelyReady} currentView={currentView}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>
@@ -438,11 +438,10 @@ function ChaosGomoku() {
                                 gameOver={gameOver} setGameOver={setGameOver}
                                 isRestartRequestModalOpen={isRestartRequestModalOpen} setRestartRequestModalOpen={setRestartRequestModalOpen}
                                 restartResponseModalOpen={restartResponseModalOpen} setRestartResponseModalOpen={setRestartResponseModalOpen}
-                                isSkipRound={isSkipRound} setRestartInSameRoom={setRestartInSameRoom}
+                                isSkipRound={isSkipRound} setSkipRound={setSkipRound} setRestartInSameRoom={setRestartInSameRoom}
                                 isUndoRound={isUndoRound}
                                 setUndoRoundRequestModalOpen={setUndoRoundRequestModalOpen}
                                 avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB} setChatPanelOpen={setChatPanelOpen}
-                                setCompletelyReady={setCompletelyReady}
                             />
                             <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
                                 roomId={roomId} nickName={nickName} setChatPanelOpen={setChatPanelOpen}

@@ -2,12 +2,12 @@ import { useEffect } from 'react';
 import io from 'socket.io-client';
 import {
     DeviceType, LoginStatus, Table_Client_Ips, Table_Game_Info, Table_Step_Info,
-    Avatar_Number_X, Avatar_Number_Y
+    Avatar_Number_X, Avatar_Number_Y, View
 } from './ConstDefine.jsx'
 
 import { showNotification } from './Plugin.jsx'
 
-function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
+function Client({ socket, setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setDeviceType, setRoomDeviceType, setBoardWidth, setBoardHeight,
     setSynchronized, setHeadCount, setHistoryPeekUsers, setRoomId,
     setNickName, setMatched, setJoined, setStartModalOpen,
@@ -20,7 +20,7 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
     setLoginSuccess,
     setClientIpsData, setGameInfoData, setStepInfoData, setAvatarIndex, setAvatarIndexPB,
     setMessages, setReceiveInviteModalOpen, setPublicMsgs, setNotices,
-    setPeerSocketId, setCompletelyReady }) {
+    setPeerSocketId, setCompletelyReady, currentView }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -215,10 +215,6 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
                 setNetConnected(false);
             });
 
-            socket.on('inviteGame', () => {
-                setReceiveInviteModalOpen(true);
-            });
-
             socket.on('publicMsgs', (msgs) => {
                 setPublicMsgs(msgs);
             });
@@ -237,6 +233,20 @@ function Client({ setSocket, setPieceType, setLastStep, setSeeds, gameMode,
             socket.disconnect();
         };
     }, []);
+
+    useEffect(() => {
+        if (socket) {
+            const handleInviteGame = () => {
+                if (currentView === View.Menu) {
+                    setReceiveInviteModalOpen(true);
+                }
+            };
+            socket.on('inviteGame', handleInviteGame);
+            return () => {
+                socket.off('inviteGame', handleInviteGame);
+            };
+        }
+    }, [currentView, socket]);
 
     function setTableData(tableName, tableData) {
         if (tableName === Table_Client_Ips) {

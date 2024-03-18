@@ -741,8 +741,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton,
   VolumeControlButton, logAction, isRestart, lastClick, setLastClick,
   socket, pieceType, lastStep, gameMode, skipRound, isSkipRound,
-  ExitButton, SkipButton, avatarIndex, avatarIndexPB, setChatPanelOpen,
-  setCompletelyReady }) {
+  ExitButton, SkipButton, avatarIndex, avatarIndexPB, setChatPanelOpen }) {
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const [pieceClicked, setPieceClicked] = useState(false); // 落子但未使用道具
@@ -750,15 +749,54 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
 
   const renderCell = (cellValue, rowIndex, colIndex) => {
     const key = [rowIndex, colIndex];
-    return (
+    const result = (
       <Square key={key}
         piece={cellValue} onSquareClick={() => handleClick(rowIndex, colIndex)}
         squareStyle={squareStyle} playSound={playSound} />
     );
+    socket.emit('completelyReady');
+    return result;
   };
 
   function isMyTurn() {
     return ((pieceType === Piece_Type_Black && xIsNext) || (pieceType === Piece_Type_White && !xIsNext));
+  }
+
+  function checkWinner(nextBoard, i, j) {
+    if (i === undefined || j === undefined) {
+      if (_.isEqual(lastClick, [null, null])) {
+        return;
+      }
+      i = lastClick[0];
+      j = lastClick[1];
+    }
+    // 胜利判定
+    checkArray.push([i, j]);
+    for (const arr of checkArray) {
+      const winnerInfo = calculateWinner(nextBoard, arr[1], arr[0], selectedItem);
+      if (winnerInfo[0]) {
+        let pieceNumStatus;
+        if (winnerInfo.length === 3) {
+          pieceNumStatus = Piece_Type_Black + ': ' + winnerInfo[2][0] + '，' + Piece_Type_White + ': ' + winnerInfo[2][1] + '，';
+        }
+        openModal(pieceNumStatus + winnerInfo[0] + '胜利！', 60000);
+        setGameOver(true);
+        logAction(nextBoard[i][j], nextBoard[i][j], selectedItem, true);
+        if (winnerInfo[1]) {
+          for (const arr of winnerInfo[1]) {
+            if (arr === null) {
+              break;
+            }
+            const x = arr[0];
+            const y = arr[1];
+            nextBoard[x][y].setWinnerPiece();
+          }
+        }
+        playSound(Win);
+        break;
+      }
+    }
+    checkArray = [];
   }
 
   function handleClick(i, j, isEnemyTurn) {
@@ -847,26 +885,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
       setPieceClicked(true);
     }
 
-    // 胜利判定
-    checkArray.push([i, j]);
-    for (const arr of checkArray) {
-      const winnerInfo = calculateWinner(nextBoard, arr[1], arr[0]);
-      if (winnerInfo[0]) {
-        openModal(winnerInfo[0] + '胜利！', 60000);
-        setGameOver(true);
-        logAction(nextBoard[i][j], nextBoard[i][j], selectedItem, true);
-        if (winnerInfo[1]) {
-          for (const arr of winnerInfo[1]) {
-            const x = arr[0];
-            const y = arr[1];
-            nextBoard[x][y].setWinnerPiece();
-          }
-        }
-        playSound(Win);
-        break;
-      }
-    }
-    checkArray = [];
+    checkWinner(nextBoard, i, j);
 
     // 发送消息
     if (!isEnemyTurn && gameMode !== GameMode.MODE_SIGNAL && gameMode !== GameMode.MODE_AI) {
@@ -875,10 +894,6 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
       socket.emit('step', { i, j, currItem, nextItem });
     }
   }
-
-  useEffect(() => {
-    socket.emit('completelyReady');
-  }, []);
 
   useEffect(() => {
     if (lastStep.length === 0) {
@@ -914,6 +929,8 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   useEffect(() => {
     if (isSkipRound) {
       skipRound();
+      //
+      checkWinner(board);
     }
   }, [isSkipRound]);
 
@@ -1313,9 +1330,8 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   isPlayerDisconnectedModalOpen, setPlayerDisconnectedModalOpen,
   gameOver, setGameOver, isRestartRequestModalOpen, setRestartRequestModalOpen,
   restartResponseModalOpen, setRestartResponseModalOpen,
-  isSkipRound, setRestartInSameRoom, isUndoRound,
-  setUndoRoundRequestModalOpen, avatarIndex, avatarIndexPB, setChatPanelOpen,
-  setCompletelyReady }) {
+  isSkipRound, setSkipRound, setRestartInSameRoom, isUndoRound,
+  setUndoRoundRequestModalOpen, avatarIndex, avatarIndexPB, setChatPanelOpen }) {
 
   const [canSkipRound, setCanSkipRound] = useState(true);
   // 消息弹窗
@@ -1665,7 +1681,8 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
     let description = "跳过";
     function onButtonClick() {
       if (gameMode === GameMode.MODE_SIGNAL || gameMode === GameMode.MODE_AI) {
-        skipRound();
+        // skipRound();
+        setSkipRound(true);
       }
       else {
         setSkipModalOpen(true);
@@ -1801,7 +1818,6 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
           socket={socket} pieceType={pieceType} lastStep={lastStep} gameMode={gameMode}
           skipRound={skipRound} isSkipRound={isSkipRound} ExitButton={ExitButton} SkipButton={SkipButton}
           avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB} setChatPanelOpen={setChatPanelOpen}
-          setCompletelyReady={setCompletelyReady}
         />
       </div>
       {isModalOpen && (
@@ -1860,9 +1876,40 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   );
 }
 
-function calculateWinner(board, x, y) {
+function checkIsBoardFull(board, selectedItem) {
+  let nWhitePiece = 0;
+  let nBlackPiece = 0;
+  board.map((row, rowIndex) => {
+    row.map((cell, colIndex) => {
+      if (cell.type === Piece_Type_Black) {
+        nBlackPiece++;
+      }
+      else if (cell.type === Piece_Type_White) {
+        nWhitePiece++;
+      }
+      return null;
+    });
+    return null;
+  });
+  if (((nWhitePiece + nBlackPiece) === Board_Width * Board_Height) &&
+    selectedItem.isUsed) {
+    if (nWhitePiece >= nBlackPiece) {
+      return [Piece_Type_White, [null, null], [nBlackPiece, nWhitePiece]];
+    }
+    else {
+      return [Piece_Type_Black, [null, null], [nBlackPiece, nWhitePiece]];
+    }
+  }
+  return false;
+}
+
+function calculateWinner(board, x, y, selectedItem) {
   if (x < 0 || x >= Board_Width || y < 0 || y >= Board_Height || x === undefined || y === undefined) {
     return false;
+  }
+  const checkResult = checkIsBoardFull(board, selectedItem);
+  if (checkResult) {
+    return checkResult;
   }
   if (board[y][x].status.frozen || board[y][x].status.attachBomb) {
     return false;
@@ -1921,38 +1968,20 @@ function calculateWinner(board, x, y) {
       return winnerInfo;
     }
   }
-  let nWhitePiece = 0;
-  let nBlackPiece = 0;
-  board.map((row, rowIndex) => {
-    row.map((cell, colIndex) => {
-      if (cell.type === Piece_Type_Black) {
-        nBlackPiece++;
-      }
-      else if (cell.type === Piece_Type_White) {
-        nWhitePiece++;
-      }
-      return null;
-    });
-    return null;
-  });
-  if ((nWhitePiece + nBlackPiece) === Board_Width * Board_Height) {
-    if (nWhitePiece >= nBlackPiece) {
-      return [Piece_Type_White, [null, null]];
-    }
-    else {
-      return [Piece_Type_Black, [null, null]];
-    }
-  }
-
   return [null, [null, null]];
 };
 
-function initScores(w, h) {
+function initScores(w, h, board) {
   let scores = [];
   for (let i = 0; i < h; i++) {
     scores[i] = []; // 创建一个空数组作为二维数组的每一行
     for (let j = 0; j < w; j++) {
-      scores[i][j] = 0; // 初始化每个元素为 0
+      if (board[i][j].type === '') { // Exclude piece
+        scores[i][j] = 0; // 初始化每个元素为 0
+      }
+      else {
+        scores[i][j] = -Infinity;
+      }
     }
   }
   return scores;
@@ -2184,7 +2213,7 @@ function findMaxIndex(arr) {
 }
 
 function getPiecePos(board, item) {
-  const scores = initScores(board[0].length, board.length);
+  const scores = initScores(board[0].length, board.length, board);
   board.map((row, x) => {
     row.map((cell, y) => {
       if (board[x][y].type === '') {
