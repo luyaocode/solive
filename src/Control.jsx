@@ -2516,6 +2516,9 @@ function TextOverlay({ position, content, audioEnabled }) {
                 color: 'white',
                 backgroundColor: 'rgba(0, 0, 0, 0.5)',
                 fontSize: '12px',
+                maxWidth: '100%',
+                whiteSpace: 'pre-warp',
+                wordBreak: 'break-word',
                 ...getPositionStyle(), // 应用位置样式
             }}
         >
