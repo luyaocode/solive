@@ -2239,14 +2239,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         }
                         {callAccepted && !callEnded ?
                             <div className="video">
-                                <video ref={userVideo} playsInline controls={hasRemoteVideoTrack} autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
+                                <video ref={userVideo} playsInline controls={hasRemoteVideoTrack} autoPlay style={{
+                                    position: 'relative', zIndex: 0, width: '400px',
+                                    opacity: hasRemoteVideoTrack ? '1' : '0'
+                                }}
                                     onClick={handleVideoClick} />
                                 {!hasRemoteVideoTrack && !hasRemoteAudioTrack && (
                                     <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
                                 )}
-                                {/* {!hasRemoteVideoTrack && hasRemoteAudioTrack && (
-                                    <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
-                                )} */}
                                 <TextOverlay
                                     position="top-left"
                                     content={anotherName}
