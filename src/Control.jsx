@@ -1407,15 +1407,15 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
                             onClick={onTextAreaClick}
                             style={{
                                 width: '80%',
-                                height: '1.5em', // 设置初始高度为一行文本的高度
                                 minHeight: 'auto', // 调整最小高度为自动
-                                maxHeight: '100px', // 调整最大高度
+                                maxHeight: '54px', // 调整最大高度
                                 fontSize: '20px', // 调整字体大小
                                 border: '1px solid #ccc',
                                 resize: 'none',
-                                overflow: 'hidden',
+                                overflow: 'auto',
                                 lineHeight: '1.2', // 设置行高与字体大小相同
                                 padding: '10px', // 调整内边距
+                                scrollbarWidth: 'none',
                             }}
                         />
                         <button onClick={() => handleSendMessageRef.current()}>发送</button>
