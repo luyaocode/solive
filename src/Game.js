@@ -747,6 +747,12 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   const [pieceClicked, setPieceClicked] = useState(false); // 落子但未使用道具
   const [nextAIStep, setNextAIStep] = useState();
 
+  useEffect(() => {
+    if ([GameMode.MODE_ROOM, GameMode.MODE_MATCH].includes(gameMode)) {
+      socket.emit('completelyReady');
+    }
+  }, []);
+
   const renderCell = (cellValue, rowIndex, colIndex) => {
     const key = [rowIndex, colIndex];
     const result = (
@@ -754,7 +760,6 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
         piece={cellValue} onSquareClick={() => handleClick(rowIndex, colIndex)}
         squareStyle={squareStyle} playSound={playSound} />
     );
-    socket.emit('completelyReady');
     return result;
   };
 
