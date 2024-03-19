@@ -17,7 +17,7 @@ import {
     GameMode, LoginStatus,
     Piece_Type_Black,
     Table_Client_Ips, Table_Game_Info, Table_Step_Info,
-    Messages_Max_Send, Messages_Max_Len,
+    Messages_Max_Send, Message_Max_Len, Text_Max_Len,
     View,
     AudioIcon, AudioIconDisabled, MessageIcon,
     VideoIcon, VideoIconDisabled,
@@ -1316,7 +1316,7 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
                 return;
             }
             if (inputText !== '') {
-                const textValid = inputText.substring(0, Messages_Max_Len);
+                const textValid = inputText.substring(0, Message_Max_Len);
                 const newMessage = { text: textValid, sender: 'me' };
                 if (ncobj) {
                     if (ncobj.io) {
@@ -1355,7 +1355,13 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
     }
 
     const handleChange = (e) => {
-        setInputText(e.target.value);
+        let inputValue = e.target.value;
+        let newValue = inputValue;
+        if (inputValue.length > Message_Max_Len) {
+            showNotification('输入字符长度达到上限！');
+            newValue = inputValue.substring(0, Messages_Max_Send);
+        }
+        setInputText(newValue);
         e.target.style.height = 'auto';
         e.target.style.height = e.target.scrollHeight + 'px';
     };
@@ -2278,24 +2284,24 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         variant="filled"
                                         value={name}
                                         onChange={(e) => {
-                                            setName(e.target.value);
-                                            if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
-                                                e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
-                                                e.target.style.height = 'auto';
-                                                e.target.style.height = e.target.scrollHeight + 'px';
-                                            } else {
-                                                e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
+                                            let newValue = e.target.value.replace(/\n/g, '');
+                                            if (newValue.length > Text_Max_Len) {
+                                                showNotification('输入字符长度达到上限！');
+                                                newValue = newValue.substring(0, Text_Max_Len);
                                             }
+                                            setName(newValue);
                                         }}
                                         style={{
                                             width: '100%',
                                             height: '1.5em', // 设置初始高度为一行文本的高度
                                             minHeight: 'auto', // 调整最小高度为自动
-                                            maxHeight: '100px', // 调整最大高度
+                                            // maxHeight: '54px', // 调整最大高度
                                             fontSize: '20px', // 调整字体大小
                                             border: '1px solid #ccc',
                                             resize: 'none',
                                             lineHeight: '1.2', // 设置行高与字体大小相同
+                                            scrollbarWidth: 'none',
+                                            whiteSpace: 'nowrap'
                                         }}
                                     />
                                     <textarea
@@ -2306,24 +2312,24 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         variant="filled"
                                         value={idToCall}
                                         onChange={(e) => {
-                                            setIdToCall(e.target.value);
-                                            if (e.target.scrollHeight > 40) { // 如果内容高度超过两行，设置最小高度为两行高度
-                                                e.target.style.minHeight = '40px'; // 设置最小高度为两行高度
-                                                e.target.style.height = 'auto';
-                                                e.target.style.height = e.target.scrollHeight + 'px';
-                                            } else {
-                                                e.target.style.minHeight = '20px'; // 设置最小高度为一行高度
+                                            let newValue = e.target.value.replace(/\n/g, '');
+                                            if (newValue.length > Text_Max_Len) {
+                                                showNotification('输入字符长度达到上限！');
+                                                newValue = newValue.substring(0, Text_Max_Len);
                                             }
+                                            setIdToCall(newValue);
                                         }}
                                         style={{
                                             width: '100%',
                                             height: '1.5em', // 设置初始高度为一行文本的高度
                                             minHeight: '20px', // 调整最小高度为自动
-                                            maxHeight: '100px', // 调整最大高度
+                                            // maxHeight: '100px', // 调整最大高度
                                             fontSize: '20px', // 调整字体大小
                                             border: '1px solid #ccc',
                                             resize: 'none',
                                             lineHeight: '1.2', // 设置行高与字体大小相同
+                                            scrollbarWidth: 'none',
+                                            whiteSpace: 'nowrap'
                                         }}
                                     />
                                 </>}
