@@ -380,7 +380,7 @@ function ChaosGomoku() {
                 setAvatarIndex={setAvatarIndex} setAvatarIndexPB={setAvatarIndexPB}
                 setMessages={setMessages} setReceiveInviteModalOpen={setReceiveInviteModalOpen}
                 setPublicMsgs={setPublicMsgs} setNotices={setNotices} setPeerSocketId={setPeerSocketId}
-                setCompletelyReady={setCompletelyReady} currentView={currentView}
+                setCompletelyReady={setCompletelyReady} currentView={currentView} chatPanelOpen={chatPanelOpen}
             />
             {gameMode === GameMode.MODE_NONE && (
                 <>

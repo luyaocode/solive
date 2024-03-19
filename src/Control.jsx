@@ -17,7 +17,7 @@ import {
     GameMode, LoginStatus,
     Piece_Type_Black,
     Table_Client_Ips, Table_Game_Info, Table_Step_Info,
-    Messages_Max_Len,
+    Messages_Max_Send, Messages_Max_Len,
     View,
     AudioIcon, AudioIconDisabled, MessageIcon,
     VideoIcon, VideoIconDisabled,
@@ -1311,12 +1311,12 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
 
     useEffect(() => {
         const handleSendMessage = () => {
-            if (messages.length > Messages_Max_Len) {
+            if (messages.length > Messages_Max_Send) {
                 setModalOpen(true);
                 return;
             }
             if (inputText !== '') {
-                const textValid = inputText.substring(0, 2000);
+                const textValid = inputText.substring(0, Messages_Max_Len);
                 const newMessage = { text: textValid, sender: 'me' };
                 if (ncobj) {
                     if (ncobj.constructor.name === 'Socket') {
@@ -1414,7 +1414,7 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
                     </div>
                 </div>
             </div>
-            {modalOpen && <Modal modalInfo='消息已达上限！' setModalOpen={setModalOpen} />}
+            {modalOpen && <Modal modalInfo='消息数量已达上限！' setModalOpen={setModalOpen} />}
         </>
     );
 }
@@ -1880,12 +1880,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             peer.on('data', (data) => {
                 const receivedMessage = JSON.parse(data);
                 console.log('Received message from peer: ' + receivedMessage.text);
-                showNotification(receivedMessage.text);
+                if (!chatPanelOpen) {
+                    showNotification(receivedMessage.text);
+                }
                 receivedMessage.sender = 'other';
                 setMessages(prev => [...prev, receivedMessage]);
             });
         }
-    }, [connectionRef.current]);
+    }, [connectionRef.current, chatPanelOpen]);
 
     useEffect(() => {
         if (shareScreenConnRef.current) {

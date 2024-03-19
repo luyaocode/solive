@@ -20,7 +20,7 @@ function Client({ socket, setSocket, setPieceType, setLastStep, setSeeds, gameMo
     setLoginSuccess,
     setClientIpsData, setGameInfoData, setStepInfoData, setAvatarIndex, setAvatarIndexPB,
     setMessages, setReceiveInviteModalOpen, setPublicMsgs, setNotices,
-    setPeerSocketId, setCompletelyReady, currentView }) {
+    setPeerSocketId, setCompletelyReady, currentView, chatPanelOpen }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -205,12 +205,6 @@ function Client({ socket, setSocket, setPieceType, setLastStep, setSeeds, gameMo
                 setAvatarIndexPB(avatarIndex);
             });
 
-            socket.on('chat_message', (msg) => {
-                const newMessage = { text: msg, sender: 'other' };
-                showNotification(msg);
-                setMessages(prev => [...prev, newMessage]);
-            });
-
             socket.on('disconnect', () => {
                 setNetConnected(false);
             });
@@ -233,6 +227,22 @@ function Client({ socket, setSocket, setPieceType, setLastStep, setSeeds, gameMo
             socket.disconnect();
         };
     }, []);
+
+    useEffect(() => {
+        const handleGetChatMsg = (msg) => {
+            const newMessage = { text: msg, sender: 'other' };
+            if (!chatPanelOpen) {
+                showNotification(msg);
+            }
+            setMessages(prev => [...prev, newMessage]);
+        }
+        if (socket) {
+            socket.on('chat_message', handleGetChatMsg);
+            return () => {
+                socket.off('chat_message', handleGetChatMsg);
+            }
+        }
+    }, [chatPanelOpen, socket]);
 
     useEffect(() => {
         if (socket) {
