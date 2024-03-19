@@ -400,7 +400,13 @@ function ChaosGomoku() {
                                 setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} setShowOverlayArrow={setShowOverlayArrow}
                                 gameInviteAccepted={gameInviteAccepted} locationData={locationData} />
                             ) :
-                            (currentView === View.VideoChat ? <VideoChat sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView} /> : null))}
+                            (currentView === View.VideoChat ?
+                                <VideoChat sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView}
+                                    messages={messages} setMessages={setMessages} chatPanelOpen={chatPanelOpen} setChatPanelOpen={setChatPanelOpen} />
+                                : null
+                            )
+                        )
+                    }
                 </>)
             }
             {gameMode !== GameMode.MODE_NONE && (
@@ -416,8 +422,7 @@ function ChaosGomoku() {
                         <div className='audio-call'>
                             <VideoChat deviceType={deviceType} socket={socket} returnMenuView={returnMenuView}
                                 peerSocketId={peerSocketId} pieceType={pieceType}
-                                localAudioEnabled={localAudioEnabled} setLocalAudioEnabled={setLocalAudioEnabled}
-                                peerAudioEnabled={peerAudioEnabled} setPeerAudioEnabled={setPeerAudioEnabled} />
+                                localAudioEnabled={localAudioEnabled} setPeerAudioEnabled={setPeerAudioEnabled} />
                         </div>
                     }
                     <ItemManager pageLoaded={pageLoaded} isRestart={isRestart} timeDelay={timeDelay}
@@ -465,7 +470,7 @@ function ChaosGomoku() {
                             }
                             {
                                 chatPanelOpen &&
-                                <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} socket={socket} />}
+                                <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} ncobj={socket} />}
                         </>
                     ) : (
                         startModalOpen &&

@@ -81,6 +81,7 @@ export const SpeakerIcon = '/picture/svg/SpeakerIcon.svg';
 export const ShareIcon = '/picture/svg/ShareIcon.svg'; // share page
 export const ShareScreenIcon = '/picture/svg/ShareScreenIcon.svg';
 export const StopShareScreenIcon = '/picture/svg/StopShareScreenIcon.svg';
+export const MessageIcon = '/picture/svg/MessageIcon.svg';
 
 export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
 export const BGM2 = '/audio/bgm/after_the_rain.mp3';

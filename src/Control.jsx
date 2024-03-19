@@ -19,7 +19,7 @@ import {
     Table_Client_Ips, Table_Game_Info, Table_Step_Info,
     Messages_Max_Len,
     View,
-    AudioIcon, AudioIconDisabled,
+    AudioIcon, AudioIconDisabled, MessageIcon,
     VideoIcon, VideoIconDisabled,
     NoVideoIcon, SpeakerIcon, ShareIcon,
     ShareScreenIcon, StopShareScreenIcon,
@@ -1302,28 +1302,45 @@ function PlayerAvatar({ avatarIndex, name, info, isMyTurn, pieceType, setChatPan
     );
 }
 
-function ChatPanel({ messages, setMessages, setChatPanelOpen, socket }) {
+function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
     const [inputText, setInputText] = useState('');
     const textareaRef = useRef(null);
     const messageContainerRef = useRef(null);
+    const handleSendMessageRef = useRef(null);
     const [modalOpen, setModalOpen] = useState(false);
 
+    useEffect(() => {
+        const handleSendMessage = () => {
+            if (messages.length > Messages_Max_Len) {
+                setModalOpen(true);
+                return;
+            }
+            if (inputText !== '') {
+                const textValid = inputText.substring(0, 2000);
+                const newMessage = { text: textValid, sender: 'me' };
+                if (ncobj) {
+                    if (ncobj.constructor.name === 'Socket') {
+                        // 发送到服务器
+                        ncobj.emit('chatMessage', newMessage);
+                    }
+                    else if (ncobj.constructor.name === 'Peer') {
+                        // P2P
+                        const messageString = JSON.stringify(newMessage);
+                        if (!ncobj.isdestroyed) {
+                            ncobj.send(messageString);
+                        }
+                    }
+                    setMessages(prev => [...prev, newMessage]);
+                    setInputText('');
+                    adjustTextareaHeight();
+                }
+            }
+        };
+        if (handleSendMessageRef) {
+            handleSendMessageRef.current = handleSendMessage;
+        }
+    }, [ncobj, handleSendMessageRef, inputText]);
     // 处理发送消息
-    const handleSendMessage = () => {
-        if (messages.length > Messages_Max_Len) {
-            setModalOpen(true);
-            return;
-        }
-        if (inputText !== '') {
-            const textValid = inputText.substring(0, 2000);
-            const newMessage = { text: textValid, sender: 'me' };
-            // 发送到服务器
-            socket.emit('chatMessage', newMessage);
-            setMessages(prev => [...prev, newMessage]);
-            setInputText('');
-            adjustTextareaHeight();
-        }
-    };
 
     function onClose() {
         setChatPanelOpen(false);
@@ -1393,7 +1410,7 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, socket }) {
                                 padding: '10px', // 调整内边距
                             }}
                         />
-                        <button onClick={handleSendMessage}>发送</button>
+                        <button onClick={() => handleSendMessageRef.current()}>发送</button>
                     </div>
                 </div>
             </div>
@@ -1403,9 +1420,10 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, socket }) {
 }
 
 function VideoChat({ sid, deviceType, socket, returnMenuView,
+    messages, setMessages, chatPanelOpen, setChatPanelOpen,
     peerSocketId/* 游戏中对方的socke id*/,
     pieceType,/*用于确定主动方 */
-    localAudioEnabled, setLocalAudioEnabled, peerAudioEnabled, setPeerAudioEnabled
+    localAudioEnabled, setPeerAudioEnabled, /**显示麦克风图标 */
 }) {
     const [me, setMe] = useState("");               // 本地socketId
     const [localStream, setLocalStream] = useState();
@@ -1819,9 +1837,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     }
                 });
 
-                peer.on('error', (err) => {
-                    console.error(err);
-                });
             } // 主叫方
             else {
                 const handleAnswerSignal = (data) => {
@@ -1851,17 +1866,24 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     //     console.log(imageData); // 举例：在控制台输出图像数据
                     // }, 5000); // 每1秒执行一次
                 });
-
-                peer.on('error', (err) => {
-                    console.error(err);
-                });
-                // there is process not defined bug
-                // peer.on("data", (data) => {
-                //     if (data === 'nomedia') {
-                //         checkTrack(remoteStream, 'remote');
-                //     }
-                // });
             }
+
+            peer.on('error', (err) => {
+                console.error(err);
+            });
+
+            peer.on('connect', () => {
+                console.log('Connected with ' + another);
+            });
+            // There is process not defined bug
+            // Now it is solved by installing module 'process'.
+            peer.on('data', (data) => {
+                const receivedMessage = JSON.parse(data);
+                console.log('Received message from peer: ' + receivedMessage.text);
+                showNotification(receivedMessage.text);
+                receivedMessage.sender = 'other';
+                setMessages(prev => [...prev, receivedMessage]);
+            });
         }
     }, [connectionRef.current]);
 
@@ -2277,7 +2299,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
                                     setIsShareScreen(prev => !prev);
                                 }} />
+                                <img src={MessageIcon} alt="Message" className="icon" onClick={() => {
+                                    setChatPanelOpen(prev => !prev);
+                                }} />
                             </div>
+
                             <div className="call-button">
                                 {callAccepted && !callEnded ? (
                                     <Button variant="contained" color="secondary" onClick={() => {
@@ -2344,6 +2370,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     setTimeout(() => callUser(sid), 1000);
                                 }}
                                     noCancelBtn={true} />
+                            }
+                            {
+                                chatPanelOpen &&
+                                <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} ncobj={connectionRef?.current?.peer} />
                             }
                         </div>
                     }
