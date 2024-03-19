@@ -645,6 +645,8 @@
 
 .gamelog-container span {
   color: silver;
+  display: block;
+  /* 尝试添加这一行 */
 }
 
 
