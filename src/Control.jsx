@@ -1319,15 +1319,23 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
                 const textValid = inputText.substring(0, Messages_Max_Len);
                 const newMessage = { text: textValid, sender: 'me' };
                 if (ncobj) {
-                    if (ncobj.constructor.name === 'Socket') {
-                        // 发送到服务器
-                        ncobj.emit('chatMessage', newMessage);
+                    if (ncobj.io) {
+                        if (ncobj.connected) {
+                            // 发送到服务器
+                            ncobj.emit('chatMessage', newMessage);
+                        }
+                        else {
+                            showNotification('连接已断开');
+                        }
                     }
-                    else if (ncobj.constructor.name === 'Peer') {
+                    else {
                         // P2P
                         const messageString = JSON.stringify(newMessage);
-                        if (!ncobj.isdestroyed) {
+                        if (!ncobj.destroyed) {
                             ncobj.send(messageString);
+                        }
+                        else {
+                            showNotification('连接已断开');
                         }
                     }
                     setMessages(prev => [...prev, newMessage]);
@@ -1886,6 +1894,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 receivedMessage.sender = 'other';
                 setMessages(prev => [...prev, receivedMessage]);
             });
+            return () => {
+                peer.removeAllListeners('data'); // Clear effect of chatPanelOpen
+            }
         }
     }, [connectionRef.current, chatPanelOpen]);
 
