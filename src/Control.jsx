@@ -1459,6 +1459,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     const [videoEnabled, setVideoEnabled] = useState(false);
     const [audioEnabled, setAudioEnabled] = useState(true);
+    const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
+    const [remoteAudioEnabled, setRemoteAudioEnabled] = useState(false);
     const [screenAudioEnabled, setScreenAudioEnabled] = useState(true); // display media audio
     const [remoteScreenAudioEnabled, setRemoteScreenAudioEnabled] = useState(true);
     const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
@@ -1489,10 +1491,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [haveCalledOnce, setHaveCalledOnce] = useState(false);
 
     useEffect(() => {
-        if (socket) {
+        if (socket.connected) {
             setMe(socket.id);
         }
-    }, [socket]);
+    }, [socket.connected]);
 
     useEffect(() => {
         const iceServers = [];
@@ -1609,7 +1611,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             });
             return stream;
         } catch (error) {
-            console.log('未打开摄像头和麦克风');
+            console.error('未打开摄像头和麦克风', error);
         }
     }
 
@@ -1690,7 +1692,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             .then(stream => {
                 if (connectionRef.current && connectionRef.current.peer && !connectionRef.current.peer.destroyed) {
                     // 替换轨道
-                    if (localStream && localStream.isActive) {
+                    if (localStream && localStream.active) {
                         localStream.getTracks().forEach(track => {
                             connectionRef.current.peer.removeTrack(track, localStream);
                         });
@@ -1845,6 +1847,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     }
                 });
 
+                peer.on('connect', () => {
+                    console.log('Connected with ' + idToCall);
+                });
+
             } // 主叫方
             else {
                 const handleAnswerSignal = (data) => {
@@ -1874,25 +1880,33 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     //     console.log(imageData); // 举例：在控制台输出图像数据
                     // }, 5000); // 每1秒执行一次
                 });
+                peer.on('connect', () => {
+                    console.log('Connected with ' + another);
+                });
             }
 
             peer.on('error', (err) => {
                 console.error(err);
             });
 
-            peer.on('connect', () => {
-                console.log('Connected with ' + another);
-            });
             // There is process not defined bug
             // Now it is solved by installing module 'process'.
             peer.on('data', (data) => {
-                const receivedMessage = JSON.parse(data);
-                console.log('Received message from peer: ' + receivedMessage.text);
-                if (!chatPanelOpen) {
-                    showNotification(receivedMessage.text);
+                const msg = JSON.parse(data);
+                if (msg.type === 'remoteAudioStatus') {
+                    setRemoteAudioEnabled(msg.status);
                 }
-                receivedMessage.sender = 'other';
-                setMessages(prev => [...prev, receivedMessage]);
+                else if (msg.type === 'remoteVideoStatus') {
+                    setRemoteVideoEnabled(msg.status);
+                }
+                else if (msg.sender) { // 文本通信
+                    console.log('Received message from peer: ' + msg.text);
+                    if (!chatPanelOpen) {
+                        showNotification(msg.text);
+                    }
+                    msg.sender = 'other';
+                    setMessages(prev => [...prev, msg]);
+                }
             });
             return () => {
                 peer.removeAllListeners('data'); // Clear effect of chatPanelOpen
@@ -2152,21 +2166,28 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (myVideo.current && myVideo.current.srcObject) {
             myVideo.current.srcObject.addEventListener('loadedmetadata', () => checkTrack(localStream, 'local'));
         }
+
+        checkTrack(localStream, 'local');
+        return () => {
+            if (myVideo.current && myVideo.current.srcObject) {
+                myVideo.current.srcObject.removeEventListener('loadedmetadata', () => checkTrack(localStream, 'local'));
+            }
+        };
+    }, [localStream]);
+
+    useEffect(() => {
         if (userVideo.current && userVideo.current.srcObject) {
             userVideo.current.srcObject.addEventListener('loadedmetadata', () => checkTrack(remoteStream, 'remote'));
         }
 
-        checkTrack(localStream, 'local');
         checkTrack(remoteStream, 'remote');
         return () => {
-            if (myVideo.current && myVideo.current.srcObject) {
-                myVideo.current.srcObject.removeEventListener('loadedmetadata', () => checkTrack(localStream));
-            }
             if (userVideo.current && userVideo.current.srcObject) {
-                userVideo.current.srcObject.removeEventListener('loadedmetadata', () => checkTrack(remoteStream));
+                userVideo.current.srcObject.removeEventListener('loadedmetadata', () => checkTrack(remoteStream, 'remote'));
             }
         };
-    }, [localStream, remoteStream]);
+    }, [remoteStream]);
+
 
     const handleVideoClick = (event) => {
         event.preventDefault();
