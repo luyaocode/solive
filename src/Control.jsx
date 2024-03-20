@@ -1475,7 +1475,7 @@ function VideoStatsTool({ setInboundBitrate, connectionRef }) {
             };
             peer.on('stream', handleOnStream);
             return () => {
-                clearInterval(intervalRef.current); // 在返回函数中清除定时器
+                clearInterval(intervalRef.current);
             }
         }
     }, [connectionRef.current]);
