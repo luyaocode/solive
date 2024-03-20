@@ -780,7 +780,7 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
     for (const arr of checkArray) {
       const winnerInfo = calculateWinner(nextBoard, arr[1], arr[0], selectedItem);
       if (winnerInfo[0]) {
-        let pieceNumStatus;
+        let pieceNumStatus = '';
         if (winnerInfo.length === 3) {
           pieceNumStatus = Piece_Type_Black + ': ' + winnerInfo[2][0] + '，' + Piece_Type_White + ': ' + winnerInfo[2][1] + '，';
         }
