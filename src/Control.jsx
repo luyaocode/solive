@@ -36,6 +36,7 @@ import {
 
 import _ from 'lodash';
 import { showNotification, formatDate } from './Plugin.jsx'
+import { useFetcher } from 'react-router-dom';
 
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
@@ -1433,12 +1434,68 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
     );
 }
 
+function VideoStatsTool({ setInboundBitrate, connectionRef }) {
+    const lastBytesReceivedRef = useRef();
+    const lastTimestampRef = useRef();
+    const intervalRef = useRef();
+
+    function checkVideoBitrate(peer, vt) {
+        if (peer && !peer.destroyed) {
+            peer._pc.getStats(vt).then((stats) => {
+                stats.forEach(report => {
+                    if (report.type === 'inbound-rtp' && report.kind === 'video') {
+                        if (lastBytesReceivedRef.current && lastTimestampRef.current &&
+                            lastBytesReceivedRef.current > 0 &&
+                            report.bytesReceived > lastBytesReceivedRef.current
+                        ) {
+                            const bytesReceived = report.bytesReceived - lastBytesReceivedRef.current;
+                            const deltaTime = (report.timestamp - lastTimestampRef.current) / 1000;
+                            const bitrate = (bytesReceived / deltaTime) * 8 / 1000000; // 转换为兆比特每秒
+                            setInboundBitrate(bitrate);
+                            // console.log('远程视频比特率:', bitrate.toFixed(4), 'Mbps');
+                        }
+                        lastBytesReceivedRef.current = report.bytesReceived;
+                        lastTimestampRef.current = report.timestamp;
+                    }
+                });
+            });
+        }
+    }
+
+    useEffect(() => {
+        if (connectionRef?.current?.peer && !connectionRef.current.peer.destroyed) {
+            const peer = connectionRef.current.peer;
+            const handleOnStream = (stream) => {
+                clearInterval(intervalRef.current);
+                const vts = stream.getVideoTracks();
+                if (vts.length > 0) {
+                    const id = setInterval(() => checkVideoBitrate(peer, vts[0]), 1000);
+                    intervalRef.current = id;
+                }
+            };
+            peer.on('stream', handleOnStream);
+            return () => {
+                clearInterval(intervalRef.current); // 在返回函数中清除定时器
+            }
+        }
+    }, [connectionRef.current]);
+
+    useEffect(() => {
+        return () => {
+            clearInterval(intervalRef.current);
+        }
+    }, []);
+
+    return null;
+}
+
 function VideoChat({ sid, deviceType, socket, returnMenuView,
     messages, setMessages, chatPanelOpen, setChatPanelOpen,
     peerSocketId/* 游戏中对方的socke id*/,
     pieceType,/*用于确定主动方 */
     localAudioEnabled, setPeerAudioEnabled, /**显示麦克风图标 */
 }) {
+    // 通话
     const [me, setMe] = useState("");               // 本地socketId
     const [localStream, setLocalStream] = useState();
     const [localScreenStream, setLocalScreenStream] = useState();
@@ -1463,6 +1520,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [confirmLeave, setConfirmLeave] = useState(false);
     const [prepareCallModal, setPrepareCallModal] = useState(false);
 
+    // 控制
     const [videoEnabled, setVideoEnabled] = useState(false);
     const [audioEnabled, setAudioEnabled] = useState(true);
     const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
@@ -1471,16 +1529,21 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [remoteScreenAudioEnabled, setRemoteScreenAudioEnabled] = useState(true);
     const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
     const [selectedVideoDevice, setSelectedVideoDevice] = useState('');
-
     const [hasLocalVideoTrack, setHasLocalVideoTrack] = useState(true);
     const [hasRemoteVideoTrack, setHasRemoteVideoTrack] = useState(true);
     const [hasLocalAudioTrack, setHasLocalAudioTrack] = useState(true);
     const [hasRemoteAudioTrack, setHasRemoteAudioTrack] = useState(true);
-
     const [isShareScreen, setIsShareScreen] = useState(false);
     const [isReceiveShareScreen, setIsReceiveShareScreen] = useState(false);
     const [inviteVideoChatModalOpen, setInviteVideoChatModalOpen] = useState(false);
     const [strNowDate, setStrNowDate] = useState(); // current time formatted from server
+    const [peerConfig, setPeerConfig] = useState();
+
+    // 游戏语音模块
+    const [haveCalledOnce, setHaveCalledOnce] = useState(false);
+
+    // 统计
+    const [inboundVideoBitrate, setInboundBitrate] = useState(0);
 
     const myVideo = useRef();
     const userVideo = useRef();
@@ -1488,13 +1551,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const remoteShareScreenVideo = useRef();
     const connectionRef = useRef();
     const shareScreenConnRef = useRef();
-    // 在组件外部创建持久化引用
     const timerRef = useRef();
-
-    const [peerConfig, setPeerConfig] = useState();
-
-    // 游戏内语音
-    const [haveCalledOnce, setHaveCalledOnce] = useState(false);
 
     useEffect(() => {
         if (socket.connected) {
@@ -1855,6 +1912,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
                 peer.on('connect', () => {
                     console.log('Connected with ' + idToCall);
+                    // checkVideoBitrate(peer);
                 });
 
             } // 主叫方
@@ -1888,6 +1946,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 });
                 peer.on('connect', () => {
                     console.log('Connected with ' + another);
+                    // checkVideoBitrate(peer);
                 });
             }
 
@@ -2258,6 +2317,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     content={anotherName}
                                     audioEnabled={hasRemoteAudioTrack}
                                 />
+                                <TextOverlay
+                                    position="top-right"
+                                    content={'inbound video bitrate: ' + inboundVideoBitrate.toFixed(6) + ' Mbps'}
+                                />
                             </div>
                             : null
                         }
@@ -2366,56 +2429,60 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             </div>
                         </div>
                     }
-                    {!peerSocketId &&
-                        <div>
-                            {receivingCall && !callAccepted &&
-                                <div className='modal-overlay-receive-call'>
-                                    <div className="modal-receive-call">
-                                        <div className="caller">
-                                            <h1 >{anotherName === '' ? '未知号码' : anotherName} 邀请视频通话...</h1>
-                                            <ButtonBox onOkBtnClick={() => {
-                                                acceptCall();
-                                                setInviteVideoChatModalOpen(false);
-                                            }} OnCancelBtnClick={rejectCall}
-                                                okBtnInfo='接听' cancelBtnInfo='拒绝' />
+                    {!peerSocketId && /*以下都不会在游戏语音通话模块中加载 */
+                        <>
+                            <div>
+                                {receivingCall && !callAccepted &&
+                                    <div className='modal-overlay-receive-call'>
+                                        <div className="modal-receive-call">
+                                            <div className="caller">
+                                                <h1 >{anotherName === '' ? '未知号码' : anotherName} 邀请视频通话...</h1>
+                                                <ButtonBox onOkBtnClick={() => {
+                                                    acceptCall();
+                                                    setInviteVideoChatModalOpen(false);
+                                                }} OnCancelBtnClick={rejectCall}
+                                                    okBtnInfo='接听' cancelBtnInfo='拒绝' />
+                                            </div>
                                         </div>
-                                    </div>
-                                </div>}
-                            {calling && !peerSocketId && /**仅游戏语音时取消弹窗 */
-                                < CallingModal isDisabled={sid} modalInfo={"正在呼叫 " + idToCall}
-                                    onClick={() => {
-                                        setCalling(false);
-                                        socket.emit("callCanceled", { to: idToCall });
-                                    }} />}
-                            {callRejected &&
-                                <Modal modalInfo="已挂断" setModalOpen={setCallRejected} />}
-                            {noResponse &&
-                                <Modal modalInfo="超时,无应答" setModalOpen={setNoResponse} />}
-                            {confirmLeave &&
-                                <ConfirmModal modalInfo='确定挂断吗？' onOkBtnClick={() => {
-                                    leaveCall();
-                                    setConfirmLeave(false);
-                                }} OnCancelBtnClick={() => setConfirmLeave(false)} />}
-                            {toCallIsBusy &&
-                                <Modal modalInfo='用户忙' setModalOpen={setToCallIsBusy} />}
+                                    </div>}
+                                {calling && !peerSocketId && /**仅游戏语音时取消弹窗 */
+                                    < CallingModal isDisabled={sid} modalInfo={"正在呼叫 " + idToCall}
+                                        onClick={() => {
+                                            setCalling(false);
+                                            socket.emit("callCanceled", { to: idToCall });
+                                        }} />}
+                                {callRejected &&
+                                    <Modal modalInfo="已挂断" setModalOpen={setCallRejected} />}
+                                {noResponse &&
+                                    <Modal modalInfo="超时,无应答" setModalOpen={setNoResponse} />}
+                                {confirmLeave &&
+                                    <ConfirmModal modalInfo='确定挂断吗？' onOkBtnClick={() => {
+                                        leaveCall();
+                                        setConfirmLeave(false);
+                                    }} OnCancelBtnClick={() => setConfirmLeave(false)} />}
+                                {toCallIsBusy &&
+                                    <Modal modalInfo='用户忙' setModalOpen={setToCallIsBusy} />}
 
-                            {inviteVideoChatModalOpen &&
-                                <InviteVideoChatModal closeModal={() => setInviteVideoChatModalOpen(false)}
-                                    me={me} name={name} socket={socket} inviteVideoChatModalOpen={inviteVideoChatModalOpen}
-                                    strNowDate={strNowDate} />
-                            }
-                            {prepareCallModal &&
-                                <ConfirmModal modalInfo="将要发起视频通话，是否继续？" onOkBtnClick={() => {
-                                    setPrepareCallModal(false);
-                                    setTimeout(() => callUser(sid), 1000);
-                                }}
-                                    noCancelBtn={true} />
-                            }
-                            {
-                                chatPanelOpen &&
-                                <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} ncobj={connectionRef?.current?.peer} />
-                            }
-                        </div>
+                                {inviteVideoChatModalOpen &&
+                                    <InviteVideoChatModal closeModal={() => setInviteVideoChatModalOpen(false)}
+                                        me={me} name={name} socket={socket} inviteVideoChatModalOpen={inviteVideoChatModalOpen}
+                                        strNowDate={strNowDate} />
+                                }
+                                {prepareCallModal &&
+                                    <ConfirmModal modalInfo="将要发起视频通话，是否继续？" onOkBtnClick={() => {
+                                        setPrepareCallModal(false);
+                                        setTimeout(() => callUser(sid), 1000);
+                                    }}
+                                        noCancelBtn={true} />
+                                }
+                                {
+                                    chatPanelOpen &&
+                                    <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} ncobj={connectionRef?.current?.peer} />
+                                }
+                            </div>
+                            <VideoStatsTool setInboundBitrate={setInboundBitrate}
+                                connectionRef={connectionRef} />
+                        </>
                     }
                 </div >
             </div>
