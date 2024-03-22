@@ -741,11 +741,13 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
   openModal, playSound, UndoButton, RedoButton, RestartButton, SwitchSoundButton,
   VolumeControlButton, logAction, isRestart, lastClick, setLastClick,
   socket, pieceType, lastStep, gameMode, skipRound, isSkipRound,
-  ExitButton, SkipButton, avatarIndex, avatarIndexPB, setChatPanelOpen }) {
+  ExitButton, SkipButton, avatarIndex, avatarIndexPB, setChatPanelOpen,
+  completelyReady }) {
 
   const [squareStyle, setSquareStyle] = useState(Init_Square_Style);
   const [pieceClicked, setPieceClicked] = useState(false); // 落子但未使用道具
   const [nextAIStep, setNextAIStep] = useState();
+  const [waitAnotherReadyModalOpen, setWaitAnotherReadyModalOpen] = useState(false);
 
   useEffect(() => {
     if ([GameMode.MODE_ROOM, GameMode.MODE_MATCH].includes(gameMode)) {
@@ -1002,6 +1004,9 @@ function Board({ xIsNext, board, setBoard, currentMove, onPlay, gameOver,
           </div>
         ))}
       </div>
+      {!completelyReady && (gameMode === GameMode.MODE_MATCH || gameMode === GameMode.MODE_ROOM) &&
+        < Modal modalInfo='对方正在加载，请耐心等待...' setModalOpen={setWaitAnotherReadyModalOpen} />
+      }
     </>
   );
 }
@@ -1336,7 +1341,8 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   gameOver, setGameOver, isRestartRequestModalOpen, setRestartRequestModalOpen,
   restartResponseModalOpen, setRestartResponseModalOpen,
   isSkipRound, setSkipRound, setRestartInSameRoom, isUndoRound,
-  setUndoRoundRequestModalOpen, avatarIndex, avatarIndexPB, setChatPanelOpen }) {
+  setUndoRoundRequestModalOpen, avatarIndex, avatarIndexPB, setChatPanelOpen,
+  completelyReady }) {
 
   const [canSkipRound, setCanSkipRound] = useState(true);
   // 消息弹窗
@@ -1823,6 +1829,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
           socket={socket} pieceType={pieceType} lastStep={lastStep} gameMode={gameMode}
           skipRound={skipRound} isSkipRound={isSkipRound} ExitButton={ExitButton} SkipButton={SkipButton}
           avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB} setChatPanelOpen={setChatPanelOpen}
+          completelyReady={completelyReady}
         />
       </div>
       {isModalOpen && (
