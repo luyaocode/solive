@@ -22,7 +22,7 @@ import {
     AudioIcon, AudioIconDisabled, MessageIcon,
     VideoIcon, VideoIconDisabled,
     NoVideoIcon, SpeakerIcon, ShareIcon,
-    ShareScreenIcon, StopShareScreenIcon,
+    ShareScreenIcon, StopShareScreenIcon, StatPanelIcon,
     BGM1, BGM2,
     DeviceType,
     root,
@@ -34,7 +34,7 @@ import {
     , FreezeSpell
 } from './Item.ts';
 
-import _ from 'lodash';
+import _, { set } from 'lodash';
 import { showNotification, formatDate } from './Plugin.jsx'
 import { useFetcher } from 'react-router-dom';
 
@@ -1434,9 +1434,12 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
     );
 }
 
-function VideoStatsTool({ setInboundBitrate, connectionRef }) {
+function VideoStatsTool({ connectionRef, setInboundBitrate, setInboundVideoDelay, setInboundFramesPerSecond
+}) {
     const lastBytesReceivedRef = useRef();
+    const lastFramesDecodedRef = useRef();
     const lastTimestampRef = useRef();
+    const lastTotalProcessingDelayRef = useRef();
     const intervalRef = useRef();
 
     function checkVideoBitrate(peer, vt) {
@@ -1453,8 +1456,23 @@ function VideoStatsTool({ setInboundBitrate, connectionRef }) {
                             const bitrate = (bytesReceived / deltaTime) * 8 / 1000000; // 转换为兆比特每秒
                             setInboundBitrate(bitrate);
                             // console.log('远程视频比特率:', bitrate.toFixed(4), 'Mbps');
+
+                            // const totalProcessingDelay = report.totalProcessingDelay * 1000;
+                            // const averDelay = totalProcessingDelay / report.framesDecoded;
+                            // console.log('远程视频平均延迟:', averDelay.toFixed(4), 'ms');
+                            const processDelay = (report.totalProcessingDelay - lastTotalProcessingDelayRef.current) * 1000;
+                            const framesDecoded = report.framesDecoded - lastFramesDecodedRef.current;
+                            const nowDelay = processDelay / framesDecoded;
+                            setInboundVideoDelay(nowDelay);
+                            // console.log('远程视频瞬时延迟:', delay.toFixed(4), 'ms');
+
+                            const framesPerSecond = report.framesPerSecond;
+                            setInboundFramesPerSecond(report.framesPerSecond);
+                            // console.log('远程视频帧率:', framesPerSecond.toFixed(4), 'ms');
                         }
                         lastBytesReceivedRef.current = report.bytesReceived;
+                        lastFramesDecodedRef.current = report.framesDecoded;
+                        lastTotalProcessingDelayRef.current = report.totalProcessingDelay;
                         lastTimestampRef.current = report.timestamp;
                     }
                 });
@@ -1542,8 +1560,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     // 游戏语音模块
     const [haveCalledOnce, setHaveCalledOnce] = useState(false);
 
-    // 统计
-    const [inboundVideoBitrate, setInboundBitrate] = useState(0);
+    // 统计inbound-rtp
+    const [inboundVideoBitrate, setInboundBitrate] = useState(0);               // 入站视频比特率
+    const [inboundVideoDelay, setInboundVideoDelay] = useState(0);              // 入站视频时延
+    const [inboundFramesPerSecond, setInboundFramesPerSecond] = useState(0);    // 入站视频帧率
 
     const myVideo = useRef();
     const userVideo = useRef();
@@ -2323,7 +2343,24 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 />
                                 <TextOverlay
                                     position="top-right"
-                                    content={'inbound video bitrate: ' + inboundVideoBitrate.toFixed(6) + ' Mbps'}
+                                    iconSrc={StatPanelIcon}
+                                    contents={[
+                                        {
+                                            name: 'inbound video bitrate',
+                                            data: inboundVideoBitrate.toFixed(4),
+                                            unit: 'Mbps'
+                                        },
+                                        {
+                                            name: 'inbound video delay',
+                                            data: inboundVideoDelay.toFixed(1),
+                                            unit: 'ms'
+                                        },
+                                        {
+                                            name: 'inbound video frame rate',
+                                            data: inboundFramesPerSecond.toFixed(2),
+                                            unit: 'fps'
+                                        },
+                                    ]}
                                 />
                             </div>
                             : null
@@ -2484,7 +2521,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} ncobj={connectionRef?.current?.peer} />
                                 }
                             </div>
-                            <VideoStatsTool setInboundBitrate={setInboundBitrate}
+                            <VideoStatsTool
+                                setInboundBitrate={setInboundBitrate}
+                                setInboundVideoDelay={setInboundVideoDelay}
+                                setInboundFramesPerSecond={setInboundFramesPerSecond}
                                 connectionRef={connectionRef} />
                         </>
                     }
@@ -2552,8 +2592,10 @@ function InviteVideoChatModal({ closeModal, me, name, socket, inviteVideoChatMod
     );
 }
 
-function TextOverlay({ position, content, audioEnabled }) {
+function TextOverlay({ position, content, contents, audioEnabled, iconSrc }) {
     const [audioIcon, setAudioIcon] = useState(AudioIcon);
+    const [showStatPanel, setShowStatPanel] = useState(false);
+    const node = useRef();
 
     useEffect(() => {
         if (audioEnabled) {
@@ -2563,6 +2605,16 @@ function TextOverlay({ position, content, audioEnabled }) {
             setAudioIcon(AudioIconDisabled);
         }
     }, [audioEnabled]);
+
+    useEffect(() => {
+        if (node.current) {
+            document.addEventListener("mousedown", handleClickOutside);
+        }
+        return () => {
+            document.removeEventListener("mousedown", handleClickOutside);
+        };
+    }, [node.current]);
+
     // 根据位置设置文本的定位样式
     const getPositionStyle = () => {
         switch (position) {
@@ -2578,9 +2630,22 @@ function TextOverlay({ position, content, audioEnabled }) {
                 return { top: 0, left: 0 };
         }
     };
+    function toggleStatPanel() {
+        if (contents) {
+            setShowStatPanel(prev => !prev);
+        }
+    }
+
+    const handleClickOutside = (e) => {
+        if (node.current && !node.current.contains(e.target) &&
+            !e.target.classList.contains('icon')) {
+            setShowStatPanel(false);
+        }
+    };
 
     return (
         <div
+            ref={node}
             style={{
                 position: 'absolute',
                 padding: '10px',
@@ -2594,9 +2659,24 @@ function TextOverlay({ position, content, audioEnabled }) {
             }}
         >
             {audioEnabled !== undefined &&
-                <img src={audioIcon} alt="Audio" className="icon" />}
-            {content}
-        </div>
+                <img src={audioIcon} alt="Audio" className="icon" />
+            }
+            {iconSrc &&
+                <img src={iconSrc} alt="Icon" className="icon" onClick={toggleStatPanel} />
+            }
+            {content && content}
+            {contents && showStatPanel &&
+                <div>
+                    {
+                        contents.map((item, index) => (
+                            <div key={index}>
+                                <p>{item.name}: {item.data} {item.unit}</p>
+                            </div>
+                        ))
+                    }
+                </div>
+            }
+        </div >
     );
 }
 
