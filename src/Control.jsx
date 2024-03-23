@@ -1521,7 +1521,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [prepareCallModal, setPrepareCallModal] = useState(false);
 
     // 控制
-    const [videoEnabled, setVideoEnabled] = useState(false);
+    const [videoEnabled, setVideoEnabled] = useState(true);
     const [audioEnabled, setAudioEnabled] = useState(true);
     const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
     const [remoteAudioEnabled, setRemoteAudioEnabled] = useState(false);
@@ -2143,6 +2143,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             showNotification("请打开麦克风");
             return;
         }
+        if (!videoEnabled) {
+            showNotification("请打开摄像头");
+            return;
+        }
         setCalling(true);
         const peer = createCallPeer(localStream);
         connectionRef.current = {
@@ -2397,7 +2401,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     />
                                 </>}
                             <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled} setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted} />
-                            <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled} setSelectedDevice={setSelectedVideoDevice} />
+                            <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled} setSelectedDevice={setSelectedVideoDevice} callAccepted={callAccepted} />
                             <div className="video-device-selector-container">
                                 <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
                                     setIsShareScreen(prev => !prev);
@@ -2656,7 +2660,7 @@ function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice,
     );
 }
 
-function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice }) {
+function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice, callAccepted }) {
     const [videoDevices, setVideoDevices] = useState([]);
     const [videoIcon, setVideoIcon] = useState(VideoIcon);
     const [canToggleVideo, setCanToggleVideo] = useState(true);
@@ -2694,7 +2698,14 @@ function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice 
         if (!canToggleVideo) {
             return;
         }
-        setVideoEnabled((prev) => !prev);
+        if (videoEnabled) {
+            if (callAccepted) {
+                setVideoEnabled((prev) => !prev);
+            }
+        }
+        else {
+            setVideoEnabled((prev) => !prev);
+        }
     };
 
     return (
