@@ -1434,27 +1434,43 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
     );
 }
 
-function VideoStatsTool({ connectionRef, setInboundBitrate, setInboundVideoDelay, setInboundFramesPerSecond
+function VideoStatsTool({ connectionRef, isShareScreen,
+    setInboundBitrate, setInboundVideoDelay, setInboundFramesPerSecond,
+    setInboundFrameWidth, setInboundFrameHeight,
+    setOutboundBitrate, setOutboundFramesPerSecond,
+    setOutboundFrameWidth, setOutboundFrameHeight
 }) {
     const lastBytesReceivedRef = useRef();
+    const lastBytesSentRef = useRef();
     const lastFramesDecodedRef = useRef();
-    const lastTimestampRef = useRef();
+    const lastInboundVideoTimestampRef = useRef();
+    const lastOutboundVideoTimestampRef = useRef();
     const lastTotalProcessingDelayRef = useRef();
     const intervalRef = useRef();
 
+    function initRefs() {
+        lastBytesReceivedRef.current = 0;
+        lastBytesSentRef.current = 0;
+        lastFramesDecodedRef.current = 0;
+        lastInboundVideoTimestampRef.current = 0;
+        lastTotalProcessingDelayRef.current = 0;
+    }
+
     function checkVideoBitrate(peer, vt) {
         if (peer && !peer.destroyed) {
-            peer._pc.getStats(vt).then((stats) => {
+            peer._pc.getStats(vt ? vt : null).then((stats) => {
                 stats.forEach(report => {
                     if (report.type === 'inbound-rtp' && report.kind === 'video') {
-                        if (lastBytesReceivedRef.current && lastTimestampRef.current &&
-                            lastBytesReceivedRef.current > 0 &&
-                            report.bytesReceived > lastBytesReceivedRef.current
+                        if (lastBytesReceivedRef.current && lastInboundVideoTimestampRef.current &&
+                            lastBytesReceivedRef.current >= 0 &&
+                            report.bytesReceived >= lastBytesReceivedRef.current
                         ) {
                             const bytesReceived = report.bytesReceived - lastBytesReceivedRef.current;
-                            const deltaTime = (report.timestamp - lastTimestampRef.current) / 1000;
+                            const deltaTime = (report.timestamp - lastInboundVideoTimestampRef.current) / 1000;
                             const bitrate = (bytesReceived / deltaTime) * 8 / 1000000; // 转换为兆比特每秒
-                            setInboundBitrate(bitrate);
+                            if (bitrate >= 0 && bitrate !== Infinity) {
+                                setInboundBitrate(bitrate);
+                            }
                             // console.log('远程视频比特率:', bitrate.toFixed(4), 'Mbps');
 
                             // const totalProcessingDelay = report.totalProcessingDelay * 1000;
@@ -1463,17 +1479,57 @@ function VideoStatsTool({ connectionRef, setInboundBitrate, setInboundVideoDelay
                             const processDelay = (report.totalProcessingDelay - lastTotalProcessingDelayRef.current) * 1000;
                             const framesDecoded = report.framesDecoded - lastFramesDecodedRef.current;
                             const nowDelay = processDelay / framesDecoded;
-                            setInboundVideoDelay(nowDelay);
+                            if (nowDelay > 0) {
+                                setInboundVideoDelay(nowDelay);
+                            }
                             // console.log('远程视频瞬时延迟:', delay.toFixed(4), 'ms');
 
                             const framesPerSecond = report.framesPerSecond;
-                            setInboundFramesPerSecond(report.framesPerSecond);
+                            if (framesPerSecond) {
+                                setInboundFramesPerSecond(framesPerSecond);
+                            }
+                            else {
+                                setInboundFramesPerSecond(framesDecoded / deltaTime);
+                            }
                             // console.log('远程视频帧率:', framesPerSecond.toFixed(4), 'ms');
                         }
                         lastBytesReceivedRef.current = report.bytesReceived;
                         lastFramesDecodedRef.current = report.framesDecoded;
                         lastTotalProcessingDelayRef.current = report.totalProcessingDelay;
-                        lastTimestampRef.current = report.timestamp;
+                        lastInboundVideoTimestampRef.current = report.timestamp;
+                        if (report.frameWidth > 0) {
+                            setInboundFrameWidth(report.frameWidth);
+                        }
+                        if (report.frameHeight) {
+                            setInboundFrameHeight(report.frameHeight);
+                        }
+                    }
+                    else if (report.type === 'outbound-rtp' && report.kind === 'video') {
+                        if (lastBytesSentRef.current && lastOutboundVideoTimestampRef.current &&
+                            lastBytesSentRef.current > 0 &&
+                            report.bytesSent > lastBytesSentRef.current
+                        ) {
+                            const bytesSent = report.bytesSent - lastBytesSentRef.current;
+                            const deltaTime = (report.timestamp - lastOutboundVideoTimestampRef.current) / 1000;
+                            if (deltaTime !== 0) {
+                                const bitrate = (bytesSent / deltaTime) * 8 / 1000000; // 转换为兆比特每秒
+                                if (bitrate > 0) {
+                                    setOutboundBitrate(bitrate);
+                                }
+                            }
+                            const framesPerSecond = report.framesPerSecond;
+                            if (framesPerSecond) {
+                                setOutboundFramesPerSecond(framesPerSecond);
+                            }
+                        }
+                        lastBytesSentRef.current = report.bytesSent;
+                        lastOutboundVideoTimestampRef.current = report.timestamp;
+                        if (report.frameWidth) {
+                            setOutboundFrameWidth(report.frameWidth);
+                        }
+                        if (report.frameHeight) {
+                            setOutboundFrameHeight(report.frameHeight);
+                        }
                     }
                 });
             });
@@ -1481,15 +1537,24 @@ function VideoStatsTool({ connectionRef, setInboundBitrate, setInboundVideoDelay
     }
 
     useEffect(() => {
-        if (connectionRef?.current?.peer && !connectionRef.current.peer.destroyed) {
+        if (isShareScreen) {
+            if (connectionRef?.current?.peer && !connectionRef.current.peer.destroyed) {
+                const peer = connectionRef.current.peer;
+                clearInterval(intervalRef.current);
+                const id = setInterval(() => checkVideoBitrate(peer), 1000);
+                intervalRef.current = id;
+                return () => {
+                    clearInterval(intervalRef.current);
+                }
+            }
+        }
+        else if (connectionRef?.current?.peer && !connectionRef.current.peer.destroyed) {
             const peer = connectionRef.current.peer;
             const handleOnStream = (stream) => {
                 clearInterval(intervalRef.current);
-                const vts = stream.getVideoTracks();
-                if (vts.length > 0) {
-                    const id = setInterval(() => checkVideoBitrate(peer, vts[0]), 1000);
-                    intervalRef.current = id;
-                }
+                initRefs();
+                const id = setInterval(() => checkVideoBitrate(peer), 1000);
+                intervalRef.current = id;
             };
             peer.on('stream', handleOnStream);
             return () => {
@@ -1564,6 +1629,26 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [inboundVideoBitrate, setInboundBitrate] = useState(0);               // 入站视频比特率
     const [inboundVideoDelay, setInboundVideoDelay] = useState(0);              // 入站视频时延
     const [inboundFramesPerSecond, setInboundFramesPerSecond] = useState(0);    // 入站视频帧率
+    const [inboundFrameWidth, setInboundFrameWidth] = useState(0);              // 入站视频帧宽度
+    const [inboundFrameHeight, setInboundFrameHeight] = useState(0);            // 入站视频帧高度
+
+    // 统计outbound-rtp
+    const [outboundVideoBitrate, setOutboundBitrate] = useState(0);             // 出站视频比特率
+    const [outboundFramesPerSecond, setOutboundFramesPerSecond] = useState(0);  // 出站视频帧率
+    const [outboundFrameWidth, setOutboundFrameWidth] = useState(0);            // 出站视频帧宽度
+    const [outboundFrameHeight, setOutboundFrameHeight] = useState(0);          // 出站视频帧高度
+
+    // 分享屏幕
+    const [inboundVideoBitrate_SC, setInboundBitrate_SC] = useState(0);               // 入站视频比特率
+    const [inboundVideoDelay_SC, setInboundVideoDelay_SC] = useState(0);              // 入站视频时延
+    const [inboundFramesPerSecond_SC, setInboundFramesPerSecond_SC] = useState(0);    // 入站视频帧率
+    const [inboundFrameWidth_SC, setInboundFrameWidth_SC] = useState(0);              // 入站视频帧宽度
+    const [inboundFrameHeight_SC, setInboundFrameHeight_SC] = useState(0);            // 入站视频帧高度
+
+    const [outboundVideoBitrate_SC, setOutboundBitrate_SC] = useState(0);             // 出站视频比特率
+    const [outboundFramesPerSecond_SC, setOutboundFramesPerSecond_SC] = useState(0);  // 出站视频帧率
+    const [outboundFrameWidth_SC, setOutboundFrameWidth_SC] = useState(0);            // 出站视频帧宽度
+    const [outboundFrameHeight_SC, setOutboundFrameHeight_SC] = useState(0);          // 出站视频帧高度
 
     const myVideo = useRef();
     const userVideo = useRef();
@@ -2315,6 +2400,32 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 content={name}
                                 audioEnabled={audioEnabled}
                             />
+                            <TextOverlay
+                                position="top-right"
+                                iconSrc={StatPanelIcon}
+                                contents={[
+                                    {
+                                        name: 'outbound video bitrate',
+                                        data: outboundVideoBitrate.toFixed(4),
+                                        unit: 'Mbps'
+                                    },
+                                    {
+                                        name: 'outbound video frame rate',
+                                        data: outboundFramesPerSecond.toFixed(2),
+                                        unit: 'fps'
+                                    },
+                                    {
+                                        name: 'outbound video frame width',
+                                        data: outboundFrameWidth.toFixed(0),
+                                        unit: 'px'
+                                    },
+                                    {
+                                        name: 'outbound video frame width',
+                                        data: outboundFrameHeight.toFixed(0),
+                                        unit: 'px'
+                                    },
+                                ]}
+                            />
                         </div>
                         {isShareScreen &&
                             <div className='video'>
@@ -2323,6 +2434,32 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 <TextOverlay
                                     position="top-left"
                                     content={name + '的屏幕'}
+                                />
+                                <TextOverlay
+                                    position="top-right"
+                                    iconSrc={StatPanelIcon}
+                                    contents={[
+                                        {
+                                            name: 'outbound video bitrate',
+                                            data: outboundVideoBitrate_SC.toFixed(4),
+                                            unit: 'Mbps'
+                                        },
+                                        {
+                                            name: 'outbound video frame rate',
+                                            data: outboundFramesPerSecond_SC.toFixed(2),
+                                            unit: 'fps'
+                                        },
+                                        {
+                                            name: 'outbound video frame width',
+                                            data: outboundFrameWidth_SC.toFixed(0),
+                                            unit: 'px'
+                                        },
+                                        {
+                                            name: 'outbound video frame width',
+                                            data: outboundFrameHeight_SC.toFixed(0),
+                                            unit: 'px'
+                                        },
+                                    ]}
                                 />
                             </div>
                         }
@@ -2360,6 +2497,16 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                             data: inboundFramesPerSecond.toFixed(2),
                                             unit: 'fps'
                                         },
+                                        {
+                                            name: 'inbound video frame width',
+                                            data: inboundFrameWidth.toFixed(0),
+                                            unit: 'px'
+                                        },
+                                        {
+                                            name: 'inbound video frame height',
+                                            data: inboundFrameHeight.toFixed(0),
+                                            unit: 'px'
+                                        },
                                     ]}
                                 />
                             </div>
@@ -2373,6 +2520,36 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     position="top-left"
                                     content={anotherName + '的屏幕'}
                                 />
+                                <TextOverlay
+                                    position="top-right"
+                                    iconSrc={StatPanelIcon}
+                                    contents={[
+                                        {
+                                            name: 'inbound video bitrate',
+                                            data: inboundVideoBitrate_SC.toFixed(4),
+                                            unit: 'Mbps'
+                                        },
+                                        {
+                                            name: 'inbound video delay',
+                                            data: inboundVideoDelay_SC.toFixed(1),
+                                            unit: 'ms'
+                                        },
+                                        {
+                                            name: 'inbound video frame rate',
+                                            data: inboundFramesPerSecond_SC.toFixed(2),
+                                            unit: 'fps'
+                                        },
+                                        {
+                                            name: 'inbound video frame width',
+                                            data: inboundFrameWidth_SC.toFixed(0),
+                                            unit: 'px'
+                                        },
+                                        {
+                                            name: 'inbound video frame height',
+                                            data: inboundFrameHeight_SC.toFixed(0),
+                                            unit: 'px'
+                                        },
+                                    ]} />
                             </div>
                         }
                     </div>
@@ -2522,10 +2699,30 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 }
                             </div>
                             <VideoStatsTool
+                                connectionRef={connectionRef}
                                 setInboundBitrate={setInboundBitrate}
                                 setInboundVideoDelay={setInboundVideoDelay}
                                 setInboundFramesPerSecond={setInboundFramesPerSecond}
-                                connectionRef={connectionRef} />
+                                setInboundFrameWidth={setInboundFrameWidth}
+                                setInboundFrameHeight={setInboundFrameHeight}
+                                setOutboundBitrate={setOutboundBitrate}
+                                setOutboundFramesPerSecond={setOutboundFramesPerSecond}
+                                setOutboundFrameWidth={setOutboundFrameWidth}
+                                setOutboundFrameHeight={setOutboundFrameHeight}
+                            />
+                            <VideoStatsTool
+                                connectionRef={shareScreenConnRef}
+                                isShareScreen={true}
+                                setInboundBitrate={setInboundBitrate_SC}
+                                setInboundVideoDelay={setInboundVideoDelay_SC}
+                                setInboundFramesPerSecond={setInboundFramesPerSecond_SC}
+                                setInboundFrameWidth={setInboundFrameWidth_SC}
+                                setInboundFrameHeight={setInboundFrameHeight_SC}
+                                setOutboundBitrate={setOutboundBitrate_SC}
+                                setOutboundFramesPerSecond={setOutboundFramesPerSecond_SC}
+                                setOutboundFrameWidth={setOutboundFrameWidth_SC}
+                                setOutboundFrameHeight={setOutboundFrameHeight_SC}
+                            />
                         </>
                     }
                 </div >
