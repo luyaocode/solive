@@ -2615,7 +2615,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 <div className="container">
                     <div className="video-container">
                         <div className='video'>
-                            <video ref={myVideo} playsInline muted controls={hasLocalVideoTrack} autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
+                            <video ref={myVideo} playsInline muted autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
                                 onClick={handleVideoClick} />
                             {!hasLocalVideoTrack && !hasLocalAudioTrack && (
                                 <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
@@ -2657,7 +2657,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         </div>
                         {isShareScreen &&
                             <div className='video'>
-                                <video ref={shareScreenVideo} playsInline muted controls autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
+                                <video ref={shareScreenVideo} playsInline muted autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
                                     onClick={handleVideoClick} />
                                 <TextOverlay
                                     position="top-left"
@@ -2693,7 +2693,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         }
                         {callAccepted && !callEnded ?
                             <div className="video">
-                                <video ref={userVideo} playsInline controls={hasRemoteVideoTrack} autoPlay style={{
+                                <video ref={userVideo} playsInline autoPlay style={{
                                     position: 'relative', zIndex: 0, width: '400px',
                                     opacity: hasRemoteVideoTrack ? '1' : '0'
                                 }}
@@ -2742,7 +2742,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         }
                         {isReceiveShareScreen &&
                             <div className='video'>
-                                <video ref={remoteShareScreenVideo} playsInline controls autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
+                                <video ref={remoteShareScreenVideo} playsInline autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
                                     onClick={handleVideoClick} />
                                 <TextOverlay
                                     position="top-left"
