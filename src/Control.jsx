@@ -1882,7 +1882,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [prepareCallModal, setPrepareCallModal] = useState(false);
 
     // 控制
-    const [videoEnabled, setVideoEnabled] = useState(true);
+    const [videoEnabled, setVideoEnabled] = useState(peerSocketId ? false : true);
     const [audioEnabled, setAudioEnabled] = useState(true);
     const [audioVolume, setAudioVolume] = useState(0);
     const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
@@ -2603,13 +2603,15 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 setHaveCalledOnce(true);
             }
         }
-        if (!audioEnabled) {
-            showNotification("请打开麦克风");
-            return;
-        }
-        if (!videoEnabled) {
-            showNotification("请打开摄像头");
-            return;
+        if (!peerSocketId) {
+            if (!audioEnabled) {
+                showNotification("请打开麦克风");
+                return;
+            }
+            if (!videoEnabled) {
+                showNotification("请打开摄像头");
+                return;
+            }
         }
         setCalling(true);
         const peer = createCallPeer(localStream);
