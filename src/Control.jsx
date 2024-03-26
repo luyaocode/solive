@@ -1575,7 +1575,8 @@ function VideoStatsTool({ connectionRef, isShareScreen,
 
 function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVideoHeight,
     setLocalVideoHeight, localFrameRate, setLocalFrameRate, echoCancellation, setEchoCancellation,
-    noiseSuppression, setNoiseSuppression, sampleRate, setSampleRate, setModalOpen
+    noiseSuppression, setNoiseSuppression, sampleRate, setSampleRate, setModalOpen, setConstraint,
+    videoEnabled, audioEnabled, facingMode
 }) {
     const [localVideoWidth_Temp, setLocalVideoWidth_Temp] = useState(localVideoWidth);
     const [localVideoHeight_Temp, setLocalVideoHeight_Temp] = useState(localVideoHeight);
@@ -1661,6 +1662,20 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
         setNoiseSuppression(noiseSuppression_Temp);
         setSampleRate(sampleRate_Temp);
         setModalOpen(false);
+
+        setConstraint({
+            video: videoEnabled ? {
+                width: localVideoWidth_Temp,
+                height: localVideoHeight_Temp,
+                frameRate: localFrameRate_Temp,
+                facingMode: facingMode,
+            } : false,
+            audio: audioEnabled ? {
+                echoCancellation: echoCancellation_Temp,
+                noiseSuppression: noiseSuppression_Temp,
+                sampleRate: sampleRate_Temp,
+            } : false,
+        });
     }
 
     const onCancelBtnClick = () => {
@@ -1803,8 +1818,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 sampleRate: sampleRate,
             } : false,
         });
-    }, [localVideoWidth, localVideoHeight, localFrameRate, facingMode, echoCancellation, noiseSuppression, sampleRate,
-        audioEnabled, videoEnabled]);
+    }, [audioEnabled, videoEnabled]);
 
     // 游戏语音模块
     const [haveCalledOnce, setHaveCalledOnce] = useState(false);
@@ -2891,6 +2905,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         noiseSuppression={noiseSuppression} setNoiseSuppression={setNoiseSuppression}
                                         sampleRate={sampleRate} setSampleRate={setSampleRate}
                                         setModalOpen={setMediaTrackSettingsModalOpen}
+                                        setConstraint={setConstraint} videoEnabled={videoEnabled} audioEnabled={audioEnabled}
+                                        facingMode={facingMode}
                                     />
                                 }
                             </div>
