@@ -21,12 +21,13 @@ import {
     View,
     AudioIcon, AudioIconDisabled, MessageIcon,
     VideoIcon, VideoIconDisabled,
-    NoVideoIcon, SpeakerIcon, ShareIcon,
+    NoVideoIcon, SpeakerIcon, ShareIcon, MediaTrackSettingsIcon,
     ShareScreenIcon, StopShareScreenIcon, StatPanelIcon,
     BGM1, BGM2,
     DeviceType,
     root,
     Piece_Type_White,
+    InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate,
 } from './ConstDefine.jsx'
 import { Howl } from 'howler';
 import {
@@ -1553,7 +1554,7 @@ function VideoStatsTool({ connectionRef, isShareScreen,
             const handleOnStream = (stream) => {
                 clearInterval(intervalRef.current);
                 initRefs();
-                const id = setInterval(() => checkVideoBitrate(peer), 1000);
+                const id = setInterval(() => checkVideoBitrate(peer, stream.getVideoTracks()[0]), 1000);
                 intervalRef.current = id;
             };
             peer.on('stream', handleOnStream);
@@ -1570,6 +1571,150 @@ function VideoStatsTool({ connectionRef, isShareScreen,
     }, []);
 
     return null;
+}
+
+function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVideoHeight,
+    setLocalVideoHeight, localFrameRate, setLocalFrameRate, echoCancellation, setEchoCancellation,
+    noiseSuppression, setNoiseSuppression, sampleRate, setSampleRate, setModalOpen
+}) {
+    const [localVideoWidth_Temp, setLocalVideoWidth_Temp] = useState(localVideoWidth);
+    const [localVideoHeight_Temp, setLocalVideoHeight_Temp] = useState(localVideoHeight);
+    const [localFrameRate_Temp, setLocalFrameRate_Temp] = useState(localFrameRate);
+    const [echoCancellation_Temp, setEchoCancellation_Temp] = useState(echoCancellation);
+    const [noiseSuppression_Temp, setNoiseSuppression_Temp] = useState(noiseSuppression);
+    const [sampleRate_Temp, setSampleRate_Temp] = useState(sampleRate);
+
+    const handleWidthChange = (event) => {
+        setLocalVideoWidth_Temp(parseInt(event.target.value));
+    };
+
+    const handleWidthBlur = (event) => {
+        let val = event.target.value;
+        if (val > FrameWidth.Max) {
+            val = FrameWidth.Max;
+        }
+        else if (val < FrameWidth.Min) {
+            val = FrameWidth.Min;
+        }
+        setLocalVideoWidth_Temp(parseInt(val));
+    }
+
+    const handleHeightChange = (event) => {
+        setLocalVideoHeight_Temp(parseInt(event.target.value));
+    };
+
+    const handleHeightBlur = (event) => {
+        let val = event.target.value;
+        if (val > FrameHeight.Max) {
+            val = FrameHeight.Max;
+        }
+        else if (val < FrameHeight.Min) {
+            val = FrameHeight.Min;
+        }
+        setLocalVideoHeight_Temp(parseInt(val));
+    }
+
+    const handleFrameRateChange = (event) => {
+        const value = parseInt(event.target.value);
+        if (value >= FrameRate.Min && value <= FrameRate.Max) {
+            setLocalFrameRate_Temp(value);
+        }
+    };
+
+    const handleEchoCancellationChange = () => {
+        setEchoCancellation_Temp((prevValue) => !prevValue);
+    };
+
+    const handleNoiseSuppressionChange = () => {
+        setNoiseSuppression_Temp((prevValue) => !prevValue);
+    };
+
+    const handleSampleRateChange = (event) => {
+        setSampleRate_Temp(parseInt(event.target.value));
+    };
+
+    const handleSampleRateBlur = (event) => {
+        let val = event.target.value;
+        if (val > SampleRate.Max) {
+            val = SampleRate.Max;
+        }
+        else if (val < SampleRate.Min) {
+            val = SampleRate.Min;
+        }
+        setSampleRate_Temp(parseInt(val));
+    }
+
+    const onRestoreBtnClick = () => {
+        setLocalVideoWidth_Temp(InitMediaTrackSettings.localVideoWidth);
+        setLocalVideoHeight_Temp(InitMediaTrackSettings.localVideoHeight);
+        setLocalFrameRate_Temp(InitMediaTrackSettings.localFrameRate);
+        setEchoCancellation_Temp(InitMediaTrackSettings.echoCancellation);
+        setNoiseSuppression_Temp(InitMediaTrackSettings.noiseSuppression);
+        setSampleRate_Temp(InitMediaTrackSettings.sampleRate);
+    }
+
+    const onOkBtnClick = () => {
+        setLocalVideoWidth(localVideoWidth_Temp);
+        setLocalVideoHeight(localVideoHeight_Temp);
+        setLocalFrameRate(localFrameRate_Temp);
+        setEchoCancellation(echoCancellation_Temp);
+        setNoiseSuppression(noiseSuppression_Temp);
+        setSampleRate(sampleRate_Temp);
+        setModalOpen(false);
+    }
+
+    const onCancelBtnClick = () => {
+        setModalOpen(false);
+    }
+
+    return (
+        <div className='media-track-settings-modal-overlay'>
+            <div className='media-track-settings-modal'>
+                <label>
+                    Local Video Width:
+                    <input type="number" value={localVideoWidth_Temp} onChange={handleWidthChange}
+                        onBlur={handleWidthBlur}
+                        min={FrameWidth.Min} max={FrameWidth.Max} />
+                </label>
+                <label>
+                    Local Video Height:
+                    <input type="number" value={localVideoHeight_Temp} onChange={handleHeightChange}
+                        onBlur={handleHeightBlur}
+                        min={FrameHeight.Min} max={FrameHeight.Max} />
+                </label>
+                <label>
+                    Local Frame Rate:
+                    <input type="range" min="30" max="120" value={localFrameRate_Temp} onChange={handleFrameRateChange} />
+                    {localFrameRate_Temp}
+                </label>
+                <label>
+                    Echo Cancellation:
+                    <button onClick={handleEchoCancellationChange}>{echoCancellation_Temp ? 'On' : 'Off'}</button>
+                </label>
+                <label>
+                    Noise Suppression:
+                    <button onClick={handleNoiseSuppressionChange}>{noiseSuppression_Temp ? 'On' : 'Off'}</button>
+                </label>
+                <label>
+                    Sample Rate:
+                    <input type="number" value={sampleRate_Temp} onChange={handleSampleRateChange}
+                        onBlur={handleSampleRateBlur}
+                        min={SampleRate.Min} max={SampleRate.Max} />
+                </label>
+                <div className='media-track-settings-button-confirm-container'>
+                    <button className='button-normal' style={{ marginLeft: '0' }} variant="contained" color="primary" onClick={onRestoreBtnClick}>
+                        恢复默认参数
+                    </button>
+                    <button className='button-normal' variant="contained" color="primary" onClick={onCancelBtnClick}>
+                        取消
+                    </button>
+                    <button className='button-normal' variant="contained" color="primary" onClick={onOkBtnClick}>
+                        确定
+                    </button>
+                </div>
+            </div>
+        </div>
+    );
 }
 
 function VideoChat({ sid, deviceType, socket, returnMenuView,
@@ -1621,6 +1766,45 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [inviteVideoChatModalOpen, setInviteVideoChatModalOpen] = useState(false);
     const [strNowDate, setStrNowDate] = useState(); // current time formatted from server
     const [peerConfig, setPeerConfig] = useState();
+    // MediaTrackSettings
+    const [mediaTrackSettingsModalOpen, setMediaTrackSettingsModalOpen] = useState(false);
+    const [localVideoWidth, setLocalVideoWidth] = useState(InitMediaTrackSettings.localVideoWidth);
+    const [localVideoHeight, setLocalVideoHeight] = useState(InitMediaTrackSettings.localVideoHeight);
+    const [localFrameRate, setLocalFrameRate] = useState(InitMediaTrackSettings.localFrameRate);
+    const [facingMode, setFacingMode] = useState(InitMediaTrackSettings.facingMode);
+    const [echoCancellation, setEchoCancellation] = useState(InitMediaTrackSettings.echoCancellation);
+    const [noiseSuppression, setNoiseSuppression] = useState(InitMediaTrackSettings.noiseSuppression);
+    const [sampleRate, setSampleRate] = useState(InitMediaTrackSettings.sampleRate);
+    const [constraint, setConstraint] = useState({
+        video: videoEnabled ? {
+            width: localVideoWidth,
+            height: localVideoHeight,
+            frameRate: localFrameRate,
+            facingMode: facingMode,
+        } : false,
+        audio: audioEnabled ? {
+            echoCancellation: echoCancellation,
+            noiseSuppression: noiseSuppression,
+            sampleRate: sampleRate,
+        } : false,
+    });
+
+    useEffect(() => {
+        setConstraint({
+            video: videoEnabled ? {
+                width: localVideoWidth,
+                height: localVideoHeight,
+                frameRate: localFrameRate,
+                facingMode: facingMode,
+            } : false,
+            audio: audioEnabled ? {
+                echoCancellation: echoCancellation,
+                noiseSuppression: noiseSuppression,
+                sampleRate: sampleRate,
+            } : false,
+        });
+    }, [localVideoWidth, localVideoHeight, localFrameRate, facingMode, echoCancellation, noiseSuppression, sampleRate,
+        audioEnabled, videoEnabled]);
 
     // 游戏语音模块
     const [haveCalledOnce, setHaveCalledOnce] = useState(false);
@@ -1773,10 +1957,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     // 获取媒体流
     async function getUserMediaStream() {
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({
-                video: videoEnabled,
-                audio: audioEnabled
-            });
+            const stream = await navigator.mediaDevices.getUserMedia(constraint);
             return stream;
         } catch (error) {
             console.error('未打开摄像头和麦克风', error);
@@ -1888,7 +2069,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 localStream.getTracks().forEach(track => track.stop());
             }
         };
-    }, [videoEnabled, audioEnabled, selectedAudioDevice, selectedVideoDevice]);
+    }, [constraint, selectedAudioDevice, selectedVideoDevice]);
 
     useEffect(() => {
         if (socket && myVideo.current) {
@@ -2553,7 +2734,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             </div>
                         }
                     </div>
-                    {!peerSocketId &&
+                    {!peerSocketId && /*以下都不会在游戏语音通话模块中加载 */
                         <div className="myId">
                             {!callAccepted &&
                                 <>
@@ -2622,6 +2803,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 }} />
                                 <img src={MessageIcon} alt="Message" className="icon" onClick={() => {
                                     setChatPanelOpen(prev => !prev);
+                                }} />
+                                <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className="icon" onClick={() => {
+                                    setMediaTrackSettingsModalOpen(prev => !prev);
                                 }} />
                             </div>
 
@@ -2696,6 +2880,18 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 {
                                     chatPanelOpen &&
                                     <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} ncobj={connectionRef?.current?.peer} />
+                                }
+                                {
+                                    mediaTrackSettingsModalOpen &&
+                                    <MediaTrackSettingsModal
+                                        localVideoWidth={localVideoWidth} setLocalVideoWidth={setLocalVideoWidth}
+                                        localVideoHeight={localVideoHeight} setLocalVideoHeight={setLocalVideoHeight}
+                                        localFrameRate={localFrameRate} setLocalFrameRate={setLocalFrameRate}
+                                        echoCancellation={echoCancellation} setEchoCancellation={setEchoCancellation}
+                                        noiseSuppression={noiseSuppression} setNoiseSuppression={setNoiseSuppression}
+                                        sampleRate={sampleRate} setSampleRate={setSampleRate}
+                                        setModalOpen={setMediaTrackSettingsModalOpen}
+                                    />
                                 }
                             </div>
                             <VideoStatsTool

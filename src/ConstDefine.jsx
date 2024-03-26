@@ -85,6 +85,7 @@ export const ShareScreenIcon = '/picture/svg/ShareScreenIcon.svg';
 export const StopShareScreenIcon = '/picture/svg/StopShareScreenIcon.svg';
 export const MessageIcon = '/picture/svg/MessageIcon.svg';
 export const StatPanelIcon = '/picture/svg/StatPanelIcon.svg';
+export const MediaTrackSettingsIcon = '/picture/svg/MediaTrackSettingsIcon.svg';
 
 export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
 export const BGM2 = '/audio/bgm/after_the_rain.mp3';
@@ -110,5 +111,42 @@ export const TitleNotice = {
         region: '湖北',
         city: '广水',
     }
+}
+
+export const FacingMode = {
+    Front: 'user',
+    Behind: 'environment',
+}
+export const FrameRate = {
+    Min: 30,
+    Default: 30,
+    Max: 120,
+}
+export const SampleRate = {
+    Min: 8000,
+    Default: 48000,
+    Max: 51200,
+}
+
+export const FrameWidth = {
+    Min: 64,
+    Default: 640,
+    Max: Infinity,
+}
+
+export const FrameHeight = {
+    Min: 64,
+    Default: 480,
+    Max: Infinity,
+}
+
+export const InitMediaTrackSettings = {
+    localVideoWidth: FrameWidth.Default,
+    localVideoHeight: FrameHeight.Default,
+    localFrameRate: FrameRate.Default,
+    facingMode: FacingMode.Front,
+    echoCancellation: true,
+    noiseSuppression: true,
+    sampleRate: SampleRate.Default
 }
 
