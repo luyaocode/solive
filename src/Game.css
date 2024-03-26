@@ -2372,3 +2372,32 @@
   justify-content: center;
   background-color: #000000;
 }
+
+/* LocalMediaStream */
+.local-media-stream {
+  width: 400px;
+  height: auto,
+}
+
+.display-none {
+  display: none;
+}
+
+/* media-ctl-menu */
+.media-ctl-menu {
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.media-ctl-menu .menu-icon {
+  width: 100%;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}
+
+.media-ctl-menu .icon {
+  max-width: 20%;
+  padding-top: 0.5rem;
+  padding-bottom: 0.5rem;
+}

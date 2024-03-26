@@ -23,8 +23,8 @@ import {
     VideoIcon, VideoIconDisabled,
     NoVideoIcon, SpeakerIcon, ShareIcon, MediaTrackSettingsIcon, SelectVideoIcon,
     ShareScreenIcon, StopShareScreenIcon, StatPanelIcon, SwitchCameraIcon,
-    BGM1, BGM2,
-    DeviceType,
+    BGM1, BGM2, SmallSpeakerIcon, SmallSpeakerSilentIcon, MediaCtlMenuIcon,
+    DeviceType, CloseMediaCtlMenuIcon,
     root,
     Piece_Type_White,
     InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate,
@@ -1838,6 +1838,18 @@ function SelectVideoModal({ setModalOpen, selectedVideoRef, setSelectedMediaStre
     );
 }
 
+function VolumeCtlSlider({ handleVolumeChange, videoRef }) {
+    return (
+        <input
+            type="range"
+            min="0"
+            max="1"
+            step="0.1"
+            onChange={(event) => handleVolumeChange(event, videoRef)}
+        />
+    );
+}
+
 function VideoChat({ sid, deviceType, socket, returnMenuView,
     messages, setMessages, chatPanelOpen, setChatPanelOpen,
     peerSocketId/* 游戏中对方的socke id*/,
@@ -1872,6 +1884,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     // 控制
     const [videoEnabled, setVideoEnabled] = useState(true);
     const [audioEnabled, setAudioEnabled] = useState(true);
+    const [audioVolume, setAudioVolume] = useState(0);
     const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
     const [remoteAudioEnabled, setRemoteAudioEnabled] = useState(false);
     const [screenAudioEnabled, setScreenAudioEnabled] = useState(true); // display media audio
@@ -2714,6 +2727,23 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         event.stopPropagation();
     };
 
+    const handleVolumeChange = (event, videoRef) => {
+        const newVolume = parseFloat(event.target.value);
+        if (videoRef.current) {
+            if (videoRef.current.volume < newVolume) {
+                if (videoRef.current.muted) {
+                    videoRef.current.muted = false;
+                }
+            }
+            else if (newVolume === 0) {
+                if (!videoRef.current.muted) {
+                    videoRef.current.muted = true;
+                }
+            }
+            videoRef.current.volume = newVolume;
+        }
+    };
+
     return (
         <>
             <div className='video-chat-view'>
@@ -2733,8 +2763,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 <div className="container">
                     <div className="video-container">
                         <div className='video'>
-                            <video ref={myVideo} playsInline muted loop={true} controls autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
-                                onClick={handleVideoClick} />
+                            <video ref={myVideo} playsInline loop={true} muted controls autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
+                                onClick={handleVideoClick}
+                            />
                             {!hasLocalVideoTrack && !hasLocalAudioTrack && (
                                 <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
                             )}
@@ -2742,9 +2773,18 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
                             )}
                             <TextOverlay
+                                isMediaCtlMenu={true}
                                 position="top-left"
                                 content={name}
                                 audioEnabled={audioEnabled}
+                                setAudioEnabled={setAudioEnabled}
+                                videoEnabled={videoEnabled}
+                                setVideoEnabled={setVideoEnabled}
+                                handleVolumeChange={handleVolumeChange}
+                                videoRef={myVideo}
+                                setSelectedAudioDevice={setSelectedAudioDevice}
+                                setSelectedVideoDevice={setSelectedVideoDevice}
+                                callAccepted={callAccepted}
                             />
                             {selectedMediaStream &&
                                 <TextOverlay
@@ -2780,6 +2820,17 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 ]}
                             />
                         </div>
+                        {
+                            <div className='video'>
+                                <video ref={selectedVideoRef} controls loop={true}
+                                    className={`local-media-stream ${selectedMediaStream ? '' : 'display-none'}`}
+                                />
+                                <TextOverlay
+                                    position="top-left"
+                                    content={name + '的本地视频'}
+                                />
+                            </div>
+                        }
                         {isShareScreen &&
                             <div className='video'>
                                 <video ref={shareScreenVideo} playsInline muted autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
@@ -3080,9 +3131,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         audioSource={audioSource} setAudioSource={setAudioSource}
                                         setAudioCtx={setAudioCtx} audioCtx={audioCtx} />
                                 }
-                                {
-                                    <video ref={selectedVideoRef} controls loop={true} style={{ display: 'none' }} />
-                                }
                             </div>
                             <VideoStatsTool
                                 connectionRef={connectionRef}
@@ -3188,20 +3236,41 @@ function InviteVideoChatModal({ closeModal, me, name, socket, inviteVideoChatMod
     );
 }
 
-function TextOverlay({ position, content, contents, audioEnabled, iconSrc,
-    selectedFileName, setSelectedMediaStream }) {
-    const [audioIcon, setAudioIcon] = useState(AudioIcon);
+function TextOverlay({ position, content, contents, audioEnabled, setAudioEnabled,
+    iconSrc, videoEnabled, setVideoEnabled, setSelectedAudioDevice,
+    setSelectedVideoDevice, callAccepted,
+    selectedFileName, setSelectedMediaStream, isMediaCtlMenu,
+    videoRef, handleVolumeChange }) {
+    // const [audioIcon, setAudioIcon] = useState(AudioIcon);
+    // const [videoIcon, setVideoIcon] = useState(VideoIcon);
+    const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
     const [showStatPanel, setShowStatPanel] = useState(false);
+    const [showMediaCtlMenu, setShowMediaCtlMenu] = useState(false);
     const node = useRef();
 
+    // useEffect(() => {
+    //     if (audioEnabled !== undefined) {
+    //         setAudioIcon(audioEnabled ? AudioIcon : AudioIconDisabled);
+    //     }
+    // }, [audioEnabled]);
+
+    // useEffect(() => {
+    //     if (videoEnabled !== undefined) {
+    //         setVideoIcon(videoEnabled ? VideoIcon : VideoIconDisabled);
+    //     }
+    // }, [videoEnabled]);
+
     useEffect(() => {
-        if (audioEnabled) {
-            setAudioIcon(AudioIcon);
-        }
-        else {
-            setAudioIcon(AudioIconDisabled);
-        }
-    }, [audioEnabled]);
+        const handleVolumeChange = () => {
+            if (videoRef && videoRef.current) {
+                setSpeakerIcon(videoRef?.current?.muted ? SmallSpeakerSilentIcon : SmallSpeakerIcon);
+            }
+        };
+        videoRef?.current?.addEventListener('volumechange', handleVolumeChange);
+        return () => {
+            videoRef?.current?.removeEventListener('volumechange', handleVolumeChange);
+        };
+    }, [videoRef]);
 
     useEffect(() => {
         if (node.current) {
@@ -3233,6 +3302,20 @@ function TextOverlay({ position, content, contents, audioEnabled, iconSrc,
         }
     }
 
+    function toggleCtlMenu() {
+        setShowMediaCtlMenu(prev => !prev);
+    }
+
+    function handleSpeakerClick() {
+        if (videoRef.current) {
+            videoRef.current.muted = !(videoRef.current.muted);
+        }
+    }
+
+    // function handleAudioClick() {
+    //     setAudioEnabled(prev => !prev);
+    // }
+
     const handleClickOutside = (e) => {
         if (node.current && !node.current.contains(e.target) &&
             !e.target.classList.contains('icon')) {
@@ -3259,13 +3342,29 @@ function TextOverlay({ position, content, contents, audioEnabled, iconSrc,
                 ...getPositionStyle(), // 应用位置样式
             }}
         >
-            {audioEnabled !== undefined &&
-                <img src={audioIcon} alt="Audio" className="icon" />
+            {isMediaCtlMenu &&
+                <div className='media-ctl-menu'>
+                    {!showMediaCtlMenu &&
+                        <img src={MediaCtlMenuIcon} alt="MediaCtlMenu" className="menu-icon" onClick={toggleCtlMenu} />
+                    }
+                    {showMediaCtlMenu &&
+                        <>
+                            <img src={CloseMediaCtlMenuIcon} alt="CloseMediaCtlMenu" className="icon close-menu-icon" onClick={toggleCtlMenu} />
+                            {/* <img src={audioIcon} alt="Audio" className="icon" onClick={handleAudioClick} /> */}
+                            <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled}
+                                setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted} />
+                            <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled}
+                                setSelectedDevice={setSelectedVideoDevice} callAccepted={callAccepted} />
+                            <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick} />
+                            <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef} />
+                        </>
+                    }
+                </div>
             }
             {iconSrc &&
                 <img src={iconSrc} alt="Icon" className="icon" onClick={toggleStatPanel} />
             }
-            {content && content}
+            {content && !showMediaCtlMenu && content}
             {selectedFileName &&
                 <div className='text-overlay-container'>
                     <span>正在播放视频 </span>
