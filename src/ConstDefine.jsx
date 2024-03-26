@@ -86,6 +86,7 @@ export const StopShareScreenIcon = '/picture/svg/StopShareScreenIcon.svg';
 export const MessageIcon = '/picture/svg/MessageIcon.svg';
 export const StatPanelIcon = '/picture/svg/StatPanelIcon.svg';
 export const MediaTrackSettingsIcon = '/picture/svg/MediaTrackSettingsIcon.svg';
+export const SwitchCameraIcon = '/picture/svg/SwitchCameraIcon.svg';
 
 export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
 export const BGM2 = '/audio/bgm/after_the_rain.mp3';

@@ -22,7 +22,7 @@ import {
     AudioIcon, AudioIconDisabled, MessageIcon,
     VideoIcon, VideoIconDisabled,
     NoVideoIcon, SpeakerIcon, ShareIcon, MediaTrackSettingsIcon,
-    ShareScreenIcon, StopShareScreenIcon, StatPanelIcon,
+    ShareScreenIcon, StopShareScreenIcon, StatPanelIcon, SwitchCameraIcon,
     BGM1, BGM2,
     DeviceType,
     root,
@@ -1835,6 +1835,22 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 sampleRate: sampleRate,
             } : false,
         });
+    }, [facingMode]);
+
+    useEffect(() => {
+        setConstraint({
+            video: videoEnabled ? {
+                width: localVideoWidth,
+                height: localVideoHeight,
+                frameRate: localFrameRate,
+                facingMode: facingMode,
+            } : false,
+            audio: audioEnabled ? {
+                echoCancellation: echoCancellation,
+                noiseSuppression: noiseSuppression,
+                sampleRate: sampleRate,
+            } : false,
+        });
     }, [audioEnabled, videoEnabled]);
 
     // 游戏语音模块
@@ -2837,6 +2853,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 }} />
                                 <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className="icon" onClick={() => {
                                     setMediaTrackSettingsModalOpen(prev => !prev);
+                                }} />
+                                <img src={SwitchCameraIcon} alt="SwitchCamera" className="icon" onClick={() => {
+                                    setFacingMode(prev => (prev === FacingMode.Behind ? FacingMode.Front : FacingMode.Behind));
                                 }} />
                             </div>
 
