@@ -21,7 +21,7 @@ import {
     View,
     AudioIcon, AudioIconDisabled, MessageIcon,
     VideoIcon, VideoIconDisabled,
-    NoVideoIcon, SpeakerIcon, ShareIcon, MediaTrackSettingsIcon,
+    NoVideoIcon, SpeakerIcon, ShareIcon, MediaTrackSettingsIcon, SelectVideoIcon,
     ShareScreenIcon, StopShareScreenIcon, StatPanelIcon, SwitchCameraIcon,
     BGM1, BGM2,
     DeviceType,
@@ -1533,7 +1533,12 @@ function VideoStatsTool({ connectionRef, localStream, isShareScreen,
                         }
                     }
                 });
+            }).catch(error => {
+                // console.error(error);
             });
+        }
+        else {
+            // console.error("RTCPeerConnection is not established or in an invalid state.");
         }
     }
 
@@ -1749,6 +1754,90 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
     );
 }
 
+function SelectVideoModal({ setModalOpen, selectedVideoRef, setSelectedMediaStream,
+    selectedLocalFile, setSelectedLocalFile, audioSource, setAudioSource,
+    audioCtx, setAudioCtx }) {
+    const videoRef = useRef(null);
+    const [selFile, setSelFile] = useState();
+
+    const handlePlayVideo = (file, videoRef, replaceCameraMideaStream) => {
+        if (!file) return;
+        const reader = new FileReader();
+        reader.onload = async () => {
+            if (!videoRef.current) return;
+            const video = videoRef.current;
+            if (!video.paused) {
+                video.pause();
+            }
+            video.src = URL.createObjectURL(file);
+            await video.play();
+            if (replaceCameraMideaStream) {
+                let actx, source;
+                if (audioSource && audioCtx) {
+                    audioSource.disconnect();
+                    source = audioSource;
+                    actx = audioCtx;
+                }
+                else {
+                    actx = new AudioContext();
+                    source = actx.createMediaElementSource(video);
+                    setAudioSource(source);
+                    setAudioCtx(actx);
+                }
+                const destination = actx.createMediaStreamDestination();
+                source.connect(destination);
+
+                const mediaStream = new MediaStream();
+                const mediaTracks = video.captureStream().getTracks();
+                mediaTracks.forEach(track => {
+                    mediaStream.addTrack(track);
+                });
+                setSelectedMediaStream(mediaStream);
+            }
+        };
+        reader.readAsArrayBuffer(file);
+    }
+
+    const onOkBtnClick = () => {
+        if (selFile) {
+            setSelectedLocalFile(selFile);
+        }
+        handlePlayVideo(selFile, selectedVideoRef, true);
+        setModalOpen(false);
+    }
+
+    const handleFileChange = async (event) => {
+        const file = event.target.files[0];
+        if (!file) return;
+        setSelFile(file);
+        handlePlayVideo(file, videoRef);
+    };
+
+    return (
+        <div className='select-video-modal-overlay'>
+            <div className='select-video-modal'>
+                <span className="close-button" onClick={() => setModalOpen(false)}>
+                    &times;
+                </span>
+                <label className="custom-file-upload">
+                    <input type="file" accept="video/*" onChange={handleFileChange} />
+                    <span>选择视频</span>
+                </label>
+                {selFile?.name ?
+                    <>
+                        <p>{selFile.name}</p>
+                        <video ref={videoRef} controls />
+                    </> : selectedLocalFile?.name ?
+                        <div style={{ display: 'flex' }}>
+                            <p style={{ minWidth: '5rem', whiteSpace: 'nowrap' }}>上次选择：</p><p style={{ color: 'gray' }}>{selectedLocalFile.name}</p>
+                        </div> : null
+                }
+                <ButtonBox onOkBtnClick={onOkBtnClick} OnCancelBtnClick={() => setModalOpen(false)} />
+            </div>
+        </div>
+    );
+}
+
 function VideoChat({ sid, deviceType, socket, returnMenuView,
     messages, setMessages, chatPanelOpen, setChatPanelOpen,
     peerSocketId/* 游戏中对方的socke id*/,
@@ -1820,6 +1909,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             sampleRate: sampleRate,
         } : false,
     });
+
+    const [selectVideoModalOpen, setSelectVideoModalOpen] = useState(false);
+    const [selectedLocalFile, setSelectedLocalFile] = useState();
+    const [selectedMediaStream, setSelectedMediaStream] = useState();
+    const [audioSource, setAudioSource] = useState();
+    const [audioCtx, setAudioCtx] = useState();
+    const selectedVideoRef = useRef(null);
 
     useEffect(() => {
         setConstraint({
@@ -2086,27 +2182,49 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
         getUserMediaStream()
             .then(stream => {
+                // 已连接
                 if (connectionRef.current && connectionRef.current.peer && !connectionRef.current.peer.destroyed) {
-                    // 替换轨道
-                    if (localStream && localStream.active) {
-                        localStream.getTracks().forEach(track => {
-                            connectionRef.current.peer.removeTrack(track, localStream);
-                        });
-                    }
-                    if (stream) {
-                        stream.getTracks().forEach(track => {
-                            connectionRef.current.peer.addTrack(track, stream);
-                        });
+                    if (selectedMediaStream) {
+                        if (localStream && localStream.active) {
+                            localStream.getTracks().forEach(track => {
+                                connectionRef.current.peer.removeTrack(track, localStream);
+                            });
+                        }
+                        if (selectedMediaStream) {
+                            selectedMediaStream.getTracks().forEach(track => {
+                                setTimeout(() => connectionRef.current.peer.addTrack(track, stream), 1000);
+                            });
+                        }
                     }
                     else {
-                        // No MediaStream
-                        // connectionRef.current.peer.send('nomedia');
-                        socket.emit("nomedia", { to: another });
+                        if (localStream && localStream.active) {
+                            localStream.getTracks().forEach(track => {
+                                connectionRef.current.peer.removeTrack(track, localStream);
+                            });
+                        }
+                        if (stream) {
+                            stream.getTracks().forEach(track => {
+                                connectionRef.current.peer.addTrack(track, stream);
+                            });
+                        }
+                        else {
+                            // No MediaStream
+                            // connectionRef.current.peer.send('nomedia');
+                            socket.emit("nomedia", { to: another });
+                        }
                     }
                 }
-                setLocalStream(stream);
-                if (myVideo.current) {
-                    myVideo.current.srcObject = stream;
+                if (selectedMediaStream) {
+                    setLocalStream(selectedMediaStream);
+                    if (myVideo.current) {
+                        myVideo.current.srcObject = selectedMediaStream;
+                    }
+                }
+                else {
+                    setLocalStream(stream);
+                    if (myVideo.current) {
+                        myVideo.current.srcObject = stream;
+                    }
                 }
             });
 
@@ -2116,7 +2234,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 localStream.getTracks().forEach(track => track.stop());
             }
         };
-    }, [constraint, selectedAudioDevice, selectedVideoDevice]);
+    }, [constraint, selectedAudioDevice, selectedVideoDevice, selectedMediaStream]);
 
     useEffect(() => {
         if (socket && myVideo.current) {
@@ -2615,7 +2733,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 <div className="container">
                     <div className="video-container">
                         <div className='video'>
-                            <video ref={myVideo} playsInline muted autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
+                            <video ref={myVideo} playsInline muted loop={true} controls autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
                                 onClick={handleVideoClick} />
                             {!hasLocalVideoTrack && !hasLocalAudioTrack && (
                                 <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
@@ -2628,6 +2746,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 content={name}
                                 audioEnabled={audioEnabled}
                             />
+                            {selectedMediaStream &&
+                                <TextOverlay
+                                    position="top-left"
+                                    selectedFileName={selectedLocalFile?.name}
+                                    setSelectedMediaStream={setSelectedMediaStream}
+                                />
+                            }
                             <TextOverlay
                                 position="top-right"
                                 iconSrc={StatPanelIcon}
@@ -2693,7 +2818,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         }
                         {callAccepted && !callEnded ?
                             <div className="video">
-                                <video ref={userVideo} playsInline autoPlay style={{
+                                <video ref={userVideo} playsInline autoPlay loop={true} controls style={{
                                     position: 'relative', zIndex: 0, width: '400px',
                                     opacity: hasRemoteVideoTrack ? '1' : '0'
                                 }}
@@ -2851,11 +2976,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 <img src={MessageIcon} alt="Message" className="icon" onClick={() => {
                                     setChatPanelOpen(prev => !prev);
                                 }} />
-                                <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className="icon" onClick={() => {
+                                <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
                                     setMediaTrackSettingsModalOpen(prev => !prev);
                                 }} />
-                                <img src={SwitchCameraIcon} alt="SwitchCamera" className="icon" onClick={() => {
+                                <img src={SwitchCameraIcon} alt="SwitchCamera" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
                                     setFacingMode(prev => (prev === FacingMode.Behind ? FacingMode.Front : FacingMode.Behind));
+                                }} />
+                                <img src={SelectVideoIcon} alt="SelectVideo" className="icon" onClick={() => {
+                                    setSelectVideoModalOpen(true);
                                 }} />
                             </div>
 
@@ -2944,6 +3072,16 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         setConstraint={setConstraint} videoEnabled={videoEnabled} audioEnabled={audioEnabled}
                                         facingMode={facingMode}
                                     />
+                                }
+                                {selectVideoModalOpen &&
+                                    <SelectVideoModal setModalOpen={setSelectVideoModalOpen} selectedVideoRef={selectedVideoRef}
+                                        setSelectedMediaStream={setSelectedMediaStream}
+                                        selectedLocalFile={selectedLocalFile} setSelectedLocalFile={setSelectedLocalFile}
+                                        audioSource={audioSource} setAudioSource={setAudioSource}
+                                        setAudioCtx={setAudioCtx} audioCtx={audioCtx} />
+                                }
+                                {
+                                    <video ref={selectedVideoRef} controls loop={true} style={{ display: 'none' }} />
                                 }
                             </div>
                             <VideoStatsTool
@@ -3050,7 +3188,8 @@ function InviteVideoChatModal({ closeModal, me, name, socket, inviteVideoChatMod
     );
 }
 
-function TextOverlay({ position, content, contents, audioEnabled, iconSrc }) {
+function TextOverlay({ position, content, contents, audioEnabled, iconSrc,
+    selectedFileName, setSelectedMediaStream }) {
     const [audioIcon, setAudioIcon] = useState(AudioIcon);
     const [showStatPanel, setShowStatPanel] = useState(false);
     const node = useRef();
@@ -3101,6 +3240,10 @@ function TextOverlay({ position, content, contents, audioEnabled, iconSrc }) {
         }
     };
 
+    const onBackButtonClick = () => {
+        setSelectedMediaStream(null);
+    };
+
     return (
         <div
             ref={node}
@@ -3123,6 +3266,13 @@ function TextOverlay({ position, content, contents, audioEnabled, iconSrc }) {
                 <img src={iconSrc} alt="Icon" className="icon" onClick={toggleStatPanel} />
             }
             {content && content}
+            {selectedFileName &&
+                <div className='text-overlay-container'>
+                    <span>正在播放视频 </span>
+                    <span style={{ color: 'gray' }}>{selectedFileName}</span>
+                    <button className='button-normal' onClick={onBackButtonClick}>退出</button>
+                </div>
+            }
             {contents && showStatPanel &&
                 <div>
                     {
