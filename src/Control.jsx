@@ -1435,7 +1435,7 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
     );
 }
 
-function VideoStatsTool({ connectionRef, isShareScreen,
+function VideoStatsTool({ connectionRef, localStream, isShareScreen,
     setInboundBitrate, setInboundVideoDelay, setInboundFramesPerSecond,
     setInboundFrameWidth, setInboundFrameHeight,
     setOutboundBitrate, setOutboundFramesPerSecond,
@@ -1550,19 +1550,32 @@ function VideoStatsTool({ connectionRef, isShareScreen,
             }
         }
         else if (connectionRef?.current?.peer && !connectionRef.current.peer.destroyed) {
-            const peer = connectionRef.current.peer;
-            const handleOnStream = (stream) => {
+            if (localStream) {
+                const peer = connectionRef.current.peer;
                 clearInterval(intervalRef.current);
                 initRefs();
-                const id = setInterval(() => checkVideoBitrate(peer, stream.getVideoTracks()[0]), 1000);
-                intervalRef.current = id;
-            };
-            peer.on('stream', handleOnStream);
-            return () => {
-                clearInterval(intervalRef.current);
+                if (localStream.getVideoTracks().length > 0) {
+                    const id = setInterval(() => checkVideoBitrate(peer, localStream.getVideoTracks()[0]), 1000);
+                    intervalRef.current = id;
+                }
+                return () => {
+                    clearInterval(intervalRef.current);
+                }
+            } else {
+                const peer = connectionRef.current.peer;
+                const handleOnStream = (stream) => {
+                    clearInterval(intervalRef.current);
+                    initRefs();
+                    const id = setInterval(() => checkVideoBitrate(peer, stream.getVideoTracks()[0]), 1000);
+                    intervalRef.current = id;
+                };
+                peer.on('stream', handleOnStream);
+                return () => {
+                    clearInterval(intervalRef.current);
+                }
             }
         }
-    }, [connectionRef.current]);
+    }, [connectionRef.current, localStream]);
 
     useEffect(() => {
         return () => {
@@ -1685,7 +1698,11 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
     return (
         <div className='media-track-settings-modal-overlay'>
             <div className='media-track-settings-modal'>
-                <label>
+                <p>媒体轨道设置</p>
+                <span className="close-button" onClick={onCancelBtnClick}>
+                    &times;
+                </span>
+                <label style={{ marginTop: '2rem' }}>
                     Local Video Width:
                     <input type="number" value={localVideoWidth_Temp} onChange={handleWidthChange}
                         onBlur={handleWidthBlur}
@@ -2600,24 +2617,24 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 iconSrc={StatPanelIcon}
                                 contents={[
                                     {
-                                        name: 'outbound video bitrate',
+                                        name: 'Video Bitrate',
                                         data: outboundVideoBitrate.toFixed(4),
                                         unit: 'Mbps'
                                     },
                                     {
-                                        name: 'outbound video frame rate',
+                                        name: 'Video Frame Rate',
                                         data: outboundFramesPerSecond.toFixed(2),
-                                        unit: 'fps'
+                                        unit: ''
                                     },
                                     {
-                                        name: 'outbound video frame width',
+                                        name: 'Video Frame Width',
                                         data: outboundFrameWidth.toFixed(0),
-                                        unit: 'px'
+                                        unit: ''
                                     },
                                     {
-                                        name: 'outbound video frame width',
+                                        name: 'Video Frame Width',
                                         data: outboundFrameHeight.toFixed(0),
-                                        unit: 'px'
+                                        unit: ''
                                     },
                                 ]}
                             />
@@ -2635,24 +2652,24 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     iconSrc={StatPanelIcon}
                                     contents={[
                                         {
-                                            name: 'outbound video bitrate',
+                                            name: 'Video Bitrate',
                                             data: outboundVideoBitrate_SC.toFixed(4),
                                             unit: 'Mbps'
                                         },
                                         {
-                                            name: 'outbound video frame rate',
+                                            name: 'Video Frame Rate',
                                             data: outboundFramesPerSecond_SC.toFixed(2),
-                                            unit: 'fps'
+                                            unit: ''
                                         },
                                         {
-                                            name: 'outbound video frame width',
+                                            name: 'Video Frame Width',
                                             data: outboundFrameWidth_SC.toFixed(0),
-                                            unit: 'px'
+                                            unit: ''
                                         },
                                         {
-                                            name: 'outbound video frame width',
+                                            name: 'Video Frame Width',
                                             data: outboundFrameHeight_SC.toFixed(0),
-                                            unit: 'px'
+                                            unit: ''
                                         },
                                     ]}
                                 />
@@ -2678,29 +2695,29 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     iconSrc={StatPanelIcon}
                                     contents={[
                                         {
-                                            name: 'inbound video bitrate',
+                                            name: 'Video Bitrate',
                                             data: inboundVideoBitrate.toFixed(4),
                                             unit: 'Mbps'
                                         },
                                         {
-                                            name: 'inbound video delay',
+                                            name: 'Video Delay',
                                             data: inboundVideoDelay.toFixed(1),
                                             unit: 'ms'
                                         },
                                         {
-                                            name: 'inbound video frame rate',
+                                            name: 'Video Frame Rate',
                                             data: inboundFramesPerSecond.toFixed(2),
-                                            unit: 'fps'
+                                            unit: ''
                                         },
                                         {
-                                            name: 'inbound video frame width',
+                                            name: 'Video Frame Width',
                                             data: inboundFrameWidth.toFixed(0),
-                                            unit: 'px'
+                                            unit: ''
                                         },
                                         {
-                                            name: 'inbound video frame height',
+                                            name: 'Video Frame Height',
                                             data: inboundFrameHeight.toFixed(0),
-                                            unit: 'px'
+                                            unit: ''
                                         },
                                     ]}
                                 />
@@ -2720,29 +2737,29 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     iconSrc={StatPanelIcon}
                                     contents={[
                                         {
-                                            name: 'inbound video bitrate',
+                                            name: 'Video Bitrate',
                                             data: inboundVideoBitrate_SC.toFixed(4),
                                             unit: 'Mbps'
                                         },
                                         {
-                                            name: 'inbound video delay',
+                                            name: 'Video Delay',
                                             data: inboundVideoDelay_SC.toFixed(1),
                                             unit: 'ms'
                                         },
                                         {
-                                            name: 'inbound video frame rate',
+                                            name: 'Video Frame Rate',
                                             data: inboundFramesPerSecond_SC.toFixed(2),
-                                            unit: 'fps'
+                                            unit: ''
                                         },
                                         {
-                                            name: 'inbound video frame width',
+                                            name: 'Video Frame Width',
                                             data: inboundFrameWidth_SC.toFixed(0),
-                                            unit: 'px'
+                                            unit: ''
                                         },
                                         {
-                                            name: 'inbound video frame height',
+                                            name: 'Video Frame Height',
                                             data: inboundFrameHeight_SC.toFixed(0),
-                                            unit: 'px'
+                                            unit: ''
                                         },
                                     ]} />
                             </div>
@@ -2912,6 +2929,19 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             </div>
                             <VideoStatsTool
                                 connectionRef={connectionRef}
+                                setInboundBitrate={setInboundBitrate}
+                                setInboundVideoDelay={setInboundVideoDelay}
+                                setInboundFramesPerSecond={setInboundFramesPerSecond}
+                                setInboundFrameWidth={setInboundFrameWidth}
+                                setInboundFrameHeight={setInboundFrameHeight}
+                                setOutboundBitrate={setOutboundBitrate}
+                                setOutboundFramesPerSecond={setOutboundFramesPerSecond}
+                                setOutboundFrameWidth={setOutboundFrameWidth}
+                                setOutboundFrameHeight={setOutboundFrameHeight}
+                            />
+                            <VideoStatsTool
+                                connectionRef={connectionRef}
+                                localStream={localStream}
                                 setInboundBitrate={setInboundBitrate}
                                 setInboundVideoDelay={setInboundVideoDelay}
                                 setInboundFramesPerSecond={setInboundFramesPerSecond}
