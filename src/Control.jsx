@@ -25,7 +25,7 @@ import {
     NoVideoIcon, SpeakerIcon, ShareIcon, MediaTrackSettingsIcon, SelectVideoIcon,
     ShareScreenIcon, StopShareScreenIcon, StatPanelIcon, SwitchCameraIcon,
     BGM1, BGM2, SmallSpeakerIcon, SmallSpeakerSilentIcon, MediaCtlMenuIcon,
-    DeviceType, CloseMediaCtlMenuIcon, DragIcon,
+    DeviceType, CloseMediaCtlMenuIcon, DragIcon, FullScreenIcon,
     root,
     Piece_Type_White,
     InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate,
@@ -1760,6 +1760,14 @@ function SelectVideoModal({ setModalOpen, selectedVideoRef, setSelectedMediaStre
     audioCtx, setAudioCtx }) {
     const videoRef = useRef(null);
     const [selFile, setSelFile] = useState();
+    const [inputDisabled, setInputDisabled] = useState(true);
+    const [isClickSpan, setIsClickSpan] = useState(false);
+
+    useEffect(() => {
+        if (isClickSpan) {
+            setIsClickSpan(false);
+        }
+    }, [isClickSpan]);
 
     const handlePlayVideo = (file, videoRef, replaceCameraMideaStream) => {
         if (!file) return;
@@ -1814,20 +1822,43 @@ function SelectVideoModal({ setModalOpen, selectedVideoRef, setSelectedMediaStre
         handlePlayVideo(file, videoRef);
     };
 
+    const handleSpanClick = () => {
+        // 触发文件输入元素的点击事件
+        setInputDisabled(false);
+        setIsClickSpan(true);
+        const fileInput = document.getElementById('fileInput');
+        if (fileInput) {
+            fileInput.click();
+        }
+    };
+
+    const handleInputChange = (event) => {
+        if (isClickSpan) {
+            handleFileChange(event);
+        }
+        else {
+            setInputDisabled(true);
+        }
+    };
+
     return (
         <div className='select-video-modal-overlay'>
             <div className='select-video-modal'>
                 <span className="close-button" onClick={() => setModalOpen(false)}>
                     &times;
                 </span>
-                <label className="custom-file-upload">
-                    <input type="file" accept="video/*" onChange={handleFileChange} />
-                    <span>选择视频</span>
+                <label className="custom-file-upload" htmlFor="fileInput">
+                    <input id="fileInput" type="file" accept="video/*" onChange={handleFileChange}
+                        onClick={handleInputChange}
+                        disabled={inputDisabled}
+                        style={{ display: 'none' }} />
+                    <span onClick={handleSpanClick}>选择视频</span>
                 </label>
                 {selFile?.name ?
                     <>
                         <p>{selFile.name}</p>
-                        <video ref={videoRef} controls />
+                        <video ref={videoRef} controls
+                            className='video' />
                     </> : selectedLocalFile?.name ?
                         <div style={{ display: 'flex' }}>
                             <p style={{ minWidth: '5rem', whiteSpace: 'nowrap' }}>上次选择：</p><p style={{ color: 'gray' }}>{selectedLocalFile.name}</p>
@@ -3028,6 +3059,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 },
                             ]}
                         />
+                        <TextOverlay
+                            position="bottom-right"
+                            iconSrc={FullScreenIcon}
+                            parentRef={myVideo}
+                        />
                     </div>
                     {isShareScreen &&
                         <div className='video'>
@@ -3111,6 +3147,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         unit: ''
                                     },
                                 ]}
+                            />
+                            <TextOverlay
+                                position="bottom-right"
+                                iconSrc={FullScreenIcon}
+                                parentRef={userVideo}
                             />
                         </div>
                         : null
@@ -3590,6 +3631,19 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
         }, 200);
     };
 
+    const toggleFullScreen = () => {
+        const video = parentRef.current;
+        if (video) {
+            if (!document.fullscreenElement) {
+                video.requestFullscreen().catch((err) => {
+                    console.log(`Error attempting to enable full-screen mode: ${err.message} (${err.name})`);
+                });
+            } else {
+                document.exitFullscreen();
+            }
+        }
+    };
+
     if (peerSocketId) {
         return null;
     }
@@ -3672,7 +3726,19 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                     </div>
                 }
                 {iconSrc &&
-                    <img src={iconSrc} alt="Icon" className="icon" onClick={toggleStatPanel} />
+                    <img src={iconSrc} alt="Icon" className="icon" onClick={() => {
+                        switch (iconSrc) {
+                            case StatPanelIcon:
+                                toggleStatPanel();
+                                break;
+                            case FullScreenIcon:
+                                toggleFullScreen();
+                                break;
+                            default:
+                                break;
+                        }
+                    }}
+                    />
                 }
                 {content && !showMediaCtlMenu && content}
                 {isShowLocalVideo &&
