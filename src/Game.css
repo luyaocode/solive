@@ -829,12 +829,14 @@
 /* 菜单 */
 .menu-container {
   margin: 0 auto;
-  padding: 20px;
+  padding: 1rem;
   text-align: center;
   display: flex;
   flex-direction: column;
-  overflow-y: auto;
-  min-height: 100%;
+  overflow-y: hidden;
+  height: 96%;
+  min-height: 90%;
+  max-height: 100%;
   max-width: 100%;
 }
 
@@ -847,7 +849,7 @@
 .menu-header h1 {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   /* 设置 Sans-serif 字体族 */
-  font-size: 48px;
+  font-size: 24px;
   color: #ffffff;
   text-shadow:
     0 0 5px #00ffff,

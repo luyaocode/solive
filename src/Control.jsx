@@ -3554,14 +3554,14 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
         switch (position) {
             case 'top-left':
                 return {
-                    top: 0,
-                    left: 0,
+                    top: '1rem',
+                    left: '1rem',
                     zIndex: 40,
                 };
             case 'top-left-local-video':
                 return {
-                    top: 0,
-                    left: 0,
+                    top: '1rem',
+                    left: '1rem',
                     fontSize: '16px',
                     maxWidth: '40%',
                     height: 'auto',
@@ -3572,23 +3572,23 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                 };
             case 'top-center':
                 return {
-                    top: 0,
+                    top: '1rem',
                     left: '50%',
                     transform: 'translateX(-50%)',
                     zIndex: 30,
                 };
             case 'top-right':
                 return {
-                    top: 0,
-                    right: 0,
+                    top: '1rem',
+                    right: '1rem',
                     zIndex: 20,
                 };
             case 'bottom-left':
-                return { bottom: 0, left: 0 };
+                return { bottom: '1rem', left: '1rem' };
             case 'bottom-right':
-                return { bottom: 0, right: 0 };
+                return { bottom: '1rem', right: '1rem' };
             default:
-                return { top: 0, left: 0 };
+                return { top: '1rem', left: '1rem' };
         }
     };
     function toggleStatPanel() {
@@ -3689,7 +3689,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                         onCallUserBtnClick={onCallUserBtnClick} />
                                 </div>
                                 <div className='func-icon-container'>
-                                    {callAccepted &&
+                                    {/*callAccepted &&*/
                                         <>
                                             <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled}
                                                 setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted}
