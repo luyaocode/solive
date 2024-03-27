@@ -2925,7 +2925,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         />
                         {selectedMediaStream &&
                             <TextOverlay
-                                position="top-left"
+                                position="top-center"
                                 selectedFileName={selectedLocalFile?.name}
                                 setSelectedMediaStream={setSelectedMediaStream}
                             />
@@ -3316,6 +3316,13 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
         switch (position) {
             case 'top-left':
                 return { top: 0, left: 0 };
+            case 'top-center':
+                return {
+                    top: 0, left: '50%',
+                    transform: 'translateX(-50%)',
+                    backgroundColor: 'pink',
+                    fontSize: '18px',
+                };
             case 'top-right':
                 return { top: 0, right: 0 };
             case 'bottom-left':
@@ -3413,11 +3420,18 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                     {callAccepted &&
                                         <>
                                             <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled}
-                                                setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted} />
+                                                setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted}
+                                                selectedMediaStream={selectedMediaStream} />
                                             <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled}
-                                                setSelectedDevice={setSelectedVideoDevice} callAccepted={callAccepted} />
+                                                setSelectedDevice={setSelectedVideoDevice} callAccepted={callAccepted}
+                                                selectedMediaStream={selectedMediaStream} />
                                         </>
                                     }
+                                    <div ref={volumeSliderContainerRef} className="slider-container"
+                                        onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                                        <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef} />
+                                        <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick} />
+                                    </div>
                                     <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
                                         setIsShareScreen(prev => !prev);
                                     }} />
@@ -3427,11 +3441,6 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                     <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
                                         setMediaTrackSettingsModalOpen(prev => !prev);
                                     }} />
-                                    <div ref={volumeSliderContainerRef} className="slider-container"
-                                        onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-                                        <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef} />
-                                        <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick} />
-                                    </div>
                                     <img src={SwitchCameraIcon} alt="SwitchCamera" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
                                         setFacingMode(prev => (prev === FacingMode.Behind ? FacingMode.Front : FacingMode.Behind));
                                     }} />
@@ -3471,7 +3480,8 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     }
 }
 
-function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice, callAccepted }) {
+function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice, callAccepted,
+    selectedMediaStream }) {
     const [audioDevices, setAudioDevices] = useState([]);
     const [audioIcon, setAudioIcon] = useState(AudioIcon);
     const [canToggleAudio, setCanToggleAudio] = useState(true);
@@ -3521,17 +3531,17 @@ function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice,
 
     return (
         <div className="audio-device-selector-container">
-            <img src={audioIcon} alt="Audio" className="icon" onClick={toggleAudioOpen} />
-            {/* <label htmlFor="audioDevices" className="label">选择音频驱动:</label> */}
-            <select id="audioDevices" className="select" onChange={handleSelectChange}>
+            <img src={audioIcon} alt="Audio" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={toggleAudioOpen} />
+            <select id="audioDevices" className="select" disabled={selectedMediaStream}
+                onChange={handleSelectChange}>
                 {renderAudioDeviceOptions()}
             </select>
-            {/* {selectedDevice && <p className="selected-device">当前音频设备: {selectedDevice}</p>} */}
         </div>
     );
 }
 
-function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice, callAccepted }) {
+function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice, callAccepted,
+    selectedMediaStream }) {
     const [videoDevices, setVideoDevices] = useState([]);
     const [videoIcon, setVideoIcon] = useState(VideoIcon);
     const [canToggleVideo, setCanToggleVideo] = useState(true);
@@ -3581,12 +3591,11 @@ function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice,
 
     return (
         <div className="video-device-selector-container">
-            <img src={videoIcon} alt="Audio" className="icon" onClick={toggleVideoOpen} />
-            {/* <label htmlFor="videoDevices" className="label">选择视频驱动:</label> */}
-            <select id="videoDevices" className="select" onChange={handleSelectChange}>
+            <img src={videoIcon} alt="Audio" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={toggleVideoOpen} />
+            <select id="videoDevices" className="select" disabled={selectedMediaStream}
+                onChange={handleSelectChange}>
                 {renderVideoDeviceOptions()}
             </select>
-            {/* {selectedDevice && <p className="selected-device">当前视频设备: {selectedDevice}</p>} */}
         </div>
     );
 }

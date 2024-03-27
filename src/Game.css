@@ -1645,8 +1645,8 @@
   object-fit: contain;
   /* border: 1px solid silver; */
   /* padding: -2px; */
-  width: var(--video-container-video-height);
-  height: var(--video-container-video-width);
+  width: var(--video-container-video-width);
+  height: 100%;
   overflow-y: hidden;
 }
 
@@ -1720,6 +1720,12 @@
   border: none;
   margin-right: 1rem;
   margin-left: 0rem;
+}
+
+.select[disabled] {
+  background-color: #dddddd;
+  color: #999999;
+  cursor: not-allowed;
 }
 
 .selected-device {
@@ -2432,11 +2438,7 @@
 
 /* text-overlay-container */
 .text-overlay-container {
-  min-width: 100%;
   display: inline-block;
-  align-items: center;
-  justify-content: center;
-  background-color: #000000;
 }
 
 /* LocalMediaStream */
