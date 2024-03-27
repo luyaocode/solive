@@ -92,6 +92,7 @@ export const SmallSpeakerIcon = '/picture/svg/SmallSpeakerIcon.svg';
 export const SmallSpeakerSilentIcon = '/picture/svg/SmallSpeakerSilentIcon.svg';
 export const MediaCtlMenuIcon = '/picture/svg/MediaCtlMenuIcon.svg';
 export const CloseMediaCtlMenuIcon = '/picture/svg/CloseMediaCtlMenuIcon.svg';
+export const DragIcon = '/picture/svg/DragIcon.svg';
 
 export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
 export const BGM2 = '/audio/bgm/after_the_rain.mp3';

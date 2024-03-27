@@ -25,7 +25,7 @@ import {
     NoVideoIcon, SpeakerIcon, ShareIcon, MediaTrackSettingsIcon, SelectVideoIcon,
     ShareScreenIcon, StopShareScreenIcon, StatPanelIcon, SwitchCameraIcon,
     BGM1, BGM2, SmallSpeakerIcon, SmallSpeakerSilentIcon, MediaCtlMenuIcon,
-    DeviceType, CloseMediaCtlMenuIcon,
+    DeviceType, CloseMediaCtlMenuIcon, DragIcon,
     root,
     Piece_Type_White,
     InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate,
@@ -1934,17 +1934,34 @@ function ReturnMenuButton({ sid, onBtnClick }) {
 
 function LocalVideoDisplayBoard({ selectedVideoRef, selectedMediaStream, name, handleVideoClick,
     isDragging }) {
+
+    useEffect(() => {
+
+    }, [selectedVideoRef.current]);
+
     const onVideoClick = (event) => {
         if (isDragging) {
             handleVideoClick(event);
         }
     };
 
+    const onTouchStart = (event) => {
+        onVideoClick(event);
+        const video = selectedVideoRef.current;
+        if (video.paused) {
+            video.play();
+        }
+        else {
+            video.pause();
+        }
+    };
+
     return (
         <div className='local-video'>
-            <video ref={selectedVideoRef} controls loop={true}
+            <video ref={selectedVideoRef} playsInline controls loop={true}
                 className={`local-media-stream ${selectedMediaStream ? '' : 'display-none'}`}
                 onClick={event => onVideoClick(event)}
+                onTouchStart={event => onTouchStart(event)}
             />
             {selectedMediaStream &&
                 <TextOverlay
@@ -3419,10 +3436,19 @@ function LocalVideoDisplay({ selectedMediaStream, onBackButtonClick,
             onDrag={handleDrag}
         >
             <div ref={elementRef} className={`text-overlay-container ${selectedMediaStream ? '' : 'display-none'}`}>
-                <span className="close-button" style={{ color: 'red' }}
-                    onClick={onBackButtonClick}>
+                <img src={DragIcon} alt="Drag" style={{
+                    position: 'absolute',
+                    top: 6, left: 6,
+                }} />
+                <button className="close-button" style={{
+                    color: 'red', backgroundColor: 'transparent',
+                    border: 'none',
+                }}
+                    onClick={onBackButtonClick}
+                    onTouchStart={onBackButtonClick}
+                >
                     &times;
-                </span>
+                </button>
                 <ScrollingText text={selectedFileName} selectedMediaStream={selectedMediaStream} />
                 <LocalVideoDisplayBoard selectedVideoRef={selectedVideoRef}
                     selectedMediaStream={selectedMediaStream}
