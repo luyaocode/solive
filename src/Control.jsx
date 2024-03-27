@@ -178,8 +178,12 @@ function GameLog({ isRestart, gameLog, setGameLog, roomId, nickName, setChatPane
                     onMouseLeave={cancelPress}
                     className='gamelog-button'
                     onClick={handleButtonClick}>{gameLog[gameLog.length - 1][0]}</Button>
-                <span>房间号: {roomId}</span><span className='span-blank'></span>
-                <span>昵称: {nickName}</span>
+                {(gameMode === GameMode.MODE_ROOM || gameMode === GameMode.MODE_MATCH) &&
+                    <>
+                        <span>房间号: {roomId}</span><span className='span-blank'></span>
+                        <span>昵称: {nickName}</span>
+                    </>
+                }
                 {isModalOpen && (
                     <div className="gamelog-modal-overlay" onClick={handleCloseModalOutside}>
                         <div className="gamelog-modal">
@@ -3196,6 +3200,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 ]} />
                         </div>
                     }
+                </div>
+                <div className='status-bar'>
+
                 </div>
                 {!peerSocketId && /*以下都不会在游戏语音通话模块中加载 */
                     <>

@@ -49,7 +49,7 @@ body::after {
   display: flex;
   flex-direction: column;
   align-items: center;
-  overflow-y: auto;
+  overflow-y: hidden;
 }
 
 @keyframes shakeAnimation {

@@ -833,7 +833,7 @@
   text-align: center;
   display: flex;
   flex-direction: column;
-  overflow-y: hidden;
+  overflow-y: auto;
   height: 100%;
   min-height: 90%;
   max-height: 100%;
@@ -1543,8 +1543,6 @@
 
 /* 视频通话 */
 .video-chat-view {
-  overflow-y: hidden;
-  overflow-x: hidden;
   /* 始终显示滚动条 */
   scrollbar-width: none;
   /* Firefox */
@@ -1554,6 +1552,10 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: hidden;
+  overflow-x: hidden;
 }
 
 .video-chat-view::-webkit-scrollbar {
@@ -1607,7 +1609,8 @@
 
 .video-container {
   width: 100%;
-  height: 100%;
+  height: 95%;
+  max-height: 95%;
   display: flex;
   flex-direction: var(--video-container-flex-direction);
   justify-content: center;
@@ -1615,7 +1618,7 @@
   justify-items: center;
   align-items: center;
   gap: 0px;
-  border: 1px solid black;
+  /* border: 1px solid black; */
   background-color: rgb(149, 149, 149);
   /* padding: 2rem; */
   overflow-x: hidden;
@@ -1653,6 +1656,18 @@
   height: 100%;
   overflow-y: hidden;
   overflow-x: hidden;
+}
+
+/* 底部状态栏 */
+.status-bar {
+  width: 100%;
+  height: 5%;
+  background-color: rgb(149, 149, 149);
+  border: none;
+  display: flex;
+  flex-direction: row;
+  justify-content: center;
+  align-items: center;
 }
 
 /* 本地视频 */
@@ -2260,8 +2275,8 @@
   font-weight: bold;
   text-align: center;
   text-decoration: none;
-  color: #3a3e39;
-  background-color: #ee8676;
+  color: #ffffff;
+  background-color: #f47763;
   border: none;
   border-radius: 5px;
   cursor: pointer;
