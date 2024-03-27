@@ -1539,7 +1539,7 @@
 
 /* 视频通话 */
 .video-chat-view {
-  overflow-y: scroll;
+  overflow-y: hidden;
   /* 始终显示滚动条 */
   scrollbar-width: none;
   /* Firefox */
@@ -1547,25 +1547,13 @@
   /* IE和Edge */
   display: flex;
   flex-direction: column;
+  width: 100%;
+  height: 100%;
 }
 
 .video-chat-view::-webkit-scrollbar {
   display: none;
   /* 隐藏Chrome和Safari的滚动条 */
-}
-
-.container {
-  display: flex;
-  flex-direction: column;
-  /* 垂直排列 */
-  justify-content: center;
-  /* 可选：让容器铺满整个视口 */
-  align-items: center;
-  /* 垂直居中 */
-  gap: 20px;
-  /* 设置组件之间的间距 */
-  margin-top: 10px;
-  /* min-height: 90vh; */
 }
 
 .myId {
@@ -1581,7 +1569,6 @@
 
   padding: 1rem;
   display: grid;
-  justify-content: center;
   align-content: center;
   gap: 10px;
   /* 防止水平溢出和水平滚动条出现 */
@@ -1591,12 +1578,29 @@
 }
 
 .call-button {
-  text-align: center;
+  text-align: left;
+}
+
+/* invite-call-button */
+.invite-call-button {
+  color: white;
+  margin-right: 2rem;
+  background-color: #94a8f8;
+}
+
+/* call-user-buttton */
+.call-user-button {
+  color: white;
+  background-color: #24ca7a;
+}
+
+.call-user-button[disabled] {
+  background-color: gray;
+  color: white;
 }
 
 .video-container {
-  max-width: 96vw;
-  max-height: 80vh;
+  width: 100%;
   display: flex;
   flex-direction: var(--video-container-flex-direction);
   justify-content: left;
@@ -1614,6 +1618,7 @@
   -ms-overflow-style: none;
   flex-wrap: wrap;
   /* 启用自动换行 */
+  overflow-y: hidden;
 }
 
 .video-container::-webkit-scrollbar {
@@ -1624,14 +1629,22 @@
 /* 修改此处以应对宽屏，改为自动缩放 */
 .video-container .video {
   position: relative;
+  width: 100%;
+  overflow-y: hidden;
+  align-self: flex-start;
+  /* 子组件垂直上对齐 */
+}
+
+/* 修改此处以应对宽屏，改为自动缩放 */
+.video-container .video video {
+  position: relative;
   object-fit: contain;
-  border: 2px solid black;
-  /* 设置视频边框样式 */
-  padding: -2px;
-  /* 设置负外边距，使边框不会重叠 */
-  /* width: 50%; */
-  /* 或者其他适当的 object-fit 属性值 */
-  /* 按比例缩放视频，保持长宽比，同时填充整个容器 */
+  /* border: 1px solid silver; */
+  /* padding: -2px; */
+  width: 100%;
+  max-width: 100%;
+  max-height: 100%;
+  overflow-y: hidden;
 }
 
 .caller {
@@ -1669,17 +1682,17 @@
   flex-direction: row;
   background-color: #1a1a1d;
   border-radius: 10px;
-  padding: 10px;
+  padding: 6px;
   color: #fff;
   font-family: Arial, sans-serif;
-  width: 300px;
-  margin: auto;
+  width: 6rem;
+  background-color: silver;
 }
 
 .audio-device-selector-container .icon {
   min-width: 1.5rem;
-  margin-right: 1rem;
   cursor: pointer;
+  z-index: 100;
 }
 
 .label {
@@ -1694,6 +1707,8 @@
   background-color: #2b2b2e;
   color: #fff;
   border: none;
+  margin-right: 10px;
+  margin-left: 0rem;
 }
 
 .selected-device {
@@ -1708,14 +1723,30 @@
   flex-direction: row;
   background-color: #1a1a1d;
   border-radius: 10px;
-  padding: 10px;
+  padding: 6px;
   color: #fff;
   font-family: Arial, sans-serif;
-  width: 300px;
-  margin: auto;
+  width: 6rem;
+  background-color: silver;
 }
 
 .video-device-selector-container .icon {
+  min-width: 1.5rem;
+  cursor: pointer;
+}
+
+/* FuncIconContainer */
+.func-icon-container {
+  display: flex;
+  flex-direction: row;
+  background-color: #5d5d5d;
+  border-radius: 10px;
+  padding: 0rem 1rem;
+  color: #fff;
+  font-family: Arial, sans-serif;
+}
+
+.func-icon-container .icon {
   min-width: 1.5rem;
   margin-right: 1rem;
   cursor: pointer;
@@ -2125,8 +2156,10 @@
 
 /* icon */
 .icon {
+  position: relative;
   margin: 0;
   cursor: pointer;
+  z-index: 100;
 }
 
 .grayed-out {
@@ -2186,23 +2219,18 @@
 .return-menu-button {
   display: inline-block;
   padding: 5px 10px;
+  margin: 0.5rem 0;
   font-size: 16px;
   font-weight: bold;
   text-align: center;
   text-decoration: none;
   color: #3a3e39;
-  background-color: #7d7676;
-  /* 按钮背景色 */
+  background-color: #ee8676;
   border: none;
   border-radius: 5px;
   cursor: pointer;
   box-shadow: 0px 2px 4px rgba(0, 0, 0, 0.2);
-  /* 添加轻微阴影 */
   transition: background-color 0.3s, color 0.3s;
-  /* 添加悬停效果过渡 */
-  position: fixed;
-  right: 0;
-  top: 0;
 }
 
 .return-menu-button[disabled] {
@@ -2216,7 +2244,7 @@
 
 /* 悬停效果 */
 .return-menu-button:not([disabled]):hover {
-  background-color: #e28271;
+  background-color: #ed4427;
 }
 
 /* audio-call */
@@ -2388,16 +2416,19 @@
   width: 100%;
   display: flex;
   flex-direction: column;
+  z-index: 100;
 }
 
 .media-ctl-menu .menu-icon {
   width: 100%;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
+  z-index: 100;
 }
 
 .media-ctl-menu .icon {
   max-width: 20%;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
+  z-index: 100;
 }

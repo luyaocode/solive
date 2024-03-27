@@ -1850,6 +1850,70 @@ function VolumeCtlSlider({ handleVolumeChange, videoRef }) {
     );
 }
 
+function TextArea({ isReadyOnly, placeholder, label, value, onChange }) {
+    return (
+        <textarea
+            readOnly={isReadyOnly}
+            placeholder={placeholder}
+            id="filled-basic"
+            label={label}
+            variant="filled"
+            value={value}
+            onChange={(e) => onChange(e)}
+            style={{
+                width: '100%',
+                height: '1.5em', // 设置初始高度为一行文本的高度
+                minHeight: 'auto', // 调整最小高度为自动
+                // maxHeight: '54px', // 调整最大高度
+                fontSize: '20px', // 调整字体大小
+                border: '1px solid #ccc',
+                resize: 'none',
+                lineHeight: '1.2', // 设置行高与字体大小相同
+                scrollbarWidth: 'none',
+                whiteSpace: 'nowrap'
+            }}
+        />
+    );
+}
+
+function CallButton({ callAccepted, callEnded, idToCall,
+    onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick }) {
+    return (
+        <div className="call-button">
+            {callAccepted && !callEnded ? (
+                <Button variant="contained" color="secondary" onClick={onLeaveCallBtnClick}
+                    style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
+                    挂断
+                </Button>
+            ) : (
+                <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'center' }}>
+                    <Button variant="contained" color="primary" onClick={onInviteCallBtnClick}
+                        className='invite-call-button'>
+                        邀请通话
+                    </Button>
+                    <Button disabled={idToCall.length === 0} color="primary" aria-label="call"
+                        onClick={onCallUserBtnClick}
+                        className='call-user-button'>
+                        呼叫
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+}
+
+function ReturnMenuButton({ sid, onBtnClick }) {
+    return (
+        <>
+            {!sid &&
+                <button className="return-menu-button" onClick={onBtnClick}>
+                    返回主页
+                </button>
+            }
+        </>
+    );
+}
+
 function VideoChat({ sid, deviceType, socket, returnMenuView,
     messages, setMessages, chatPanelOpen, setChatPanelOpen,
     peerSocketId/* 游戏中对方的socke id*/,
@@ -2746,436 +2810,378 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     };
 
+    const onNameTextAreaChange = (e) => {
+        let newValue = e.target.value.replace(/\n/g, '');
+        if (newValue.length > Text_Max_Len) {
+            showNotification('输入字符长度达到上限！');
+            newValue = newValue.substring(0, Text_Max_Len);
+        }
+        setName(newValue);
+    };
+
+    const onIdToCallTextAreaChange = (e) => {
+        let newValue = e.target.value.replace(/\n/g, '');
+        if (newValue.length > Text_Max_Len) {
+            showNotification('输入字符长度达到上限！');
+            newValue = newValue.substring(0, Text_Max_Len);
+        }
+        setIdToCall(newValue);
+    };
+
+    const onLeaveCallBtnClick = () => {
+        leaveCall();
+        setIsShareScreen(false);
+        stopAnotherScreenSharing();
+    };
+
+    const onInviteCallBtnClick = () => {
+        setInviteVideoChatModalOpen(true);
+    };
+
+    const onCallUserBtnClick = () => {
+        callUser(idToCall);
+    }
+
+    const onReturnMenuBtnClick = () => {
+        if (callAccepted) {
+            setConfirmLeave(true);
+        }
+        else {
+            returnMenuView();
+        }
+    }
+
     return (
         <>
             <div className='video-chat-view'>
-                <h1 style={{ textAlign: "center", color: '#fff' }}>视频通话</h1>
-                {!sid &&
-                    <button className="return-menu-button" onClick={() => {
-                        if (callAccepted) {
-                            setConfirmLeave(true);
-                        }
-                        else {
-                            returnMenuView();
-                        }
-                    }}>
-                        返回主页
-                    </button>
-                }
-                <div className="container">
-                    <div className="video-container">
-                        <div className='video'>
-                            <video ref={myVideo} playsInline loop={true} muted controls autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
-                                onClick={handleVideoClick}
-                            />
-                            {!hasLocalVideoTrack && !hasLocalAudioTrack && (
-                                <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
-                            )}
-                            {!hasLocalVideoTrack && hasLocalAudioTrack && (
-                                <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 1, height: '100%', width: '100%' }} />
-                            )}
+                <div className="video-container">
+                    <div className='video'>
+                        <video ref={myVideo} playsInline loop={true} muted controls={false} autoPlay style={{ position: 'relative', zIndex: 0, width: '100% !important' }}
+                            onClick={handleVideoClick}
+                        />
+                        {!hasLocalVideoTrack && !hasLocalAudioTrack && (
+                            <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 0, height: '100%', width: '100%' }} />
+                        )}
+                        {!hasLocalVideoTrack && hasLocalAudioTrack && (
+                            <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 0, height: '100%', width: '100%' }} />
+                        )}
+                        <TextOverlay
+                            isMediaCtlMenu={true}
+                            position="top-left"
+                            content={name}
+                            audioEnabled={audioEnabled}
+                            setAudioEnabled={setAudioEnabled}
+                            videoEnabled={videoEnabled}
+                            setVideoEnabled={setVideoEnabled}
+                            handleVolumeChange={handleVolumeChange}
+                            videoRef={myVideo}
+                            setSelectedAudioDevice={setSelectedAudioDevice}
+                            setSelectedVideoDevice={setSelectedVideoDevice}
+                            callAccepted={callAccepted}
+                            isNameReadOnly={isNameReadOnly}
+                            name={name}
+                            onNameTextAreaChange={onNameTextAreaChange}
+                            isIdToCallReadOnly={isIdToCallReadOnly}
+                            idToCall={idToCall}
+                            onIdToCallTextAreaChange={onIdToCallTextAreaChange}
+                            isShareScreen={isShareScreen}
+                            setIsShareScreen={setIsShareScreen}
+                            setChatPanelOpen={setChatPanelOpen}
+                            selectedMediaStream={selectedMediaStream}
+                            setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
+                            setFacingMode={setFacingMode}
+                            setSelectVideoModalOpen={setSelectVideoModalOpen}
+                            callEnded={callEnded}
+                            onLeaveCallBtnClick={onLeaveCallBtnClick}
+                            onInviteCallBtnClick={onInviteCallBtnClick}
+                            onCallUserBtnClick={onCallUserBtnClick}
+                            sid={sid}
+                            onReturnMenuBtnClick={onReturnMenuBtnClick}
+                        />
+                        {selectedMediaStream &&
                             <TextOverlay
-                                isMediaCtlMenu={true}
                                 position="top-left"
-                                content={name}
-                                audioEnabled={audioEnabled}
-                                setAudioEnabled={setAudioEnabled}
-                                videoEnabled={videoEnabled}
-                                setVideoEnabled={setVideoEnabled}
-                                handleVolumeChange={handleVolumeChange}
-                                videoRef={myVideo}
-                                setSelectedAudioDevice={setSelectedAudioDevice}
-                                setSelectedVideoDevice={setSelectedVideoDevice}
-                                callAccepted={callAccepted}
+                                selectedFileName={selectedLocalFile?.name}
+                                setSelectedMediaStream={setSelectedMediaStream}
                             />
-                            {selectedMediaStream &&
-                                <TextOverlay
-                                    position="top-left"
-                                    selectedFileName={selectedLocalFile?.name}
-                                    setSelectedMediaStream={setSelectedMediaStream}
-                                />
-                            }
+                        }
+                        <TextOverlay
+                            position="top-right"
+                            iconSrc={StatPanelIcon}
+                            contents={[
+                                {
+                                    name: 'Video Bitrate',
+                                    data: outboundVideoBitrate.toFixed(4),
+                                    unit: 'Mbps'
+                                },
+                                {
+                                    name: 'Video Frame Rate',
+                                    data: outboundFramesPerSecond.toFixed(2),
+                                    unit: ''
+                                },
+                                {
+                                    name: 'Video Frame Width',
+                                    data: outboundFrameWidth.toFixed(0),
+                                    unit: ''
+                                },
+                                {
+                                    name: 'Video Frame Width',
+                                    data: outboundFrameHeight.toFixed(0),
+                                    unit: ''
+                                },
+                            ]}
+                        />
+                    </div>
+                    {
+                        <div className='video'>
+                            <video ref={selectedVideoRef} controls loop={true}
+                                className={`local-media-stream ${selectedMediaStream ? '' : 'display-none'}`}
+                            />
+                            <TextOverlay
+                                position="top-left"
+                                content={name + '的本地视频'}
+                            />
+                        </div>
+                    }
+                    {isShareScreen &&
+                        <div className='video'>
+                            <video ref={shareScreenVideo} playsInline muted autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
+                                onClick={handleVideoClick} />
+                            <TextOverlay
+                                position="top-left"
+                                content={name + '的屏幕'}
+                            />
                             <TextOverlay
                                 position="top-right"
                                 iconSrc={StatPanelIcon}
                                 contents={[
                                     {
                                         name: 'Video Bitrate',
-                                        data: outboundVideoBitrate.toFixed(4),
+                                        data: outboundVideoBitrate_SC.toFixed(4),
                                         unit: 'Mbps'
                                     },
                                     {
                                         name: 'Video Frame Rate',
-                                        data: outboundFramesPerSecond.toFixed(2),
+                                        data: outboundFramesPerSecond_SC.toFixed(2),
                                         unit: ''
                                     },
                                     {
                                         name: 'Video Frame Width',
-                                        data: outboundFrameWidth.toFixed(0),
+                                        data: outboundFrameWidth_SC.toFixed(0),
                                         unit: ''
                                     },
                                     {
                                         name: 'Video Frame Width',
-                                        data: outboundFrameHeight.toFixed(0),
+                                        data: outboundFrameHeight_SC.toFixed(0),
                                         unit: ''
                                     },
                                 ]}
                             />
                         </div>
-                        {
-                            <div className='video'>
-                                <video ref={selectedVideoRef} controls loop={true}
-                                    className={`local-media-stream ${selectedMediaStream ? '' : 'display-none'}`}
-                                />
-                                <TextOverlay
-                                    position="top-left"
-                                    content={name + '的本地视频'}
-                                />
-                            </div>
-                        }
-                        {isShareScreen &&
-                            <div className='video'>
-                                <video ref={shareScreenVideo} playsInline muted autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
-                                    onClick={handleVideoClick} />
-                                <TextOverlay
-                                    position="top-left"
-                                    content={name + '的屏幕'}
-                                />
-                                <TextOverlay
-                                    position="top-right"
-                                    iconSrc={StatPanelIcon}
-                                    contents={[
-                                        {
-                                            name: 'Video Bitrate',
-                                            data: outboundVideoBitrate_SC.toFixed(4),
-                                            unit: 'Mbps'
-                                        },
-                                        {
-                                            name: 'Video Frame Rate',
-                                            data: outboundFramesPerSecond_SC.toFixed(2),
-                                            unit: ''
-                                        },
-                                        {
-                                            name: 'Video Frame Width',
-                                            data: outboundFrameWidth_SC.toFixed(0),
-                                            unit: ''
-                                        },
-                                        {
-                                            name: 'Video Frame Width',
-                                            data: outboundFrameHeight_SC.toFixed(0),
-                                            unit: ''
-                                        },
-                                    ]}
-                                />
-                            </div>
-                        }
-                        {callAccepted && !callEnded ?
-                            <div className="video">
-                                <video ref={userVideo} playsInline autoPlay loop={true} controls style={{
-                                    position: 'relative', zIndex: 0, width: '400px',
-                                    opacity: hasRemoteVideoTrack ? '1' : '0'
-                                }}
-                                    onClick={handleVideoClick} />
-                                {!hasRemoteVideoTrack && !hasRemoteAudioTrack && (
-                                    <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
-                                )}
-                                <TextOverlay
-                                    position="top-left"
-                                    content={anotherName}
-                                    audioEnabled={hasRemoteAudioTrack}
-                                />
-                                <TextOverlay
-                                    position="top-right"
-                                    iconSrc={StatPanelIcon}
-                                    contents={[
-                                        {
-                                            name: 'Video Bitrate',
-                                            data: inboundVideoBitrate.toFixed(4),
-                                            unit: 'Mbps'
-                                        },
-                                        {
-                                            name: 'Video Delay',
-                                            data: inboundVideoDelay.toFixed(1),
-                                            unit: 'ms'
-                                        },
-                                        {
-                                            name: 'Video Frame Rate',
-                                            data: inboundFramesPerSecond.toFixed(2),
-                                            unit: ''
-                                        },
-                                        {
-                                            name: 'Video Frame Width',
-                                            data: inboundFrameWidth.toFixed(0),
-                                            unit: ''
-                                        },
-                                        {
-                                            name: 'Video Frame Height',
-                                            data: inboundFrameHeight.toFixed(0),
-                                            unit: ''
-                                        },
-                                    ]}
-                                />
-                            </div>
-                            : null
-                        }
-                        {isReceiveShareScreen &&
-                            <div className='video'>
-                                <video ref={remoteShareScreenVideo} playsInline autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
-                                    onClick={handleVideoClick} />
-                                <TextOverlay
-                                    position="top-left"
-                                    content={anotherName + '的屏幕'}
-                                />
-                                <TextOverlay
-                                    position="top-right"
-                                    iconSrc={StatPanelIcon}
-                                    contents={[
-                                        {
-                                            name: 'Video Bitrate',
-                                            data: inboundVideoBitrate_SC.toFixed(4),
-                                            unit: 'Mbps'
-                                        },
-                                        {
-                                            name: 'Video Delay',
-                                            data: inboundVideoDelay_SC.toFixed(1),
-                                            unit: 'ms'
-                                        },
-                                        {
-                                            name: 'Video Frame Rate',
-                                            data: inboundFramesPerSecond_SC.toFixed(2),
-                                            unit: ''
-                                        },
-                                        {
-                                            name: 'Video Frame Width',
-                                            data: inboundFrameWidth_SC.toFixed(0),
-                                            unit: ''
-                                        },
-                                        {
-                                            name: 'Video Frame Height',
-                                            data: inboundFrameHeight_SC.toFixed(0),
-                                            unit: ''
-                                        },
-                                    ]} />
-                            </div>
-                        }
-                    </div>
-                    {!peerSocketId && /*以下都不会在游戏语音通话模块中加载 */
-                        <div className="myId">
-                            {!callAccepted &&
-                                <>
-                                    <textarea
-                                        readOnly={isNameReadOnly}
-                                        placeholder="我的昵称"
-                                        id="filled-basic"
-                                        label="Name"
-                                        variant="filled"
-                                        value={name}
-                                        onChange={(e) => {
-                                            let newValue = e.target.value.replace(/\n/g, '');
-                                            if (newValue.length > Text_Max_Len) {
-                                                showNotification('输入字符长度达到上限！');
-                                                newValue = newValue.substring(0, Text_Max_Len);
-                                            }
-                                            setName(newValue);
-                                        }}
-                                        style={{
-                                            width: '100%',
-                                            height: '1.5em', // 设置初始高度为一行文本的高度
-                                            minHeight: 'auto', // 调整最小高度为自动
-                                            // maxHeight: '54px', // 调整最大高度
-                                            fontSize: '20px', // 调整字体大小
-                                            border: '1px solid #ccc',
-                                            resize: 'none',
-                                            lineHeight: '1.2', // 设置行高与字体大小相同
-                                            scrollbarWidth: 'none',
-                                            whiteSpace: 'nowrap'
-                                        }}
-                                    />
-                                    <textarea
-                                        readOnly={isIdToCallReadOnly}
-                                        placeholder="对方号码"
-                                        id="filled-basic"
-                                        label="ID to call"
-                                        variant="filled"
-                                        value={idToCall}
-                                        onChange={(e) => {
-                                            let newValue = e.target.value.replace(/\n/g, '');
-                                            if (newValue.length > Text_Max_Len) {
-                                                showNotification('输入字符长度达到上限！');
-                                                newValue = newValue.substring(0, Text_Max_Len);
-                                            }
-                                            setIdToCall(newValue);
-                                        }}
-                                        style={{
-                                            width: '100%',
-                                            height: '1.5em', // 设置初始高度为一行文本的高度
-                                            minHeight: '20px', // 调整最小高度为自动
-                                            // maxHeight: '100px', // 调整最大高度
-                                            fontSize: '20px', // 调整字体大小
-                                            border: '1px solid #ccc',
-                                            resize: 'none',
-                                            lineHeight: '1.2', // 设置行高与字体大小相同
-                                            scrollbarWidth: 'none',
-                                            whiteSpace: 'nowrap'
-                                        }}
-                                    />
-                                </>}
-                            <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled} setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted} />
-                            <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled} setSelectedDevice={setSelectedVideoDevice} callAccepted={callAccepted} />
-                            <div className="video-device-selector-container">
-                                <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
-                                    setIsShareScreen(prev => !prev);
-                                }} />
-                                <img src={MessageIcon} alt="Message" className="icon" onClick={() => {
-                                    setChatPanelOpen(prev => !prev);
-                                }} />
-                                <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
-                                    setMediaTrackSettingsModalOpen(prev => !prev);
-                                }} />
-                                <img src={SwitchCameraIcon} alt="SwitchCamera" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
-                                    setFacingMode(prev => (prev === FacingMode.Behind ? FacingMode.Front : FacingMode.Behind));
-                                }} />
-                                <img src={SelectVideoIcon} alt="SelectVideo" className="icon" onClick={() => {
-                                    setSelectVideoModalOpen(true);
-                                }} />
-                            </div>
-
-                            <div className="call-button">
-                                {callAccepted && !callEnded ? (
-                                    <Button variant="contained" color="secondary" onClick={() => {
-                                        leaveCall();
-                                        setIsShareScreen(false);
-                                        stopAnotherScreenSharing();
-                                    }} style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
-                                        挂断
-                                    </Button>
-                                ) : (
-                                    <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'center' }}>
-                                        <Button variant="contained" color="primary" onClick={() => setInviteVideoChatModalOpen(true)} style={{ marginRight: '2rem' }}>
-                                            邀请通话
-                                        </Button>
-                                        <Button disabled={idToCall.length === 0} color="primary" aria-label="call" onClick={() => callUser(idToCall)}>
-                                            呼叫
-                                        </Button>
-                                    </div>
-                                )}
-                            </div>
+                    }
+                    {callAccepted && !callEnded ?
+                        <div className="video">
+                            <video ref={userVideo} playsInline autoPlay loop={true} controls style={{
+                                position: 'relative', zIndex: 0, width: '400px',
+                                opacity: hasRemoteVideoTrack ? '1' : '0'
+                            }}
+                                onClick={handleVideoClick} />
+                            {!hasRemoteVideoTrack && !hasRemoteAudioTrack && (
+                                <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
+                            )}
+                            <TextOverlay
+                                position="top-left"
+                                content={anotherName}
+                                audioEnabled={hasRemoteAudioTrack}
+                            />
+                            <TextOverlay
+                                position="top-right"
+                                iconSrc={StatPanelIcon}
+                                contents={[
+                                    {
+                                        name: 'Video Bitrate',
+                                        data: inboundVideoBitrate.toFixed(4),
+                                        unit: 'Mbps'
+                                    },
+                                    {
+                                        name: 'Video Delay',
+                                        data: inboundVideoDelay.toFixed(1),
+                                        unit: 'ms'
+                                    },
+                                    {
+                                        name: 'Video Frame Rate',
+                                        data: inboundFramesPerSecond.toFixed(2),
+                                        unit: ''
+                                    },
+                                    {
+                                        name: 'Video Frame Width',
+                                        data: inboundFrameWidth.toFixed(0),
+                                        unit: ''
+                                    },
+                                    {
+                                        name: 'Video Frame Height',
+                                        data: inboundFrameHeight.toFixed(0),
+                                        unit: ''
+                                    },
+                                ]}
+                            />
+                        </div>
+                        : null
+                    }
+                    {isReceiveShareScreen &&
+                        <div className='video'>
+                            <video ref={remoteShareScreenVideo} playsInline autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
+                                onClick={handleVideoClick} />
+                            <TextOverlay
+                                position="top-left"
+                                content={anotherName + '的屏幕'}
+                            />
+                            <TextOverlay
+                                position="top-right"
+                                iconSrc={StatPanelIcon}
+                                contents={[
+                                    {
+                                        name: 'Video Bitrate',
+                                        data: inboundVideoBitrate_SC.toFixed(4),
+                                        unit: 'Mbps'
+                                    },
+                                    {
+                                        name: 'Video Delay',
+                                        data: inboundVideoDelay_SC.toFixed(1),
+                                        unit: 'ms'
+                                    },
+                                    {
+                                        name: 'Video Frame Rate',
+                                        data: inboundFramesPerSecond_SC.toFixed(2),
+                                        unit: ''
+                                    },
+                                    {
+                                        name: 'Video Frame Width',
+                                        data: inboundFrameWidth_SC.toFixed(0),
+                                        unit: ''
+                                    },
+                                    {
+                                        name: 'Video Frame Height',
+                                        data: inboundFrameHeight_SC.toFixed(0),
+                                        unit: ''
+                                    },
+                                ]} />
                         </div>
                     }
-                    {!peerSocketId && /*以下都不会在游戏语音通话模块中加载 */
-                        <>
-                            <div>
-                                {receivingCall && !callAccepted &&
-                                    <div className='modal-overlay-receive-call'>
-                                        <div className="modal-receive-call">
-                                            <div className="caller">
-                                                <h1 >{anotherName === '' ? '未知号码' : anotherName} 邀请视频通话...</h1>
-                                                <ButtonBox onOkBtnClick={() => {
-                                                    acceptCall();
-                                                    setInviteVideoChatModalOpen(false);
-                                                }} OnCancelBtnClick={rejectCall}
-                                                    okBtnInfo='接听' cancelBtnInfo='拒绝' />
-                                            </div>
+                </div>
+                {!peerSocketId && /*以下都不会在游戏语音通话模块中加载 */
+                    <>
+                        <div>
+                            {receivingCall && !callAccepted &&
+                                <div className='modal-overlay-receive-call'>
+                                    <div className="modal-receive-call">
+                                        <div className="caller">
+                                            <h1 >{anotherName === '' ? '未知号码' : anotherName} 邀请视频通话...</h1>
+                                            <ButtonBox onOkBtnClick={() => {
+                                                acceptCall();
+                                                setInviteVideoChatModalOpen(false);
+                                            }} OnCancelBtnClick={rejectCall}
+                                                okBtnInfo='接听' cancelBtnInfo='拒绝' />
                                         </div>
-                                    </div>}
-                                {calling && !peerSocketId && /**仅游戏语音时取消弹窗 */
-                                    < CallingModal isDisabled={sid} modalInfo={"正在呼叫 " + idToCall}
-                                        onClick={() => {
-                                            setCalling(false);
-                                            socket.emit("callCanceled", { to: idToCall });
-                                        }} />}
-                                {callRejected &&
-                                    <Modal modalInfo="已挂断" setModalOpen={setCallRejected} />}
-                                {noResponse &&
-                                    <Modal modalInfo="超时,无应答" setModalOpen={setNoResponse} />}
-                                {confirmLeave &&
-                                    <ConfirmModal modalInfo='确定挂断吗？' onOkBtnClick={() => {
-                                        leaveCall();
-                                        setConfirmLeave(false);
-                                    }} OnCancelBtnClick={() => setConfirmLeave(false)} />}
-                                {toCallIsBusy &&
-                                    <Modal modalInfo='用户忙' setModalOpen={setToCallIsBusy} />}
+                                    </div>
+                                </div>}
+                            {calling && !peerSocketId && /**仅游戏语音时取消弹窗 */
+                                < CallingModal isDisabled={sid} modalInfo={"正在呼叫 " + idToCall}
+                                    onClick={() => {
+                                        setCalling(false);
+                                        socket.emit("callCanceled", { to: idToCall });
+                                    }} />}
+                            {callRejected &&
+                                <Modal modalInfo="已挂断" setModalOpen={setCallRejected} />}
+                            {noResponse &&
+                                <Modal modalInfo="超时,无应答" setModalOpen={setNoResponse} />}
+                            {confirmLeave &&
+                                <ConfirmModal modalInfo='确定挂断吗？' onOkBtnClick={() => {
+                                    leaveCall();
+                                    setConfirmLeave(false);
+                                }} OnCancelBtnClick={() => setConfirmLeave(false)} />}
+                            {toCallIsBusy &&
+                                <Modal modalInfo='用户忙' setModalOpen={setToCallIsBusy} />}
 
-                                {inviteVideoChatModalOpen &&
-                                    <InviteVideoChatModal closeModal={() => setInviteVideoChatModalOpen(false)}
-                                        me={me} name={name} socket={socket} inviteVideoChatModalOpen={inviteVideoChatModalOpen}
-                                        strNowDate={strNowDate} />
-                                }
-                                {prepareCallModal &&
-                                    <ConfirmModal modalInfo="将要发起视频通话，是否继续？" onOkBtnClick={() => {
-                                        setPrepareCallModal(false);
-                                        setTimeout(() => callUser(sid), 1000);
-                                    }}
-                                        noCancelBtn={true} />
-                                }
-                                {
-                                    chatPanelOpen &&
-                                    <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} ncobj={connectionRef?.current?.peer} />
-                                }
-                                {
-                                    mediaTrackSettingsModalOpen &&
-                                    <MediaTrackSettingsModal
-                                        localVideoWidth={localVideoWidth} setLocalVideoWidth={setLocalVideoWidth}
-                                        localVideoHeight={localVideoHeight} setLocalVideoHeight={setLocalVideoHeight}
-                                        localFrameRate={localFrameRate} setLocalFrameRate={setLocalFrameRate}
-                                        echoCancellation={echoCancellation} setEchoCancellation={setEchoCancellation}
-                                        noiseSuppression={noiseSuppression} setNoiseSuppression={setNoiseSuppression}
-                                        sampleRate={sampleRate} setSampleRate={setSampleRate}
-                                        setModalOpen={setMediaTrackSettingsModalOpen}
-                                        setConstraint={setConstraint} videoEnabled={videoEnabled} audioEnabled={audioEnabled}
-                                        facingMode={facingMode}
-                                    />
-                                }
-                                {selectVideoModalOpen &&
-                                    <SelectVideoModal setModalOpen={setSelectVideoModalOpen} selectedVideoRef={selectedVideoRef}
-                                        setSelectedMediaStream={setSelectedMediaStream}
-                                        selectedLocalFile={selectedLocalFile} setSelectedLocalFile={setSelectedLocalFile}
-                                        audioSource={audioSource} setAudioSource={setAudioSource}
-                                        setAudioCtx={setAudioCtx} audioCtx={audioCtx} />
-                                }
-                            </div>
-                            <VideoStatsTool
-                                connectionRef={connectionRef}
-                                setInboundBitrate={setInboundBitrate}
-                                setInboundVideoDelay={setInboundVideoDelay}
-                                setInboundFramesPerSecond={setInboundFramesPerSecond}
-                                setInboundFrameWidth={setInboundFrameWidth}
-                                setInboundFrameHeight={setInboundFrameHeight}
-                                setOutboundBitrate={setOutboundBitrate}
-                                setOutboundFramesPerSecond={setOutboundFramesPerSecond}
-                                setOutboundFrameWidth={setOutboundFrameWidth}
-                                setOutboundFrameHeight={setOutboundFrameHeight}
-                            />
-                            <VideoStatsTool
-                                connectionRef={connectionRef}
-                                localStream={localStream}
-                                setInboundBitrate={setInboundBitrate}
-                                setInboundVideoDelay={setInboundVideoDelay}
-                                setInboundFramesPerSecond={setInboundFramesPerSecond}
-                                setInboundFrameWidth={setInboundFrameWidth}
-                                setInboundFrameHeight={setInboundFrameHeight}
-                                setOutboundBitrate={setOutboundBitrate}
-                                setOutboundFramesPerSecond={setOutboundFramesPerSecond}
-                                setOutboundFrameWidth={setOutboundFrameWidth}
-                                setOutboundFrameHeight={setOutboundFrameHeight}
-                            />
-                            <VideoStatsTool
-                                connectionRef={shareScreenConnRef}
-                                isShareScreen={true}
-                                setInboundBitrate={setInboundBitrate_SC}
-                                setInboundVideoDelay={setInboundVideoDelay_SC}
-                                setInboundFramesPerSecond={setInboundFramesPerSecond_SC}
-                                setInboundFrameWidth={setInboundFrameWidth_SC}
-                                setInboundFrameHeight={setInboundFrameHeight_SC}
-                                setOutboundBitrate={setOutboundBitrate_SC}
-                                setOutboundFramesPerSecond={setOutboundFramesPerSecond_SC}
-                                setOutboundFrameWidth={setOutboundFrameWidth_SC}
-                                setOutboundFrameHeight={setOutboundFrameHeight_SC}
-                            />
-                        </>
-                    }
-                </div >
-            </div>
+                            {inviteVideoChatModalOpen &&
+                                <InviteVideoChatModal closeModal={() => setInviteVideoChatModalOpen(false)}
+                                    me={me} name={name} socket={socket} inviteVideoChatModalOpen={inviteVideoChatModalOpen}
+                                    strNowDate={strNowDate} />
+                            }
+                            {prepareCallModal &&
+                                <ConfirmModal modalInfo="将要发起视频通话，是否继续？" onOkBtnClick={() => {
+                                    setPrepareCallModal(false);
+                                    setTimeout(() => callUser(sid), 1000);
+                                }}
+                                    noCancelBtn={true} />
+                            }
+                            {
+                                chatPanelOpen &&
+                                <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} ncobj={connectionRef?.current?.peer} />
+                            }
+                            {
+                                mediaTrackSettingsModalOpen &&
+                                <MediaTrackSettingsModal
+                                    localVideoWidth={localVideoWidth} setLocalVideoWidth={setLocalVideoWidth}
+                                    localVideoHeight={localVideoHeight} setLocalVideoHeight={setLocalVideoHeight}
+                                    localFrameRate={localFrameRate} setLocalFrameRate={setLocalFrameRate}
+                                    echoCancellation={echoCancellation} setEchoCancellation={setEchoCancellation}
+                                    noiseSuppression={noiseSuppression} setNoiseSuppression={setNoiseSuppression}
+                                    sampleRate={sampleRate} setSampleRate={setSampleRate}
+                                    setModalOpen={setMediaTrackSettingsModalOpen}
+                                    setConstraint={setConstraint} videoEnabled={videoEnabled} audioEnabled={audioEnabled}
+                                    facingMode={facingMode}
+                                />
+                            }
+                            {selectVideoModalOpen &&
+                                <SelectVideoModal setModalOpen={setSelectVideoModalOpen} selectedVideoRef={selectedVideoRef}
+                                    setSelectedMediaStream={setSelectedMediaStream}
+                                    selectedLocalFile={selectedLocalFile} setSelectedLocalFile={setSelectedLocalFile}
+                                    audioSource={audioSource} setAudioSource={setAudioSource}
+                                    setAudioCtx={setAudioCtx} audioCtx={audioCtx} />
+                            }
+                        </div>
+                        <VideoStatsTool
+                            connectionRef={connectionRef}
+                            setInboundBitrate={setInboundBitrate}
+                            setInboundVideoDelay={setInboundVideoDelay}
+                            setInboundFramesPerSecond={setInboundFramesPerSecond}
+                            setInboundFrameWidth={setInboundFrameWidth}
+                            setInboundFrameHeight={setInboundFrameHeight}
+                            setOutboundBitrate={setOutboundBitrate}
+                            setOutboundFramesPerSecond={setOutboundFramesPerSecond}
+                            setOutboundFrameWidth={setOutboundFrameWidth}
+                            setOutboundFrameHeight={setOutboundFrameHeight}
+                        />
+                        <VideoStatsTool
+                            connectionRef={connectionRef}
+                            localStream={localStream}
+                            setInboundBitrate={setInboundBitrate}
+                            setInboundVideoDelay={setInboundVideoDelay}
+                            setInboundFramesPerSecond={setInboundFramesPerSecond}
+                            setInboundFrameWidth={setInboundFrameWidth}
+                            setInboundFrameHeight={setInboundFrameHeight}
+                            setOutboundBitrate={setOutboundBitrate}
+                            setOutboundFramesPerSecond={setOutboundFramesPerSecond}
+                            setOutboundFrameWidth={setOutboundFrameWidth}
+                            setOutboundFrameHeight={setOutboundFrameHeight}
+                        />
+                        <VideoStatsTool
+                            connectionRef={shareScreenConnRef}
+                            isShareScreen={true}
+                            setInboundBitrate={setInboundBitrate_SC}
+                            setInboundVideoDelay={setInboundVideoDelay_SC}
+                            setInboundFramesPerSecond={setInboundFramesPerSecond_SC}
+                            setInboundFrameWidth={setInboundFrameWidth_SC}
+                            setInboundFrameHeight={setInboundFrameHeight_SC}
+                            setOutboundBitrate={setOutboundBitrate_SC}
+                            setOutboundFramesPerSecond={setOutboundFramesPerSecond_SC}
+                            setOutboundFrameWidth={setOutboundFrameWidth_SC}
+                            setOutboundFrameHeight={setOutboundFrameHeight_SC}
+                        />
+                    </>
+                }
+            </div >
         </>
     )
 }
@@ -3242,25 +3248,19 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     iconSrc, videoEnabled, setVideoEnabled, setSelectedAudioDevice,
     setSelectedVideoDevice, callAccepted,
     selectedFileName, setSelectedMediaStream, isMediaCtlMenu,
-    videoRef, handleVolumeChange }) {
-    // const [audioIcon, setAudioIcon] = useState(AudioIcon);
-    // const [videoIcon, setVideoIcon] = useState(VideoIcon);
+    videoRef, handleVolumeChange,
+    isNameReadOnly, name, onNameTextAreaChange,
+    isIdToCallReadOnly, idToCall, onIdToCallTextAreaChange,
+    peerSocketId,
+    isShareScreen, setIsShareScreen, setChatPanelOpen, selectedMediaStream,
+    setMediaTrackSettingsModalOpen, setFacingMode, setSelectVideoModalOpen,
+    callEnded, onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick,
+    sid, onReturnMenuBtnClick }) {
+
     const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
     const [showStatPanel, setShowStatPanel] = useState(false);
     const [showMediaCtlMenu, setShowMediaCtlMenu] = useState(false);
     const node = useRef();
-
-    // useEffect(() => {
-    //     if (audioEnabled !== undefined) {
-    //         setAudioIcon(audioEnabled ? AudioIcon : AudioIconDisabled);
-    //     }
-    // }, [audioEnabled]);
-
-    // useEffect(() => {
-    //     if (videoEnabled !== undefined) {
-    //         setVideoIcon(videoEnabled ? VideoIcon : VideoIconDisabled);
-    //     }
-    // }, [videoEnabled]);
 
     useEffect(() => {
         const handleVolumeChange = () => {
@@ -3314,10 +3314,6 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
         }
     }
 
-    // function handleAudioClick() {
-    //     setAudioEnabled(prev => !prev);
-    // }
-
     const handleClickOutside = (e) => {
         if (node.current && !node.current.contains(e.target) &&
             !e.target.classList.contains('icon')) {
@@ -3329,64 +3325,105 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
         setSelectedMediaStream(null);
     };
 
-    return (
-        <div
-            ref={node}
-            style={{
-                position: 'absolute',
-                padding: '10px',
-                color: 'white',
-                backgroundColor: 'rgba(0, 0, 0, 0.5)',
-                fontSize: '12px',
-                maxWidth: '100%',
-                whiteSpace: 'pre-warp',
-                wordBreak: 'break-word',
-                ...getPositionStyle(), // 应用位置样式
-            }}
-        >
-            {isMediaCtlMenu &&
-                <div className='media-ctl-menu'>
-                    {!showMediaCtlMenu &&
-                        <img src={MediaCtlMenuIcon} alt="MediaCtlMenu" className="menu-icon" onClick={toggleCtlMenu} />
-                    }
-                    {showMediaCtlMenu &&
-                        <>
-                            <img src={CloseMediaCtlMenuIcon} alt="CloseMediaCtlMenu" className="icon close-menu-icon" onClick={toggleCtlMenu} />
-                            {/* <img src={audioIcon} alt="Audio" className="icon" onClick={handleAudioClick} /> */}
-                            <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled}
-                                setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted} />
-                            <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled}
-                                setSelectedDevice={setSelectedVideoDevice} callAccepted={callAccepted} />
-                            <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick} />
-                            <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef} />
-                        </>
-                    }
-                </div>
-            }
-            {iconSrc &&
-                <img src={iconSrc} alt="Icon" className="icon" onClick={toggleStatPanel} />
-            }
-            {content && !showMediaCtlMenu && content}
-            {selectedFileName &&
-                <div className='text-overlay-container'>
-                    <span>正在播放视频 </span>
-                    <span style={{ color: 'gray' }}>{selectedFileName}</span>
-                    <button className='button-normal' onClick={onBackButtonClick}>退出</button>
-                </div>
-            }
-            {contents && showStatPanel &&
-                <div>
-                    {
-                        contents.map((item, index) => (
-                            <div key={index}>
-                                <p>{item.name}: {item.data} {item.unit}</p>
-                            </div>
-                        ))
-                    }
-                </div>
-            }
-        </div >
-    );
+    if (peerSocketId) {
+        return null;
+    }
+    else {
+        return (
+            <div
+                ref={node}
+                style={{
+                    position: 'absolute',
+                    padding: '10px',
+                    color: 'white',
+                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    fontSize: '12px',
+                    maxWidth: '100%',
+                    whiteSpace: 'pre-warp',
+                    wordBreak: 'break-word',
+                    maxHeight: '100vh',
+                    ...getPositionStyle(), // 应用位置样式
+                }}
+            >
+                {isMediaCtlMenu &&
+                    <div className='media-ctl-menu'>
+                        {!showMediaCtlMenu &&
+                            <img src={MediaCtlMenuIcon} alt="MediaCtlMenu" className="menu-icon" onClick={toggleCtlMenu} />
+                        }
+                        {showMediaCtlMenu &&
+                            <>
+                                <img src={CloseMediaCtlMenuIcon} alt="CloseMediaCtlMenu" className="icon close-menu-icon" onClick={toggleCtlMenu} />
+                                <div className='myId'>
+                                    {!callAccepted &&
+                                        <>
+                                            <TextArea isReadyOnly={isNameReadOnly} placeholder='我的昵称'
+                                                label='Name' value={name} onChange={onNameTextAreaChange} />
+                                            <TextArea isReadyOnly={isIdToCallReadOnly} placeholder='对方号码'
+                                                label='ID to call' value={idToCall} onChange={onIdToCallTextAreaChange} />
+                                        </>
+                                    }
+                                    <CallButton callAccepted={callAccepted} callEnded={callEnded}
+                                        idToCall={idToCall} onLeaveCallBtnClick={onLeaveCallBtnClick}
+                                        onInviteCallBtnClick={onInviteCallBtnClick}
+                                        onCallUserBtnClick={onCallUserBtnClick} />
+                                </div>
+                                <div className='func-icon-container'>
+                                    {callAccepted &&
+                                        <>
+                                            <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled}
+                                                setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted} />
+                                            <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled}
+                                                setSelectedDevice={setSelectedVideoDevice} callAccepted={callAccepted} />
+                                            <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick} />
+                                            <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef} />
+                                        </>
+                                    }
+                                    <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
+                                        setIsShareScreen(prev => !prev);
+                                    }} />
+                                    <img src={MessageIcon} alt="Message" className="icon" onClick={() => {
+                                        setChatPanelOpen(prev => !prev);
+                                    }} />
+                                    <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
+                                        setMediaTrackSettingsModalOpen(prev => !prev);
+                                    }} />
+                                    <img src={SwitchCameraIcon} alt="SwitchCamera" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
+                                        setFacingMode(prev => (prev === FacingMode.Behind ? FacingMode.Front : FacingMode.Behind));
+                                    }} />
+                                    <img src={SelectVideoIcon} alt="SelectVideo" className="icon" onClick={() => {
+                                        setSelectVideoModalOpen(true);
+                                    }} />
+                                    <ReturnMenuButton sid={sid} onBtnClick={onReturnMenuBtnClick} />
+                                </div>
+                            </>
+                        }
+                    </div>
+                }
+                {iconSrc &&
+                    <img src={iconSrc} alt="Icon" className="icon" onClick={toggleStatPanel} />
+                }
+                {content && !showMediaCtlMenu && content}
+                {selectedFileName &&
+                    <div className='text-overlay-container'>
+                        <span>正在播放视频 </span>
+                        <span style={{ color: 'gray' }}>{selectedFileName}</span>
+                        <button className='button-normal' onClick={onBackButtonClick}>退出</button>
+                    </div>
+                }
+                {contents && showStatPanel &&
+                    <div>
+                        {
+                            contents.map((item, index) => (
+                                <div key={index}>
+                                    <p>{item.name}: {item.data} {item.unit}</p>
+                                </div>
+                            ))
+                        }
+                    </div>
+                }
+            </div >
+        );
+    }
 }
 
 function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice, callAccepted }) {
