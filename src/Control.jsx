@@ -1845,7 +1845,7 @@ function VolumeCtlSlider({ handleVolumeChange, videoRef }) {
             type="range"
             min="0"
             max="1"
-            step="0.1"
+            step="0.01"
             value={volume}
             onChange={(event) => {
                 setVolume(parseFloat(event.target.value));
