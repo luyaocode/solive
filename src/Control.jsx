@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Button, Input, Form, Space, Radio, Table } from 'antd';
 import { CopyToClipboard } from "react-copy-to-clipboard"
+import Draggable from 'react-draggable';
 import Peer from "simple-peer"
 import wrtc from "wrtc"
 import QRCode from 'qrcode.react';
@@ -1838,8 +1839,20 @@ function SelectVideoModal({ setModalOpen, selectedVideoRef, setSelectedMediaStre
     );
 }
 
-function VolumeCtlSlider({ handleVolumeChange, videoRef }) {
-    const [volume, setVolume] = useState(0);
+function VolumeCtlSlider({ handleVolumeChange, videoRef, volume, setVolume }) {
+
+    useEffect(() => {
+        const onVolumeChange = () => {
+            if (videoRef && videoRef.current) {
+                setVolume(videoRef.current.volume);
+            }
+        };
+        videoRef?.current?.addEventListener('volumechange', onVolumeChange);
+        return () => {
+            videoRef?.current?.removeEventListener('volumechange', onVolumeChange);
+        };
+    }, [videoRef]);
+
     return (
         <input
             type="range"
@@ -1919,6 +1932,30 @@ function ReturnMenuButton({ sid, onBtnClick }) {
     );
 }
 
+function LocalVideoDisplayBoard({ selectedVideoRef, selectedMediaStream, name, handleVideoClick,
+    isDragging }) {
+    const onVideoClick = (event) => {
+        if (isDragging) {
+            handleVideoClick(event);
+        }
+    };
+
+    return (
+        <div className='local-video'>
+            <video ref={selectedVideoRef} controls loop={true}
+                className={`local-media-stream ${selectedMediaStream ? '' : 'display-none'}`}
+                onClick={event => onVideoClick(event)}
+            />
+            {selectedMediaStream &&
+                <TextOverlay
+                    position="top-center"
+                    content={(name ? name : '') + '的本地视频'}
+                />
+            }
+        </div>
+    );
+}
+
 function VideoChat({ sid, deviceType, socket, returnMenuView,
     messages, setMessages, chatPanelOpen, setChatPanelOpen,
     peerSocketId/* 游戏中对方的socke id*/,
@@ -1953,7 +1990,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     // 控制
     const [videoEnabled, setVideoEnabled] = useState(peerSocketId ? false : true);
     const [audioEnabled, setAudioEnabled] = useState(true);
-    const [audioVolume, setAudioVolume] = useState(0);
+    const [myVideoVolume, setMyVideoVolume] = useState(0); // myVideo volume
     const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
     const [remoteAudioEnabled, setRemoteAudioEnabled] = useState(false);
     const [screenAudioEnabled, setScreenAudioEnabled] = useState(true); // display media audio
@@ -2000,6 +2037,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const selectedVideoRef = useRef(null);
 
     useEffect(() => {
+        if (selectedMediaStream && myVideo.current) {
+            myVideo.current.muted = false;
+            myVideo.current.volume = 1;
+
+        }
+    }, [selectedMediaStream]);
+
+    useEffect(() => {
         setConstraint({
             video: videoEnabled ? {
                 width: localVideoWidth,
@@ -2031,6 +2076,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         });
     }, [audioEnabled, videoEnabled]);
 
+
+    const [localVideoDisplayRenderKey, setLocalVideoDisplayRenderKey] = useState(0);
     useEffect(() => {
         if (callAccepted) {
             if (deviceType === DeviceType.PC) {
@@ -2048,6 +2095,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 root.style.setProperty('--video-container-video-height', '100%');
             }
         }
+        setLocalVideoDisplayRenderKey(prev => !prev);
     }, [callAccepted]);
 
     // 游戏语音模块
@@ -2922,14 +2970,21 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             onCallUserBtnClick={onCallUserBtnClick}
                             sid={sid}
                             onReturnMenuBtnClick={onReturnMenuBtnClick}
+                            myVideoVolume={myVideoVolume}
+                            setMyVideoVolume={setMyVideoVolume}
                         />
-                        {selectedMediaStream &&
-                            <TextOverlay
-                                position="top-center"
-                                selectedFileName={selectedLocalFile?.name}
-                                setSelectedMediaStream={setSelectedMediaStream}
-                            />
-                        }
+                        <TextOverlay
+                            position="top-left-local-video"
+                            selectedFileName={selectedLocalFile?.name}
+                            setSelectedMediaStream={setSelectedMediaStream}
+                            isShowLocalVideo={true}
+                            selectedMediaStream={selectedMediaStream}
+                            selectedVideoRef={selectedVideoRef}
+                            name={name}
+                            parentRef={myVideo}
+                            handleVideoClick={handleVideoClick}
+                            localVideoDisplayRenderKey={localVideoDisplayRenderKey}
+                        />
                         <TextOverlay
                             position="top-right"
                             iconSrc={StatPanelIcon}
@@ -2957,17 +3012,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             ]}
                         />
                     </div>
-                    {
-                        <div className='local-video'>
-                            <video ref={selectedVideoRef} controls loop={true}
-                                className={`local-media-stream ${selectedMediaStream ? '' : 'display-none'}`}
-                            />
-                            <TextOverlay
-                                position="top-left"
-                                content={name + '的本地视频'}
-                            />
-                        </div>
-                    }
                     {isShareScreen &&
                         <div className='video'>
                             <video ref={shareScreenVideo} playsInline muted autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
@@ -3270,6 +3314,125 @@ function InviteVideoChatModal({ closeModal, me, name, socket, inviteVideoChatMod
     );
 }
 
+function ScrollingText({ text, selectedMediaStream }) {
+    const containerRef = useRef(null);
+    const [shouldScroll, setShouldScroll] = useState(false);
+
+    useEffect(() => {
+        if (containerRef.current && selectedMediaStream) {
+            const containerWidth = containerRef.current.offsetWidth;
+            const textWidth = containerRef.current.scrollWidth;
+            if (textWidth > containerWidth) {
+                setShouldScroll(true);
+            } else {
+                setShouldScroll(false);
+            }
+        }
+
+    }, [text, containerRef.current, selectedMediaStream]);
+
+    return (
+        <div ref={containerRef} style={{
+            overflow: 'hidden', whiteSpace: 'nowrap',
+            width: '100%',
+            display: 'flex',
+            justifyContent: 'center',
+            color: '#d9d9d9',
+            fontSize: '16px',
+            marginTop: '1rem',
+            marginBottom: '0.1rem',
+        }}>
+            {shouldScroll ? (
+                <span className='scrolling-text'>
+                    {text}
+                </span>
+            ) : (
+                <span>{text}</span>
+            )}
+        </div>
+    );
+};
+
+
+function LocalVideoDisplay({ selectedMediaStream, onBackButtonClick,
+    selectedFileName, selectedVideoRef, name, parentRef, handleVideoClick,
+    localVideoDisplayRenderKey }) {
+    const [bounds, setBounds] = useState();
+    const [elementSize, setElementSize] = useState();
+    const [isDragging, setIsDragging] = useState(false);
+    const [position, setPosition] = useState();
+    const [initialPosition, setInitialPosition] = useState({ x: 0, y: 0 });
+    const elementRef = useRef(null);
+    useEffect(() => {
+        if (parentRef.current && elementRef.current && selectedMediaStream) {
+            const { width, height } = elementRef.current.getBoundingClientRect();
+            setElementSize({ width, height });
+            const parentRect = parentRef.current.getBoundingClientRect();
+            const initialX = (parentRect.width - width) / 2;
+            const initialY = (parentRect.height - height) / 2;
+            setPosition({ x: initialX, y: initialY });
+        }
+    }, [parentRef.current, elementRef.current, selectedMediaStream, localVideoDisplayRenderKey]);
+
+    useEffect(() => {
+        if (parentRef.current && elementSize) {
+            const parentRect = parentRef.current.getBoundingClientRect();
+            // 计算边界
+            setBounds({
+                left: 0,
+                top: 0,
+                right: parentRect.width - elementSize.width,
+                bottom: parentRect.height - elementSize.height,
+            });
+        }
+    }, [parentRef.current, elementSize]);
+
+    const handleStart = (e, ui) => {
+        setIsDragging(false);
+        setInitialPosition({ x: ui.x, y: ui.y });
+    };
+
+    const handleStop = (e, ui) => {
+        const { x, y } = ui;
+        // 计算拖拽的位移
+        const deltaX = x - initialPosition.x;
+        const deltaY = y - initialPosition.y;
+        const threshold = 5;
+        if (Math.abs(deltaX) > threshold || Math.abs(deltaY) > threshold) {
+            setIsDragging(true);
+        } else {
+            setIsDragging(false);
+        }
+    };
+
+    const handleDrag = (e, ui) => {
+        const { x, y } = ui;
+        setPosition({ x, y });
+    };
+
+    return (
+        <Draggable
+            bounds={bounds}
+            position={position}
+            onStart={handleStart}
+            onStop={handleStop}
+            onDrag={handleDrag}
+        >
+            <div ref={elementRef} className={`text-overlay-container ${selectedMediaStream ? '' : 'display-none'}`}>
+                <span className="close-button" style={{ color: 'red' }}
+                    onClick={onBackButtonClick}>
+                    &times;
+                </span>
+                <ScrollingText text={selectedFileName} selectedMediaStream={selectedMediaStream} />
+                <LocalVideoDisplayBoard selectedVideoRef={selectedVideoRef}
+                    selectedMediaStream={selectedMediaStream}
+                    name={name} handleVideoClick={handleVideoClick}
+                    isDragging={isDragging} />
+            </div>
+        </Draggable>
+    );
+}
+
 function TextOverlay({ position, content, contents, audioEnabled, setAudioEnabled,
     iconSrc, videoEnabled, setVideoEnabled, setSelectedAudioDevice,
     setSelectedVideoDevice, callAccepted,
@@ -3281,7 +3444,9 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     isShareScreen, setIsShareScreen, setChatPanelOpen, selectedMediaStream,
     setMediaTrackSettingsModalOpen, setFacingMode, setSelectVideoModalOpen,
     callEnded, onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick,
-    sid, onReturnMenuBtnClick }) {
+    sid, onReturnMenuBtnClick, isShowLocalVideo, selectedVideoRef,
+    parentRef, handleVideoClick, myVideoVolume, setMyVideoVolume,
+    localVideoDisplayRenderKey }) {
 
     const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
     const [showStatPanel, setShowStatPanel] = useState(false);
@@ -3289,6 +3454,12 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     const node = useRef();
     const volumeSliderContainerRef = useRef();
     const volumeSliderTimerRef = useRef();
+
+    useEffect(() => {
+        if (selectedMediaStream) {
+            setTimeout(() => setShowMediaCtlMenu(false), 1000); // to store volue change
+        }
+    }, [selectedMediaStream]);
 
     useEffect(() => {
         const handleVolumeChange = () => {
@@ -3315,16 +3486,35 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     const getPositionStyle = () => {
         switch (position) {
             case 'top-left':
-                return { top: 0, left: 0 };
+                return {
+                    top: 0,
+                    left: 0,
+                    zIndex: 40,
+                };
+            case 'top-left-local-video':
+                return {
+                    top: 0,
+                    left: 0,
+                    fontSize: '16px',
+                    maxWidth: '60%',
+                    height: 'auto',
+                    visibility: selectedMediaStream ? 'visible' : 'hidden',
+                    backgroundColor: 'transparent',
+                    zIndex: 30,
+                };
             case 'top-center':
                 return {
-                    top: 0, left: '50%',
+                    top: 0,
+                    left: '50%',
                     transform: 'translateX(-50%)',
-                    backgroundColor: 'pink',
-                    fontSize: '18px',
+                    zIndex: 30,
                 };
             case 'top-right':
-                return { top: 0, right: 0 };
+                return {
+                    top: 0,
+                    right: 0,
+                    zIndex: 20,
+                };
             case 'bottom-left':
                 return { bottom: 0, left: 0 };
             case 'bottom-right':
@@ -3391,6 +3581,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                     whiteSpace: 'pre-warp',
                     wordBreak: 'break-word',
                     maxHeight: '100vh',
+                    zIndex: 20,
                     ...getPositionStyle(), // 应用位置样式
                 }}
             >
@@ -3429,7 +3620,8 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                     }
                                     <div ref={volumeSliderContainerRef} className="slider-container"
                                         onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-                                        <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef} />
+                                        <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef}
+                                            volume={myVideoVolume} setVolume={setMyVideoVolume} />
                                         <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick} />
                                     </div>
                                     <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
@@ -3457,12 +3649,11 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                     <img src={iconSrc} alt="Icon" className="icon" onClick={toggleStatPanel} />
                 }
                 {content && !showMediaCtlMenu && content}
-                {selectedFileName &&
-                    <div className='text-overlay-container'>
-                        <span>正在播放视频 </span>
-                        <span style={{ color: 'gray' }}>{selectedFileName}</span>
-                        <button className='button-normal' onClick={onBackButtonClick}>退出</button>
-                    </div>
+                {isShowLocalVideo &&
+                    <LocalVideoDisplay selectedMediaStream={selectedMediaStream} onBackButtonClick={onBackButtonClick}
+                        selectedFileName={selectedFileName} selectedVideoRef={selectedVideoRef}
+                        name={name} parentRef={parentRef} handleVideoClick={handleVideoClick}
+                        localVideoDisplayRenderKey={localVideoDisplayRenderKey} />
                 }
                 {contents && showStatPanel &&
                     <div>

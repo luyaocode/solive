@@ -17,6 +17,7 @@ body {
   height: 100vh;
   /* 高度占据整个视口高度 */
   overflow-y: hidden;
+  overflow-x: hidden;
 }
 
 body::after {

@@ -1542,6 +1542,7 @@
 /* 视频通话 */
 .video-chat-view {
   overflow-y: hidden;
+  overflow-x: hidden;
   /* 始终显示滚动条 */
   scrollbar-width: none;
   /* Firefox */
@@ -1637,6 +1638,7 @@
   width: var(--video-container-video-width);
   height: var(--video-container-video-height);
   overflow-y: hidden;
+  overflow-x: hidden;
 }
 
 /* 修改此处以应对宽屏，改为自动缩放 */
@@ -1648,14 +1650,27 @@
   width: var(--video-container-video-width);
   height: 100%;
   overflow-y: hidden;
+  overflow-x: hidden;
 }
 
 /* 本地视频 */
 .local-video {
-  width: 0;
-  height: 0;
-  position: absolute;
-  z-index: -9999;
+  width: 100%;
+  position: relative;
+  display: flex;
+  justify-content: center;
+}
+
+.local-video video {
+  position: relative;
+  object-fit: contain;
+  /* border: 1px solid silver; */
+  /* padding: -2px; */
+  /* width: 100%; */
+  width: 100% !important;
+  height: auto;
+  overflow-y: hidden;
+  overflow-x: hidden;
 }
 
 .caller {
@@ -2342,8 +2357,9 @@
   left: 30%;
   transform: translateX(-50%);
   display: none;
-  writing-mode: bt-lr;
-  appearance: slider-vertical;
+  writing-mode: vertical-lr;
+  direction: rtl;
+  height: 150%;
 }
 
 .slider-container.show-input input[type="range"] {
@@ -2439,12 +2455,46 @@
 
 /* text-overlay-container */
 .text-overlay-container {
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  justify-content: center;
+  min-width: 100%;
+  height: auto;
+  border: 1px solid silver;
+  cursor: move;
+  white-space: nowrap;
+}
+
+.scrolling-text {
+  color: gray;
   display: inline-block;
+  font-size: 12px;
+  position: relative;
+  white-space: nowrap;
+  animation: scrollText 10s linear infinite;
+  transform: translateX(0%);
+  /* 修改起始位置 */
+  z-index: 2;
+  padding-top: 1rem;
+}
+
+@keyframes scrollText {
+  0% {
+    transform: translateX(0%);
+    /* 从左侧滚动进入 */
+  }
+
+  100% {
+    transform: translateX(100%);
+    /* 完全穿过边框 */
+  }
 }
 
 /* LocalMediaStream */
 .local-media-stream {
-  width: 400px;
+  width: 50%;
   height: auto,
 }
 

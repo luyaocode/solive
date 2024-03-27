@@ -27,6 +27,7 @@
     "react": "^18.2.0",
     "react-copy-to-clipboard": "^5.1.0",
     "react-dom": "^18.2.0",
+    "react-draggable": "^4.4.6",
     "react-emotor": "^1.2.0",
     "react-icons": "^5.0.1",
     "react-modal": "^3.16.1",
