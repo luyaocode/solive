@@ -48,6 +48,8 @@
   --video-container-flex-direction: column;
   --overlay-notice-board-height: 2rem;
   --overlay-notice-board-width: 52%;
+  --video-container-video-width: 100%;
+  --video-container-video-height: 100%;
 }
 
 .App {
@@ -1567,18 +1569,19 @@
       #c9d6ff);
   /* W3C, IE 10+/ Edge, Firefox 16+, Chrome 26+, Opera 12+, Safari 7+ */
 
-  padding: 1rem;
+  padding: 0.5rem 1rem;
   display: grid;
   align-content: center;
-  gap: 10px;
+  gap: 0.5rem;
   /* 防止水平溢出和水平滚动条出现 */
   overflow-x: hidden;
-  max-width: 98vw;
+  /* max-width: 98vw; */
   margin-bottom: 1rem;
 }
 
 .call-button {
   text-align: left;
+  justify-self: center;
 }
 
 /* invite-call-button */
@@ -1601,24 +1604,26 @@
 
 .video-container {
   width: 100%;
+  height: 100%;
   display: flex;
   flex-direction: var(--video-container-flex-direction);
-  justify-content: left;
-  align-content: top;
+  justify-content: center;
+  align-content: space-around;
+  justify-items: center;
+  align-items: center;
   gap: 0px;
   border: 1px solid black;
-  background-color: rgb(116, 100, 100);
+  background-color: rgb(149, 149, 149);
   /* padding: 2rem; */
-  overflow-x: scroll;
+  overflow-x: hidden;
   /* 启用水平滚动条 */
-  overflow-y: scroll;
+  overflow-y: hidden;
   /* 禁用垂直滚动条 */
   scrollbar-width: none;
   /* Firefox */
   -ms-overflow-style: none;
   flex-wrap: wrap;
   /* 启用自动换行 */
-  overflow-y: hidden;
 }
 
 .video-container::-webkit-scrollbar {
@@ -1629,10 +1634,9 @@
 /* 修改此处以应对宽屏，改为自动缩放 */
 .video-container .video {
   position: relative;
-  width: 100%;
+  width: var(--video-container-video-width);
+  height: var(--video-container-video-height);
   overflow-y: hidden;
-  align-self: flex-start;
-  /* 子组件垂直上对齐 */
 }
 
 /* 修改此处以应对宽屏，改为自动缩放 */
@@ -1641,10 +1645,17 @@
   object-fit: contain;
   /* border: 1px solid silver; */
   /* padding: -2px; */
-  width: 100%;
-  max-width: 100%;
-  max-height: 100%;
+  width: var(--video-container-video-height);
+  height: var(--video-container-video-width);
   overflow-y: hidden;
+}
+
+/* 本地视频 */
+.local-video {
+  width: 0;
+  height: 0;
+  position: absolute;
+  z-index: -9999;
 }
 
 .caller {
@@ -1686,7 +1697,7 @@
   color: #fff;
   font-family: Arial, sans-serif;
   width: 6rem;
-  background-color: silver;
+  background-color: transparent;
 }
 
 .audio-device-selector-container .icon {
@@ -1704,10 +1715,10 @@
   width: 100%;
   font-size: 16px;
   border-radius: 5px;
-  background-color: #2b2b2e;
+  background-color: #363636;
   color: #fff;
   border: none;
-  margin-right: 10px;
+  margin-right: 1rem;
   margin-left: 0rem;
 }
 
@@ -1727,7 +1738,7 @@
   color: #fff;
   font-family: Arial, sans-serif;
   width: 6rem;
-  background-color: silver;
+  background-color: transparent;
 }
 
 .video-device-selector-container .icon {
@@ -2305,6 +2316,33 @@
   margin-top: 5px;
 }
 
+.slider-container {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.slider-container .icon {
+  cursor: pointer;
+}
+
+.slider-container input[type="range"] {
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  position: absolute;
+  bottom: 100%;
+  left: 30%;
+  transform: translateX(-50%);
+  display: none;
+  writing-mode: bt-lr;
+  appearance: slider-vertical;
+}
+
+.slider-container.show-input input[type="range"] {
+  display: block;
+}
+
 .media-track-settings-modal button {
   padding: 8px 16px;
   border: none;
@@ -2424,6 +2462,10 @@
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
   z-index: 100;
+}
+
+.media-ctl-menu .close-menu-icon {
+  width: 10%;
 }
 
 .media-ctl-menu .icon {

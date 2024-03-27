@@ -1839,13 +1839,18 @@ function SelectVideoModal({ setModalOpen, selectedVideoRef, setSelectedMediaStre
 }
 
 function VolumeCtlSlider({ handleVolumeChange, videoRef }) {
+    const [volume, setVolume] = useState(0);
     return (
         <input
             type="range"
             min="0"
             max="1"
             step="0.1"
-            onChange={(event) => handleVolumeChange(event, videoRef)}
+            value={volume}
+            onChange={(event) => {
+                setVolume(parseFloat(event.target.value));
+                handleVolumeChange(event, videoRef)
+            }}
         />
     );
 }
@@ -2025,6 +2030,25 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             } : false,
         });
     }, [audioEnabled, videoEnabled]);
+
+    useEffect(() => {
+        if (callAccepted) {
+            if (deviceType === DeviceType.PC) {
+                root.style.setProperty('--video-container-video-width', '50%');
+            }
+            else if (deviceType === DeviceType.MOBILE) {
+                root.style.setProperty('--video-container-video-height', '50%');
+            }
+        }
+        else {
+            if (deviceType === DeviceType.PC) {
+                root.style.setProperty('--video-container-video-width', '100%');
+            }
+            else if (deviceType === DeviceType.MOBILE) {
+                root.style.setProperty('--video-container-video-height', '100%');
+            }
+        }
+    }, [callAccepted]);
 
     // 游戏语音模块
     const [haveCalledOnce, setHaveCalledOnce] = useState(false);
@@ -2856,7 +2880,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             <div className='video-chat-view'>
                 <div className="video-container">
                     <div className='video'>
-                        <video ref={myVideo} playsInline loop={true} muted controls={false} autoPlay style={{ position: 'relative', zIndex: 0, width: '100% !important' }}
+                        <video ref={myVideo} playsInline loop={true} muted controls={false} autoPlay
+                            style={{ position: 'relative', zIndex: 0, width: '100%' }}
                             onClick={handleVideoClick}
                         />
                         {!hasLocalVideoTrack && !hasLocalAudioTrack && (
@@ -2933,7 +2958,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         />
                     </div>
                     {
-                        <div className='video'>
+                        <div className='local-video'>
                             <video ref={selectedVideoRef} controls loop={true}
                                 className={`local-media-stream ${selectedMediaStream ? '' : 'display-none'}`}
                             />
@@ -2981,10 +3006,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     }
                     {callAccepted && !callEnded ?
                         <div className="video">
-                            <video ref={userVideo} playsInline autoPlay loop={true} controls style={{
-                                position: 'relative', zIndex: 0, width: '400px',
-                                opacity: hasRemoteVideoTrack ? '1' : '0'
-                            }}
+                            <video ref={userVideo} playsInline autoPlay loop={true} controls={false}
+                                style={{
+                                    position: 'relative', zIndex: 0, width: '100%',
+                                    opacity: hasRemoteVideoTrack ? '1' : '0'
+                                }}
                                 onClick={handleVideoClick} />
                             {!hasRemoteVideoTrack && !hasRemoteAudioTrack && (
                                 <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
@@ -3261,6 +3287,8 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     const [showStatPanel, setShowStatPanel] = useState(false);
     const [showMediaCtlMenu, setShowMediaCtlMenu] = useState(false);
     const node = useRef();
+    const volumeSliderContainerRef = useRef();
+    const volumeSliderTimerRef = useRef();
 
     useEffect(() => {
         const handleVolumeChange = () => {
@@ -3310,6 +3338,9 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
 
     function handleSpeakerClick() {
         if (videoRef.current) {
+            if (videoRef.current.muted) {
+                videoRef.current.volume = 0;
+            }
             videoRef.current.muted = !(videoRef.current.muted);
         }
     }
@@ -3323,6 +3354,17 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
 
     const onBackButtonClick = () => {
         setSelectedMediaStream(null);
+    };
+
+    const handleMouseEnter = () => {
+        clearTimeout(volumeSliderTimerRef.current);
+        volumeSliderContainerRef.current.classList.add('show-input');
+    };
+
+    const handleMouseLeave = () => {
+        volumeSliderTimerRef.current = setTimeout(() => {
+            volumeSliderContainerRef.current.classList.remove('show-input');
+        }, 200);
     };
 
     if (peerSocketId) {
@@ -3374,8 +3416,6 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                                 setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted} />
                                             <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled}
                                                 setSelectedDevice={setSelectedVideoDevice} callAccepted={callAccepted} />
-                                            <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick} />
-                                            <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef} />
                                         </>
                                     }
                                     <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
@@ -3387,6 +3427,11 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                     <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
                                         setMediaTrackSettingsModalOpen(prev => !prev);
                                     }} />
+                                    <div ref={volumeSliderContainerRef} className="slider-container"
+                                        onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                                        <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef} />
+                                        <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick} />
+                                    </div>
                                     <img src={SwitchCameraIcon} alt="SwitchCamera" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
                                         setFacingMode(prev => (prev === FacingMode.Behind ? FacingMode.Front : FacingMode.Behind));
                                     }} />
