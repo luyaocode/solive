@@ -2177,6 +2177,7 @@
   margin: 0;
   cursor: pointer;
   z-index: 100;
+  width: 1.5rem;
 }
 
 .grayed-out {
@@ -2460,17 +2461,17 @@
 }
 
 .media-ctl-menu .menu-icon {
-  width: 100%;
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
+  width: 1.5rem;
   z-index: 100;
+  cursor: pointer;
 }
 
 .media-ctl-menu .close-menu-icon {
-  width: 10%;
+  width: 1.5rem;
 }
 
 .media-ctl-menu .icon {
+  width: 1.5rem;
   max-width: 20%;
   padding-top: 0.5rem;
   padding-bottom: 0.5rem;
