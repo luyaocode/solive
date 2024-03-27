@@ -832,52 +832,55 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
     }, [isLoginSuccess]);
 
     return (
-        <div className="menu-container">
-            <div>
-                <FancyTitle text={title} />
-                <FancyTitle2 text={cTitle} />
-            </div>
-            <div className="menu-items">
-                <div className="menu-item">
-                    {/* <img src="item1.jpg" alt="Item 1" /> */}
-                    <h2>单机</h2>
-                    {/* <p>模式介绍：...</p> */}
-                    <button onClick={() => onButtonClick(GameMode.MODE_SIGNAL)}>面对面</button>
-                    <button onClick={() => onButtonClick(GameMode.MODE_AI)}>AI模式</button>
+        <>
+            <div className="menu-container">
+                <div>
+                    <FancyTitle text={title} />
+                    <FancyTitle2 text={cTitle} />
                 </div>
-                <div className="menu-item">
-                    {/* <img src="item2.jpg" alt="Item 2" /> */}
-                    <h2>联机</h2>
-                    {/* <p>模式介绍：...</p> */}
-                    <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_MATCH)}>匹配模式</button>
-                    <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_ROOM)}>房间模式</button>
+                <div className="menu-items">
+                    <div className="menu-item">
+                        {/* <img src="item1.jpg" alt="Item 1" /> */}
+                        <h2>单机</h2>
+                        {/* <p>模式介绍：...</p> */}
+                        <button onClick={() => onButtonClick(GameMode.MODE_SIGNAL)}>面对面</button>
+                        <button onClick={() => onButtonClick(GameMode.MODE_AI)}>AI模式</button>
+                    </div>
+                    <div className="menu-item">
+                        {/* <img src="item2.jpg" alt="Item 2" /> */}
+                        <h2>联机</h2>
+                        {/* <p>模式介绍：...</p> */}
+                        <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_MATCH)}>匹配模式</button>
+                        <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_ROOM)}>房间模式</button>
+                    </div>
                 </div>
+                <SystemInfo headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected} />
+                <LoginButton modalOpen={isLoginModalOpen} setModalOpen={setLoginModalOpen}
+                    isLoginSuccess={isLoginSuccess} setTableViewOpen={setTableViewOpen} />
+                <Footer />
+                {enterRoomModalOpen && <EnterRoomModal modalInfo='请输入信息'
+                    onOkBtnClick={enterRoom}
+                    OnCancelBtnClick={() => setEnterRoomModalOpen(false)} />}
+                {isLoginModalOpen && <LoginModal modalInfo='请输入账号密码'
+                    onOkBtnClick={login}
+                    OnCancelBtnClick={() => setLoginModalOpen(false)} />}
+                {
+                    loginResultModalOpen && <Modal modalInfo={isLoginSuccess === LoginStatus.OK ? '登录成功！' : '登录失败！'} setModalOpen={setLoginResultModalOpen} />
+                }
+                {
+                    confirmEnterRoomModalOpen &&
+                    <ConfirmModal modalInfo={'是否进入房间[' + rid + '] ？'}
+                        onOkBtnClick={() => {
+                            enterRoomByUrl();
+                            setConfirmEnterRoomModalOpen(false);
+                        }
+                        }
+                        noCancelBtn={true}
+                    />
+                }
             </div>
-            <SystemInfo headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected} />
-            <LoginButton modalOpen={isLoginModalOpen} setModalOpen={setLoginModalOpen}
-                isLoginSuccess={isLoginSuccess} setTableViewOpen={setTableViewOpen} />
-            <Footer />
-            {enterRoomModalOpen && <EnterRoomModal modalInfo='请输入信息'
-                onOkBtnClick={enterRoom}
-                OnCancelBtnClick={() => setEnterRoomModalOpen(false)} />}
-            {isLoginModalOpen && <LoginModal modalInfo='请输入账号密码'
-                onOkBtnClick={login}
-                OnCancelBtnClick={() => setLoginModalOpen(false)} />}
-            {
-                loginResultModalOpen && <Modal modalInfo={isLoginSuccess === LoginStatus.OK ? '登录成功！' : '登录失败！'} setModalOpen={setLoginResultModalOpen} />
-            }
-            {
-                confirmEnterRoomModalOpen &&
-                <ConfirmModal modalInfo={'是否进入房间[' + rid + '] ？'}
-                    onOkBtnClick={() => {
-                        enterRoomByUrl();
-                        setConfirmEnterRoomModalOpen(false);
-                    }
-                    }
-                    noCancelBtn={true}
-                />
-            }
-        </div>
+            <ToolBar backgroundColor='transparent' />
+        </>
     );
 }
 
@@ -2004,6 +2007,14 @@ function LocalVideoDisplayBoard({ selectedVideoRef, selectedMediaStream, name, h
                     content={(name ? name : '') + '的本地视频'}
                 />
             }
+        </div>
+    );
+}
+
+function ToolBar({ backgroundColor }) {
+    return (
+        <div className='toolbar' style={{ backgroundColor: backgroundColor }}>
+            <p> </p>
         </div>
     );
 }
@@ -3201,9 +3212,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         </div>
                     }
                 </div>
-                <div className='status-bar'>
-
-                </div>
+                <ToolBar />
                 {!peerSocketId && /*以下都不会在游戏语音通话模块中加载 */
                     <>
                         <div>
