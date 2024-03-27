@@ -448,8 +448,8 @@ function StartModal({ roomIsFullModalOpen, setRoomIsFullModalOpen, isRestart, se
                     break;
                 }
             case GameMode.MODE_AI: {
-                text = '正在匹配AI';
-                text2 = '匹配成功';
+                text = '正在唤醒机器人';
+                text2 = '唤醒成功';
                 break;
             }
             case GameMode.MODE_MATCH:
@@ -843,15 +843,15 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
                         {/* <img src="item1.jpg" alt="Item 1" /> */}
                         <h2>单机</h2>
                         {/* <p>模式介绍：...</p> */}
-                        <button onClick={() => onButtonClick(GameMode.MODE_SIGNAL)}>面对面</button>
-                        <button onClick={() => onButtonClick(GameMode.MODE_AI)}>AI模式</button>
+                        <button onClick={() => onButtonClick(GameMode.MODE_SIGNAL)}>好友对战</button>
+                        <button onClick={() => onButtonClick(GameMode.MODE_AI)}>人机对战</button>
                     </div>
                     <div className="menu-item">
                         {/* <img src="item2.jpg" alt="Item 2" /> */}
                         <h2>联机</h2>
                         {/* <p>模式介绍：...</p> */}
                         <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_MATCH)}>匹配模式</button>
-                        <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_ROOM)}>房间模式</button>
+                        <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_ROOM)}>进入房间</button>
                     </div>
                 </div>
                 <SystemInfo headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected} />
