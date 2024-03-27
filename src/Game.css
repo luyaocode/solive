@@ -2260,11 +2260,9 @@
   padding: 20px;
   border-radius: 8px;
   max-width: 400px;
-  width: 100%;
+  width: 95%;
   text-align: left;
   position: relative;
-  margin-left: 10px;
-  margin-right: 10px;
   word-wrap: break-word;
 }
 

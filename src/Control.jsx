@@ -2404,19 +2404,23 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         }
                         if (selectedMediaStream) {
                             selectedMediaStream.getTracks().forEach(track => {
-                                setTimeout(() => connectionRef.current.peer.addTrack(track, stream), 1000);
+                                setTimeout(() => connectionRef.current.peer.addTrack(track, stream), 1000);// 需要延迟否则视频轨道接收不到
                             });
                         }
                     }
                     else {
                         if (localStream && localStream.active) {
                             localStream.getTracks().forEach(track => {
-                                connectionRef.current.peer.removeTrack(track, localStream);
+                                const submap = connectionRef.current.peer._senderMap.get(track);
+                                const sender = submap ? submap.get(stream) : null;
+                                if (sender) {
+                                    connectionRef.current.peer.removeTrack(track, localStream);
+                                }
                             });
                         }
                         if (stream) {
                             stream.getTracks().forEach(track => {
-                                connectionRef.current.peer.addTrack(track, stream);
+                                setTimeout(() => connectionRef.current.peer.addTrack(track, stream), 1000); // 需要延迟否则视频轨道接收不到
                             });
                         }
                         else {
@@ -3644,7 +3648,9 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
 
     const handleMouseLeave = () => {
         volumeSliderTimerRef.current = setTimeout(() => {
-            volumeSliderContainerRef.current.classList.remove('show-input');
+            if (volumeSliderContainerRef.current) {
+                volumeSliderContainerRef.current.classList.remove('show-input');
+            }
         }, 200);
     };
 
