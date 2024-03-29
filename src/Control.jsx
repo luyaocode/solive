@@ -2139,28 +2139,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         });
     }, [audioEnabled, videoEnabled]);
 
-
-    const [localVideoDisplayRenderKey, setLocalVideoDisplayRenderKey] = useState(0);
-    useEffect(() => {
-        if (callAccepted) {
-            if (deviceType === DeviceType.PC) {
-                root.style.setProperty('--video-container-video-width', '50%');
-            }
-            else if (deviceType === DeviceType.MOBILE) {
-                root.style.setProperty('--video-container-video-height', '50%');
-            }
-        }
-        else {
-            if (deviceType === DeviceType.PC) {
-                root.style.setProperty('--video-container-video-width', '100%');
-            }
-            else if (deviceType === DeviceType.MOBILE) {
-                root.style.setProperty('--video-container-video-height', '100%');
-            }
-        }
-        setLocalVideoDisplayRenderKey(prev => !prev);
-    }, [callAccepted]);
-
     // 游戏语音模块
     const [haveCalledOnce, setHaveCalledOnce] = useState(false);
 
@@ -2183,11 +2161,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [inboundFramesPerSecond_SC, setInboundFramesPerSecond_SC] = useState(0);    // 入站视频帧率
     const [inboundFrameWidth_SC, setInboundFrameWidth_SC] = useState(0);              // 入站视频帧宽度
     const [inboundFrameHeight_SC, setInboundFrameHeight_SC] = useState(0);            // 入站视频帧高度
-
     const [outboundVideoBitrate_SC, setOutboundBitrate_SC] = useState(0);             // 出站视频比特率
     const [outboundFramesPerSecond_SC, setOutboundFramesPerSecond_SC] = useState(0);  // 出站视频帧率
     const [outboundFrameWidth_SC, setOutboundFrameWidth_SC] = useState(0);            // 出站视频帧宽度
     const [outboundFrameHeight_SC, setOutboundFrameHeight_SC] = useState(0);          // 出站视频帧高度
+
+    const [localVideoDisplayRenderKey, setLocalVideoDisplayRenderKey] = useState(0);
+    const [showVideoPlayer, setShowVideoPlayer] = useState(false);
 
     const myVideo = useRef();
     const userVideo = useRef();
@@ -2196,6 +2176,64 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const connectionRef = useRef();
     const shareScreenConnRef = useRef();
     const timerRef = useRef();
+    const videoPlayerRef = useRef(null);
+
+    const getVideoCountInContainer = (selector) => {
+        const videoContainer = document.querySelector(selector);
+        if (!videoContainer) {
+            return 0;
+        }
+        const videoChildren = videoContainer.querySelectorAll(selector + ' > .video');
+        return videoChildren.length;
+    };
+
+    useEffect(() => {
+        const nVCount = getVideoCountInContainer('.video-container');
+        setShowVideoPlayer(nVCount !== 1);
+        if (nVCount === 1) {
+            root.style.setProperty('--video-container-width', '100%');
+            root.style.setProperty('--video-container-height', '100%');
+            root.style.setProperty('--video-container-video-height', '100%');
+            root.style.setProperty('--video-container-video-width', '100%');
+            return;
+        }
+        if (deviceType === DeviceType.PC) {
+            root.style.setProperty('--video-container-flex-direction', 'column');
+            root.style.setProperty('--video-container-width', '30%');
+            const singleHeight = (1 / nVCount * 100).toFixed(2) + '%';
+            root.style.setProperty('--video-container-video-height', singleHeight);
+            root.style.setProperty('--video-container-overflow-x', 'hidden');
+        }
+        else if (deviceType === DeviceType.MOBILE) {
+            // root.style.setProperty('--video-container-flex-direction', 'row');
+            root.style.setProperty('--video-container-height', '30%');
+            const singleWidth = (1 / 1 * 100).toFixed(2) + '%';
+            root.style.setProperty('--video-container-video-width', singleWidth);
+            root.style.setProperty('--video-container-overflow-x', 'scroll');
+        }
+        setLocalVideoDisplayRenderKey(prev => !prev);
+    }, [callAccepted, isShareScreen, isReceiveShareScreen]);
+
+    useEffect(() => {
+        if (!showVideoPlayer || !videoPlayerRef.current) return;
+        if (remoteStream) {
+            videoPlayerRef.current.srcObject = remoteStream;
+        }
+    }, [showVideoPlayer, videoPlayerRef.current, remoteStream]);
+
+    useEffect(() => {
+        if (!showVideoPlayer || !videoPlayerRef.current) return;
+        if (localScreenStream) {
+            videoPlayerRef.current.srcObject = localScreenStream;
+        }
+    }, [showVideoPlayer, videoPlayerRef.current, localScreenStream]);
+
+    useEffect(() => {
+        if (!showVideoPlayer || !videoPlayerRef.current) return;
+        if (remoteScreenStream) {
+            videoPlayerRef.current.srcObject = remoteScreenStream;
+        }
+    }, [showVideoPlayer, videoPlayerRef.current, remoteScreenStream]);
 
     useEffect(() => {
         if (socket.connected) {
@@ -2928,6 +2966,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
 
     const handleVideoClick = (event) => {
+        if (videoPlayerRef?.current && event.currentTarget?.srcObject &&
+            videoPlayerRef.current.srcObject !== event.currentTarget.srcObject) {
+            videoPlayerRef.current.srcObject = event.currentTarget.srcObject
+        }
         event.preventDefault();
         event.stopPropagation();
     };
@@ -2993,148 +3035,65 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     return (
         <>
             <div className='video-chat-view'>
-                <div className="video-container">
-                    <div className='video'>
-                        <video ref={myVideo} playsInline loop={true} muted controls={false} autoPlay
-                            style={{ position: 'relative', zIndex: 0, width: '100%' }}
-                            onClick={handleVideoClick}
-                        />
-                        {!hasLocalVideoTrack && !hasLocalAudioTrack && (
-                            <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 0, height: '100%', width: '100%' }} />
-                        )}
-                        {!hasLocalVideoTrack && hasLocalAudioTrack && (
-                            <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 0, height: '100%', width: '100%' }} />
-                        )}
-                        <TextOverlay
-                            isMediaCtlMenu={true}
-                            position="top-left"
-                            content={name}
-                            audioEnabled={audioEnabled}
-                            setAudioEnabled={setAudioEnabled}
-                            videoEnabled={videoEnabled}
-                            setVideoEnabled={setVideoEnabled}
-                            handleVolumeChange={handleVolumeChange}
-                            videoRef={myVideo}
-                            setSelectedAudioDevice={setSelectedAudioDevice}
-                            setSelectedVideoDevice={setSelectedVideoDevice}
-                            callAccepted={callAccepted}
-                            isNameReadOnly={isNameReadOnly}
-                            name={name}
-                            onNameTextAreaChange={onNameTextAreaChange}
-                            isIdToCallReadOnly={isIdToCallReadOnly}
-                            idToCall={idToCall}
-                            onIdToCallTextAreaChange={onIdToCallTextAreaChange}
-                            isShareScreen={isShareScreen}
-                            setIsShareScreen={setIsShareScreen}
-                            setChatPanelOpen={setChatPanelOpen}
-                            selectedMediaStream={selectedMediaStream}
-                            setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
-                            setFacingMode={setFacingMode}
-                            setSelectVideoModalOpen={setSelectVideoModalOpen}
-                            callEnded={callEnded}
-                            onLeaveCallBtnClick={onLeaveCallBtnClick}
-                            onInviteCallBtnClick={onInviteCallBtnClick}
-                            onCallUserBtnClick={onCallUserBtnClick}
-                            sid={sid}
-                            onReturnMenuBtnClick={onReturnMenuBtnClick}
-                            myVideoVolume={myVideoVolume}
-                            setMyVideoVolume={setMyVideoVolume}
-                        />
-                        <TextOverlay
-                            position="top-left-local-video"
-                            selectedFileName={selectedLocalFile?.name}
-                            setSelectedMediaStream={setSelectedMediaStream}
-                            isShowLocalVideo={true}
-                            selectedMediaStream={selectedMediaStream}
-                            selectedVideoRef={selectedVideoRef}
-                            name={name}
-                            parentRef={myVideo}
-                            handleVideoClick={handleVideoClick}
-                            localVideoDisplayRenderKey={localVideoDisplayRenderKey}
-                        />
-                        <TextOverlay
-                            position="top-right"
-                            iconSrc={StatPanelIcon}
-                            contents={[
-                                {
-                                    name: 'Video Bitrate',
-                                    data: outboundVideoBitrate.toFixed(4),
-                                    unit: 'Mbps'
-                                },
-                                {
-                                    name: 'Video Frame Rate',
-                                    data: outboundFramesPerSecond.toFixed(2),
-                                    unit: ''
-                                },
-                                {
-                                    name: 'Video Frame Width',
-                                    data: outboundFrameWidth.toFixed(0),
-                                    unit: ''
-                                },
-                                {
-                                    name: 'Video Frame Width',
-                                    data: outboundFrameHeight.toFixed(0),
-                                    unit: ''
-                                },
-                            ]}
-                        />
-                        <TextOverlay
-                            position="bottom-right"
-                            iconSrc={FullScreenIcon}
-                            parentRef={myVideo}
-                        />
-                    </div>
-                    {isShareScreen &&
+                <div className={`video-container-parent ${deviceType === DeviceType.MOBILE ? 'mobile' : ''}`}>
+                    <div className="video-container">
                         <div className='video'>
-                            <video ref={shareScreenVideo} playsInline muted autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
-                                onClick={handleVideoClick} />
-                            <TextOverlay
-                                position="top-left"
-                                content={name + '的屏幕'}
+                            <video ref={myVideo} playsInline loop={true} muted controls={false} autoPlay
+                                style={{ position: 'relative', zIndex: 0, width: '100%' }}
+                                onClick={handleVideoClick}
                             />
-                            <TextOverlay
-                                position="top-right"
-                                iconSrc={StatPanelIcon}
-                                contents={[
-                                    {
-                                        name: 'Video Bitrate',
-                                        data: outboundVideoBitrate_SC.toFixed(4),
-                                        unit: 'Mbps'
-                                    },
-                                    {
-                                        name: 'Video Frame Rate',
-                                        data: outboundFramesPerSecond_SC.toFixed(2),
-                                        unit: ''
-                                    },
-                                    {
-                                        name: 'Video Frame Width',
-                                        data: outboundFrameWidth_SC.toFixed(0),
-                                        unit: ''
-                                    },
-                                    {
-                                        name: 'Video Frame Width',
-                                        data: outboundFrameHeight_SC.toFixed(0),
-                                        unit: ''
-                                    },
-                                ]}
-                            />
-                        </div>
-                    }
-                    {callAccepted && !callEnded ?
-                        <div className="video">
-                            <video ref={userVideo} playsInline autoPlay loop={true} controls={false}
-                                style={{
-                                    position: 'relative', zIndex: 0, width: '100%',
-                                    opacity: hasRemoteVideoTrack ? '1' : '0'
-                                }}
-                                onClick={handleVideoClick} />
-                            {!hasRemoteVideoTrack && !hasRemoteAudioTrack && (
-                                <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
+                            {!hasLocalVideoTrack && !hasLocalAudioTrack && (
+                                <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 0, height: '100%', width: '100%' }} />
+                            )}
+                            {!hasLocalVideoTrack && hasLocalAudioTrack && (
+                                <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 0, height: '100%', width: '100%' }} />
                             )}
                             <TextOverlay
+                                isMediaCtlMenu={true}
                                 position="top-left"
-                                content={anotherName}
-                                audioEnabled={hasRemoteAudioTrack}
+                                content={name}
+                                audioEnabled={audioEnabled}
+                                setAudioEnabled={setAudioEnabled}
+                                videoEnabled={videoEnabled}
+                                setVideoEnabled={setVideoEnabled}
+                                handleVolumeChange={handleVolumeChange}
+                                videoRef={myVideo}
+                                setSelectedAudioDevice={setSelectedAudioDevice}
+                                setSelectedVideoDevice={setSelectedVideoDevice}
+                                callAccepted={callAccepted}
+                                isNameReadOnly={isNameReadOnly}
+                                name={name}
+                                onNameTextAreaChange={onNameTextAreaChange}
+                                isIdToCallReadOnly={isIdToCallReadOnly}
+                                idToCall={idToCall}
+                                onIdToCallTextAreaChange={onIdToCallTextAreaChange}
+                                isShareScreen={isShareScreen}
+                                setIsShareScreen={setIsShareScreen}
+                                setChatPanelOpen={setChatPanelOpen}
+                                selectedMediaStream={selectedMediaStream}
+                                setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
+                                setFacingMode={setFacingMode}
+                                setSelectVideoModalOpen={setSelectVideoModalOpen}
+                                callEnded={callEnded}
+                                onLeaveCallBtnClick={onLeaveCallBtnClick}
+                                onInviteCallBtnClick={onInviteCallBtnClick}
+                                onCallUserBtnClick={onCallUserBtnClick}
+                                sid={sid}
+                                onReturnMenuBtnClick={onReturnMenuBtnClick}
+                                myVideoVolume={myVideoVolume}
+                                setMyVideoVolume={setMyVideoVolume}
+                            />
+                            <TextOverlay
+                                position="top-left-local-video"
+                                selectedFileName={selectedLocalFile?.name}
+                                setSelectedMediaStream={setSelectedMediaStream}
+                                isShowLocalVideo={true}
+                                selectedMediaStream={selectedMediaStream}
+                                selectedVideoRef={selectedVideoRef}
+                                name={name}
+                                parentRef={myVideo}
+                                handleVideoClick={handleVideoClick}
+                                localVideoDisplayRenderKey={localVideoDisplayRenderKey}
                             />
                             <TextOverlay
                                 position="top-right"
@@ -3142,27 +3101,22 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 contents={[
                                     {
                                         name: 'Video Bitrate',
-                                        data: inboundVideoBitrate.toFixed(4),
+                                        data: outboundVideoBitrate.toFixed(4),
                                         unit: 'Mbps'
                                     },
                                     {
-                                        name: 'Video Delay',
-                                        data: inboundVideoDelay.toFixed(1),
-                                        unit: 'ms'
-                                    },
-                                    {
                                         name: 'Video Frame Rate',
-                                        data: inboundFramesPerSecond.toFixed(2),
+                                        data: outboundFramesPerSecond.toFixed(2),
                                         unit: ''
                                     },
                                     {
                                         name: 'Video Frame Width',
-                                        data: inboundFrameWidth.toFixed(0),
+                                        data: outboundFrameWidth.toFixed(0),
                                         unit: ''
                                     },
                                     {
-                                        name: 'Video Frame Height',
-                                        data: inboundFrameHeight.toFixed(0),
+                                        name: 'Video Frame Width',
+                                        data: outboundFrameHeight.toFixed(0),
                                         unit: ''
                                     },
                                 ]}
@@ -3170,49 +3124,167 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             <TextOverlay
                                 position="bottom-right"
                                 iconSrc={FullScreenIcon}
-                                parentRef={userVideo}
+                                parentRef={myVideo}
                             />
                         </div>
-                        : null
-                    }
-                    {isReceiveShareScreen &&
-                        <div className='video'>
-                            <video ref={remoteShareScreenVideo} playsInline autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
-                                onClick={handleVideoClick} />
-                            <TextOverlay
-                                position="top-left"
-                                content={anotherName + '的屏幕'}
-                            />
-                            <TextOverlay
-                                position="top-right"
-                                iconSrc={StatPanelIcon}
-                                contents={[
-                                    {
-                                        name: 'Video Bitrate',
-                                        data: inboundVideoBitrate_SC.toFixed(4),
-                                        unit: 'Mbps'
-                                    },
-                                    {
-                                        name: 'Video Delay',
-                                        data: inboundVideoDelay_SC.toFixed(1),
-                                        unit: 'ms'
-                                    },
-                                    {
-                                        name: 'Video Frame Rate',
-                                        data: inboundFramesPerSecond_SC.toFixed(2),
-                                        unit: ''
-                                    },
-                                    {
-                                        name: 'Video Frame Width',
-                                        data: inboundFrameWidth_SC.toFixed(0),
-                                        unit: ''
-                                    },
-                                    {
-                                        name: 'Video Frame Height',
-                                        data: inboundFrameHeight_SC.toFixed(0),
-                                        unit: ''
-                                    },
-                                ]} />
+                        {isShareScreen &&
+                            <div className='video'>
+                                <video ref={shareScreenVideo} playsInline muted autoPlay
+                                    style={{ position: 'relative', zIndex: 0, width: '100%' }}
+                                    onClick={handleVideoClick} />
+                                <TextOverlay
+                                    position="top-left"
+                                    content={name + '的屏幕'}
+                                />
+                                <TextOverlay
+                                    position="top-right"
+                                    iconSrc={StatPanelIcon}
+                                    contents={[
+                                        {
+                                            name: 'Video Bitrate',
+                                            data: outboundVideoBitrate_SC.toFixed(4),
+                                            unit: 'Mbps'
+                                        },
+                                        {
+                                            name: 'Video Frame Rate',
+                                            data: outboundFramesPerSecond_SC.toFixed(2),
+                                            unit: ''
+                                        },
+                                        {
+                                            name: 'Video Frame Width',
+                                            data: outboundFrameWidth_SC.toFixed(0),
+                                            unit: ''
+                                        },
+                                        {
+                                            name: 'Video Frame Width',
+                                            data: outboundFrameHeight_SC.toFixed(0),
+                                            unit: ''
+                                        },
+                                    ]}
+                                />
+                                <TextOverlay
+                                    position="bottom-right"
+                                    iconSrc={FullScreenIcon}
+                                    parentRef={shareScreenVideo}
+                                />
+                            </div>
+                        }
+                        {callAccepted && !callEnded ?
+                            <div className="video">
+                                <video ref={userVideo} playsInline autoPlay loop={true} controls={false}
+                                    style={{
+                                        position: 'relative', zIndex: 0, width: '100%',
+                                        opacity: hasRemoteVideoTrack ? '1' : '0'
+                                    }}
+                                    onClick={handleVideoClick} />
+                                {!hasRemoteVideoTrack && !hasRemoteAudioTrack && (
+                                    <img src={NoVideoIcon} alt="NoVideo" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 9, height: '100%', width: '100%' }} />
+                                )}
+                                <TextOverlay
+                                    position="top-left"
+                                    content={anotherName}
+                                    audioEnabled={hasRemoteAudioTrack}
+                                />
+                                <TextOverlay
+                                    position="top-right"
+                                    iconSrc={StatPanelIcon}
+                                    contents={[
+                                        {
+                                            name: 'Video Bitrate',
+                                            data: inboundVideoBitrate.toFixed(4),
+                                            unit: 'Mbps'
+                                        },
+                                        {
+                                            name: 'Video Delay',
+                                            data: inboundVideoDelay.toFixed(1),
+                                            unit: 'ms'
+                                        },
+                                        {
+                                            name: 'Video Frame Rate',
+                                            data: inboundFramesPerSecond.toFixed(2),
+                                            unit: ''
+                                        },
+                                        {
+                                            name: 'Video Frame Width',
+                                            data: inboundFrameWidth.toFixed(0),
+                                            unit: ''
+                                        },
+                                        {
+                                            name: 'Video Frame Height',
+                                            data: inboundFrameHeight.toFixed(0),
+                                            unit: ''
+                                        },
+                                    ]}
+                                />
+                                <TextOverlay
+                                    position="bottom-right"
+                                    iconSrc={FullScreenIcon}
+                                    parentRef={userVideo}
+                                />
+                            </div>
+                            : null
+                        }
+                        {isReceiveShareScreen &&
+                            <div className='video'>
+                                <video ref={remoteShareScreenVideo} playsInline autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
+                                    onClick={handleVideoClick} />
+                                <TextOverlay
+                                    position="top-left"
+                                    content={anotherName + '的屏幕'}
+                                />
+                                <TextOverlay
+                                    position="top-right"
+                                    iconSrc={StatPanelIcon}
+                                    contents={[
+                                        {
+                                            name: 'Video Bitrate',
+                                            data: inboundVideoBitrate_SC.toFixed(4),
+                                            unit: 'Mbps'
+                                        },
+                                        {
+                                            name: 'Video Delay',
+                                            data: inboundVideoDelay_SC.toFixed(1),
+                                            unit: 'ms'
+                                        },
+                                        {
+                                            name: 'Video Frame Rate',
+                                            data: inboundFramesPerSecond_SC.toFixed(2),
+                                            unit: ''
+                                        },
+                                        {
+                                            name: 'Video Frame Width',
+                                            data: inboundFrameWidth_SC.toFixed(0),
+                                            unit: ''
+                                        },
+                                        {
+                                            name: 'Video Frame Height',
+                                            data: inboundFrameHeight_SC.toFixed(0),
+                                            unit: ''
+                                        },
+                                    ]}
+                                />
+                                <TextOverlay
+                                    position="bottom-right"
+                                    iconSrc={FullScreenIcon}
+                                    parentRef={remoteShareScreenVideo}
+                                />
+                            </div>
+                        }
+                    </div>
+                    {showVideoPlayer &&
+                        <div className={
+                            `enlarged-video-container ${deviceType === DeviceType.MOBILE ? 'mobile' : ''}`}>
+                            <div className='video'>
+                                <video ref={videoPlayerRef} playsInline muted autoPlay
+                                    style={{ position: 'relative', zIndex: 0, width: '100%' }}
+                                    onClick={handleVideoClick}
+                                />
+                                <TextOverlay
+                                    position="bottom-right"
+                                    iconSrc={FullScreenIcon}
+                                    parentRef={videoPlayerRef}
+                                />
+                            </div>
                         </div>
                     }
                 </div>
@@ -3592,7 +3664,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                 };
             case 'top-center':
                 return {
-                    top: '1rem',
+                    top: 0,
                     left: '50%',
                     transform: 'translateX(-50%)',
                     zIndex: 30,

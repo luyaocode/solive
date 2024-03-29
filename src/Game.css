@@ -46,10 +46,13 @@
   --avatar-img-animation: glitter 0.8s infinite alternate;
 
   --video-container-flex-direction: column;
+  --video-container-width: 100%;
+  --video-container-height: 100%;
   --overlay-notice-board-height: 2rem;
   --overlay-notice-board-width: 52%;
   --video-container-video-width: 100%;
   --video-container-video-height: 100%;
+  --video-container-overflow-x: hidden;
 }
 
 .App {
@@ -525,16 +528,15 @@
 
 .button-confirm-container {
   display: flex;
-  justify-content: flex-end;
-  /* 将项目在主轴上居右对齐 */
+  flex-direction: row;
+  justify-content: center;
   z-index: 999;
 }
 
 .button-confirm-container>* {
-  margin-top: 10px;
-  margin-left: 10px;
-  margin-right: 10px;
-  /* 设置按钮之间的间距 */
+  margin-top: 1rem;
+  margin-left: 0.5rem;
+  margin-right: 0.5rem;
 }
 
 .game {
@@ -1608,10 +1610,30 @@
   color: white;
 }
 
-.video-container {
+.video-container-parent {
+  display: flex;
+  flex-direction: row;
+  position: relative;
   width: 100%;
   height: 95%;
   max-height: 95%;
+  justify-content: center;
+  align-content: space-around;
+  justify-items: center;
+  align-items: center;
+  overflow-x: hidden;
+  overflow-y: hidden;
+}
+
+.video-container-parent.mobile {
+  flex-direction: column;
+  overflow-x: scroll;
+}
+
+.video-container {
+  width: var(--video-container-width);
+  height: var(--video-container-height);
+  max-height: 100%;
   display: flex;
   flex-direction: var(--video-container-flex-direction);
   justify-content: center;
@@ -1619,10 +1641,9 @@
   justify-items: center;
   align-items: center;
   gap: 0px;
-  /* border: 1px solid black; */
-  background-color: rgb(149, 149, 149);
+  background-color: rgba(255, 255, 255, 0.5);
   /* padding: 2rem; */
-  overflow-x: hidden;
+  overflow-x: var(--video-container-overflow-x);
   /* 启用水平滚动条 */
   overflow-y: hidden;
   /* 禁用垂直滚动条 */
@@ -1635,7 +1656,41 @@
 
 .video-container::-webkit-scrollbar {
   display: none;
-  /* 隐藏Chrome和Safari的滚动条 */
+}
+
+.enlarged-video-container {
+  width: 70%;
+  height: 100%;
+  overflow-y: hidden;
+  overflow-x: hidden;
+  border: 2px solid rgb(255, 255, 255);
+  background-color: rgb(0, 0, 0, 0.8);
+}
+
+.enlarged-video-container.mobile {
+  height: 70%;
+  width: 100%;
+}
+
+.enlarged-video-container .video {
+  position: relative;
+  display: inline-block;
+  width: 100%;
+  height: 100%;
+  overflow-y: hidden;
+  overflow-x: hidden;
+}
+
+.enlarged-video-container .video video {
+  position: relative;
+  object-fit: contain;
+  border: 2px solid rgb(255, 255, 255);
+  background-color: transparent;
+  padding: -2px;
+  width: 100%;
+  height: 100%;
+  overflow-y: hidden;
+  overflow-x: hidden;
 }
 
 /* 修改此处以应对宽屏，改为自动缩放 */
@@ -1645,25 +1700,27 @@
   height: var(--video-container-video-height);
   overflow-y: hidden;
   overflow-x: hidden;
+  border: 2px solid rgb(117, 117, 117);
+  margin: -2px;
 }
 
 /* 修改此处以应对宽屏，改为自动缩放 */
 .video-container .video video {
   position: relative;
   object-fit: contain;
-  /* border: 1px solid silver; */
-  /* padding: -2px; */
+  background-color: transparent;
   width: var(--video-container-video-width);
   height: 100%;
   overflow-y: hidden;
   overflow-x: hidden;
+  cursor: pointer;
 }
 
 /* 底部栏 */
 .toolbar {
   width: 100%;
   height: 5%;
-  background-color: rgb(149, 149, 149);
+  background-color: rgba(255, 255, 255, 0.5);
   border: none;
   display: flex;
   flex-direction: row;
@@ -2259,7 +2316,7 @@
   background: #d4d9db;
   padding: 20px;
   border-radius: 8px;
-  max-width: 400px;
+  max-width: 500px;
   width: 95%;
   text-align: left;
   position: relative;
