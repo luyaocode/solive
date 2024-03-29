@@ -1628,7 +1628,7 @@
 }
 
 .video-container-parent.mobile {
-  flex-direction: column;
+  flex-direction: column-reverse;
   overflow-x: scroll;
 }
 
@@ -1654,6 +1654,7 @@
   -ms-overflow-style: none;
   flex-wrap: var(--video-container-flex-wrap);
   /* 启用自动换行 */
+  order: 1;
 }
 
 .video-container::-webkit-scrollbar {
@@ -1667,6 +1668,7 @@
   overflow-x: hidden;
   border: 2px solid rgb(255, 255, 255);
   background-color: rgb(0, 0, 0, 0.8);
+  order: 2;
 }
 
 .enlarged-video-container.mobile {

@@ -3015,6 +3015,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         leaveCall();
         setIsShareScreen(false);
         stopAnotherScreenSharing();
+
+        // 此处需要采用leaveCall相同逻辑销毁peer。目前存在挂断但是还能分享屏幕的bug
     };
 
     const onInviteCallBtnClick = () => {
