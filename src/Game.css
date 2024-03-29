@@ -53,6 +53,8 @@
   --video-container-video-width: 100%;
   --video-container-video-height: 100%;
   --video-container-overflow-x: hidden;
+  --video-container-overflow-y: hidden;
+  --video-container-flex-wrap: nowrap;
 }
 
 .App {
@@ -1645,12 +1647,12 @@
   /* padding: 2rem; */
   overflow-x: var(--video-container-overflow-x);
   /* 启用水平滚动条 */
-  overflow-y: hidden;
+  overflow-y: var(--video-container-overflow-y);
   /* 禁用垂直滚动条 */
   scrollbar-width: none;
   /* Firefox */
   -ms-overflow-style: none;
-  flex-wrap: wrap;
+  flex-wrap: var(--video-container-flex-wrap);
   /* 启用自动换行 */
 }
 

@@ -2198,18 +2198,20 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             return;
         }
         if (deviceType === DeviceType.PC) {
-            root.style.setProperty('--video-container-flex-direction', 'column');
+            root.style.setProperty('--video-container-flex-direction', 'row');
             root.style.setProperty('--video-container-width', '30%');
-            const singleHeight = (1 / nVCount * 100).toFixed(2) + '%';
+            const singleHeight = (1 / (nVCount > 2 ? 2 : nVCount) * 100 + 10).toFixed(2) + '%';
+            root.style.setProperty('--video-container-overflow-y', 'scroll');
             root.style.setProperty('--video-container-video-height', singleHeight);
             root.style.setProperty('--video-container-overflow-x', 'hidden');
+            root.style.setProperty('--video-container-flex-wrap', 'wrap');
         }
         else if (deviceType === DeviceType.MOBILE) {
-            // root.style.setProperty('--video-container-flex-direction', 'row');
             root.style.setProperty('--video-container-height', '30%');
-            const singleWidth = (1 / 1 * 100).toFixed(2) + '%';
+            const singleWidth = (1 / 1 * 100 - 10).toFixed(2) + '%';
             root.style.setProperty('--video-container-video-width', singleWidth);
             root.style.setProperty('--video-container-overflow-x', 'scroll');
+            root.style.setProperty('--video-container-flex-wrap', 'wrap');
         }
         setLocalVideoDisplayRenderKey(prev => !prev);
     }, [callAccepted, isShareScreen, isReceiveShareScreen]);
