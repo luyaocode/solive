@@ -29,7 +29,8 @@ import {
     root,
     Piece_Type_White,
     InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate,
-} from './ConstDefine.jsx'
+} from './ConstDefine.jsx';
+import { VideoRecorder } from './VideoChat.jsx';
 import { Howl } from 'howler';
 import {
     Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
@@ -1947,7 +1948,7 @@ function CallButton({ callAccepted, callEnded, idToCall,
                         className='invite-call-button'>
                         邀请通话
                     </Button>
-                    <Button disabled={idToCall.length === 0} color="primary" aria-label="call"
+                    <Button disabled={idToCall?.length === 0} color="primary" aria-label="call"
                         onClick={onCallUserBtnClick}
                         className='call-user-button'>
                         呼叫
@@ -2024,6 +2025,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     peerSocketId/* 游戏中对方的socke id*/,
     pieceType,/*用于确定主动方 */
     localAudioEnabled, setPeerAudioEnabled, /**显示麦克风图标 */
+    globalSignal, /**用于跨组件通信 */
 }) {
     // 通话
     const [me, setMe] = useState("");               // 本地socketId
@@ -2177,6 +2179,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const shareScreenConnRef = useRef();
     const timerRef = useRef();
     const videoPlayerRef = useRef(null);
+
+
+    useEffect(() => {
+        if (globalSignal?.returnMenu) {
+            onReturnMenuBtnClick();
+        }
+    }, [globalSignal]);
 
     const getVideoCountInContainer = (selector) => {
         const videoContainer = document.querySelector(selector);
@@ -3598,6 +3607,46 @@ function LocalVideoDisplay({ selectedMediaStream, onBackButtonClick,
     );
 }
 
+function XSign({ onClick }) {
+    return (
+        <div style={{
+            width: '100%', height: 'auto',
+            display: 'flex', flexDirection: 'row-reverse'
+        }}>
+            <button className="x-sign" type="primary" onClick={onClick}>
+                &times;
+            </button>
+        </div>
+
+    );
+}
+
+function VideoCallModal({ props }) {
+    return (
+        <>
+            <div className={`myId-parent ${props.parent ? props.parent : ''}`}>
+                <div className={`myId ${props.parent ? props.parent : ''}`}>
+                    {props?.parent &&
+                        <XSign onClick={() => props?.setVideoCallModalOpen(false)} />
+                    }
+                    {!props?.callAccepted &&
+                        <>
+                            <TextArea isReadyOnly={props?.isNameReadOnly} placeholder='我的昵称'
+                                label='Name' value={props?.name} onChange={props?.onNameTextAreaChange} />
+                            <TextArea isReadyOnly={props?.isIdToCallReadOnly} placeholder='对方号码'
+                                label='ID to call' value={props?.idToCall} onChange={props?.onIdToCallTextAreaChange} />
+                        </>
+                    }
+                    <CallButton callAccepted={props?.callAccepted} callEnded={props?.callEnded}
+                        idToCall={props?.idToCall} onLeaveCallBtnClick={props?.onLeaveCallBtnClick}
+                        onInviteCallBtnClick={props?.onInviteCallBtnClick}
+                        onCallUserBtnClick={props?.onCallUserBtnClick} />
+                </div>
+            </div >
+        </>
+    );
+}
+
 function TextOverlay({ position, content, contents, audioEnabled, setAudioEnabled,
     iconSrc, videoEnabled, setVideoEnabled, setSelectedAudioDevice,
     setSelectedVideoDevice, callAccepted,
@@ -3774,22 +3823,14 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                         {showMediaCtlMenu &&
                             <>
                                 <img src={CloseMediaCtlMenuIcon} alt="CloseMediaCtlMenu" className="icon close-menu-icon" onClick={toggleCtlMenu} />
-                                <div className='myId'>
-                                    {!callAccepted &&
-                                        <>
-                                            <TextArea isReadyOnly={isNameReadOnly} placeholder='我的昵称'
-                                                label='Name' value={name} onChange={onNameTextAreaChange} />
-                                            <TextArea isReadyOnly={isIdToCallReadOnly} placeholder='对方号码'
-                                                label='ID to call' value={idToCall} onChange={onIdToCallTextAreaChange} />
-                                        </>
-                                    }
-                                    <CallButton callAccepted={callAccepted} callEnded={callEnded}
-                                        idToCall={idToCall} onLeaveCallBtnClick={onLeaveCallBtnClick}
-                                        onInviteCallBtnClick={onInviteCallBtnClick}
-                                        onCallUserBtnClick={onCallUserBtnClick} />
-                                </div>
+                                <VideoCallModal props={{
+                                    callAccepted, isNameReadOnly, name, onNameTextAreaChange, isIdToCallReadOnly,
+                                    idToCall, onIdToCallTextAreaChange, callEnded, onLeaveCallBtnClick,
+                                    onInviteCallBtnClick, onCallUserBtnClick
+                                }}
+                                />
                                 <div className='func-icon-container'>
-                                    {/*callAccepted &&*/
+                                    {
                                         <>
                                             <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled}
                                                 setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted}
@@ -3988,11 +4029,11 @@ function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice,
 function ButtonBox({ onOkBtnClick, OnCancelBtnClick, okBtnInfo = '确定', cancelBtnInfo = '取消' }) {
     return (
         <div className='button-confirm-container'>
-            <button className='button-normal' variant="contained" color="primary" onClick={onOkBtnClick}>
-                {okBtnInfo}
-            </button>
             <button className='button-normal' variant="contained" color="primary" onClick={OnCancelBtnClick}>
                 {cancelBtnInfo}
+            </button>
+            <button className='button-normal' variant="contained" color="primary" onClick={onOkBtnClick}>
+                {okBtnInfo}
             </button>
         </div>
     );
@@ -4007,7 +4048,7 @@ function OverlayArrow({ onClick, currentView }) {
     return (
         <>
             {currentView === View.Menu &&
-                (< div className="overlay" onMouseEnter={() => setIsArrowVisible(true)}
+                (< div className="overlay bottom" onMouseEnter={() => setIsArrowVisible(true)}
                     onMouseLeave={() => setIsArrowVisible(false)}>
                     {isArrowVisible &&
                         <div className="arrow-container" onClick={handleClick}>
@@ -4408,5 +4449,5 @@ export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
     Menu, ConfirmModal, InfoModal, Modal, SettingsButton, LoginButton, LoginModal,
     TableViewer, PlayerAvatar, ChatPanel, VideoChat, OverlayArrow, NoticeBoard,
-    AudioIconComponent
+    AudioIconComponent, ReturnMenuButton, VideoCallModal,
 };

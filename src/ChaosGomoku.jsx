@@ -17,9 +17,10 @@ import {
     Avatar_Number_X,
     Avatar_Number_Y,
     View, PublicMsg_Max_Length, Notice_Max_Length, TitleNotice
-} from './ConstDefine.jsx'
-import Client from './Client.jsx'
-
+} from './ConstDefine.jsx';
+import Client from './Client.jsx';
+import { DraggableButton, Live2DRole } from './Tool.jsx';
+import { VideoCallModal } from './Control.jsx';
 
 function ChaosGomoku() {
     const [boardWidth, setBoardWidth] = useState(0);
@@ -165,6 +166,18 @@ function ChaosGomoku() {
 
     const [enterRoomTried, setEnterRoomTried] = useState(false);
     const { rid } = useParams(); // roomId in url
+
+    // 悬浮球控制
+    const [showLive2DRole, setShowLive2DRole] = useState(false);
+    const [videoCallModalOpen, setVideoCallModalOpen] = useState(false);
+
+    // 信号
+    const [globalSignal, setGlobalSignal] = useState({});
+    useEffect(() => {
+        if (globalSignal?.returnMenu) {
+            setTimeout(() => setGlobalSignal(prev => ({ ...prev, returnMenu: false })), 200);
+        }
+    }, [globalSignal]);
 
     // 获取地理位置信息
     const fetchLocation = async (api = 'https://ipinfo.io/json/') => {
@@ -347,6 +360,18 @@ function ChaosGomoku() {
 
     return (
         <React.StrictMode className='game-container'>
+            <div style={{
+                width: '100%',
+                height: '100%',
+                display: (showLive2DRole ? 'block' : 'none'),
+                position: 'absolute'
+            }}>
+                <Live2DRole />
+            </div>
+            <DraggableButton setShowLive2DRole={setShowLive2DRole}
+                showLive2DRole={showLive2DRole}
+                setGlobalSignal={setGlobalSignal}
+                setVideoCallModalOpen={setVideoCallModalOpen} />
             {receiveInviteModalOpen &&
                 <ConfirmModal modalInfo='有人邀请您开始游戏，是否同意？' onOkBtnClick={() => {
                     setGameInviteAccepted(true);
@@ -402,7 +427,8 @@ function ChaosGomoku() {
                             ) :
                             (currentView === View.VideoChat ?
                                 <VideoChat sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView}
-                                    messages={messages} setMessages={setMessages} chatPanelOpen={chatPanelOpen} setChatPanelOpen={setChatPanelOpen} />
+                                    messages={messages} setMessages={setMessages} chatPanelOpen={chatPanelOpen} setChatPanelOpen={setChatPanelOpen}
+                                    globalSignal={globalSignal} />
                                 : null
                             )
                         )
@@ -480,7 +506,14 @@ function ChaosGomoku() {
                             setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} matched={matched}
                             joined={joined} setAllIsOk={setAllIsOk} restartInSameRoom={restartInSameRoom} roomId={roomId} headCount={headCount} />
                     )}
-                </>)}
+                </>)
+            }
+            {videoCallModalOpen &&
+                <VideoCallModal props={{
+                    parent: 'ChaosGomoku',
+                    setVideoCallModalOpen,
+                }} />
+            }
 
         </React.StrictMode>
     );

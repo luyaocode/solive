@@ -1,0 +1,91 @@
+.floating-button-container {
+    position: relative;
+    display: flex;
+    width: 2rem;
+    height: 2rem;
+    max-width: 4rem;
+    max-height: 4rem;
+}
+
+.floating-button {
+    width: 100%;
+    height: 100%;
+    position: absolute;
+    background-color: #cb8282;
+    color: white;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+
+.floating-button:hover {
+    background-color: #ffb8b4;
+}
+
+.floating-button.expanded {
+    background-color: #ffcf7d;
+}
+
+.floating-button.dragging {
+    background-color: #8e8f8e;
+    width: 4rem;
+    height: 4rem;
+}
+
+.floating-button-options {
+    position: fixed;
+    top: 0;
+    left: 2.3rem;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+    background-color: white;
+    border: 1px solid #ccc;
+    border-radius: 5px;
+    padding: 10px;
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}
+
+.floating-button-options.left {
+    top: -2.5rem;
+    left: 2.3rem;
+    width: 6rem;
+}
+
+.floating-button-options.right {
+    top: -2.5rem;
+    left: -6.4rem;
+    width: 6rem;
+}
+
+.floating-button-options.top {
+    top: 2.3rem;
+    left: -2rem;
+    width: 6rem;
+}
+
+.floating-button-options.bottom {
+    top: -10rem;
+    left: -2rem;
+    width: 6rem;
+}
+
+.floating-button-options button {
+    padding: 0.2rem 0.4rem;
+    margin: 0;
+    background-color: #0277f5;
+    text-align: center;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    transition: background-color 0.3s;
+}
+
+.floating-button-options button:hover {
+    background-color: #044182;
+}
