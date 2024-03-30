@@ -3573,20 +3573,22 @@ function LocalVideoDisplay({ selectedMediaStream, onBackButtonClick,
             onDrag={handleDrag}
         >
             <div ref={elementRef} className={`text-overlay-container ${selectedMediaStream ? '' : 'display-none'}`}>
-                <img src={DragIcon} alt="Drag" style={{
-                    position: 'absolute',
-                    top: 6, left: 6,
-                }} />
-                <button className="close-button" style={{
-                    color: 'red', backgroundColor: 'transparent',
-                    border: 'none',
-                }}
-                    onClick={onBackButtonClick}
-                    onTouchStart={onBackButtonClick}
-                >
-                    &times;
-                </button>
-                <ScrollingText text={selectedFileName} selectedMediaStream={selectedMediaStream} />
+                <div style={{ backgroundColor: 'rgb(0,0,0,0.8)' }}>
+                    <img src={DragIcon} alt="Drag" style={{
+                        position: 'absolute',
+                        top: 6, left: 6,
+                    }} />
+                    <button className="close-button" style={{
+                        color: 'red', backgroundColor: 'transparent',
+                        border: 'none',
+                    }}
+                        onClick={onBackButtonClick}
+                        onTouchStart={onBackButtonClick}
+                    >
+                        &times;
+                    </button>
+                    <ScrollingText text={selectedFileName} selectedMediaStream={selectedMediaStream} />
+                </div>
                 <LocalVideoDisplayBoard selectedVideoRef={selectedVideoRef}
                     selectedMediaStream={selectedMediaStream}
                     name={name} handleVideoClick={handleVideoClick}
