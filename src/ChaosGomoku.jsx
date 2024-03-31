@@ -376,7 +376,8 @@ function ChaosGomoku() {
                     width: '100%',
                     height: '100%',
                     display: (showLive2DRole ? 'block' : 'none'),
-                    position: 'absolute'
+                    position: 'absolute',
+                    zIndex: 0,
                 }}>
                     <Live2DRole />
                 </div>
