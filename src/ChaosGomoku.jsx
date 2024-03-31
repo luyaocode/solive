@@ -373,10 +373,7 @@ function ChaosGomoku() {
         <React.StrictMode className='game-container'>
             {deviceType === DeviceType.PC &&
                 <div style={{
-                    width: '100%',
-                    height: '100%',
                     display: (showLive2DRole ? 'block' : 'none'),
-                    // position: 'absolute',
                     zIndex: 2,
                 }}>
                     <Live2DRole />
