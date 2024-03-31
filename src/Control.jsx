@@ -2853,7 +2853,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         return peer;
     }
 
-    const callUser = (id, isInGame) => {
+    const callUser = (id, isInGame, stream) => {
         if (isInGame) {
             if (haveCalledOnce) {
                 return;
@@ -2873,7 +2873,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             }
         }
         setCalling(true);
-        const peer = createCallPeer(localStream);
+        const peer = createCallPeer(stream ? stream : localStream);
         connectionRef.current = {
             peer: peer,
             isCaller: true,
@@ -3351,7 +3351,18 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             {prepareCallModal &&
                                 <ConfirmModal modalInfo="将要发起视频通话，是否继续？" onOkBtnClick={() => {
                                     setPrepareCallModal(false);
-                                    setTimeout(() => callUser(sid), 1000);
+                                    setTimeout(() => {
+                                        if (localStream) {
+                                            callUser(sid);
+                                        }
+                                        else {
+
+                                            getUserMediaStream().then((stream) => {
+                                                setLocalStream(stream);
+                                                callUser(sid, false, stream);
+                                            });
+                                        }
+                                    }, 1000);
                                 }}
                                     noCancelBtn={true} />
                             }
