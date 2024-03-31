@@ -249,8 +249,8 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
 function Live2DRole() {
     return (
         <ReactLive2d
-            width={300}
-            height={500}
+            width={250}
+            height={450}
         />
     );
 }

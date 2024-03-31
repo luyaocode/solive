@@ -2683,3 +2683,8 @@
   padding-bottom: 0.5rem;
   z-index: 100;
 }
+
+#live2d-container {
+  position: fixed;
+  background: fixed;
+}
