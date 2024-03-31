@@ -371,14 +371,6 @@ function ChaosGomoku() {
 
     return (
         <React.StrictMode className='game-container'>
-            {deviceType === DeviceType.PC &&
-                <div style={{
-                    display: (showLive2DRole ? 'block' : 'none'),
-                    zIndex: 2,
-                }}>
-                    <Live2DRole />
-                </div>
-            }
             <DraggableButton setShowLive2DRole={setShowLive2DRole}
                 showLive2DRole={showLive2DRole}
                 setGlobalSignal={setGlobalSignal}
@@ -386,18 +378,23 @@ function ChaosGomoku() {
                 deviceType={deviceType}
                 setSaveVideoModalOpen={setSaveVideoModalOpen}
                 globalSignal={globalSignal}
+                enterVideoChatView={enterVideoChatView}
             />
-            {receiveInviteModalOpen &&
+            {
+                receiveInviteModalOpen &&
                 <ConfirmModal modalInfo='有人邀请您开始游戏，是否同意？' onOkBtnClick={() => {
                     setGameInviteAccepted(true);
                     setReceiveInviteModalOpen(false);
                 }}
                     OnCancelBtnClick={() => setReceiveInviteModalOpen(false)} />
             }
-            {true && <NoticeBoard currentView={currentView} notices={notices} publicMsgs={publicMsgs}
-                setPublicMsgs={setPublicMsgs} socket={socket} locationData={locationData}
-                fetchLocation={fetchLocation} currentOutsideText={currentOutsideText} />}
-            {showOverlayArrow &&
+            {
+                true && <NoticeBoard currentView={currentView} notices={notices} publicMsgs={publicMsgs}
+                    setPublicMsgs={setPublicMsgs} socket={socket} locationData={locationData}
+                    fetchLocation={fetchLocation} currentOutsideText={currentOutsideText} />
+            }
+            {
+                showOverlayArrow &&
                 <OverlayArrow onClick={enterVideoChatView} currentView={currentView} />
             }
             <Client socket={socket} setSocket={setSocket} setPieceType={setPieceType} setLastStep={setLastStep} setSeeds={setSeeds}
@@ -422,114 +419,121 @@ function ChaosGomoku() {
                 setPublicMsgs={setPublicMsgs} setNotices={setNotices} setPeerSocketId={setPeerSocketId}
                 setCompletelyReady={setCompletelyReady} currentView={currentView} chatPanelOpen={chatPanelOpen}
             />
-            {gameMode === GameMode.MODE_NONE && (
-                <>
-                    {tableViewOpen ?
-                        <TableViewer {...{
-                            socket,
-                            selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData, setTableViewOpen,
-                            setLoginSuccess, logoutModalOpen, setLogoutModalOpen
-                        }} /> : (currentView === View.Menu ?
-                            (<Menu enterRoomTried={enterRoomTried} setEnterRoomTried={setEnterRoomTried}
-                                setRoomIsFullModalOpen={setRoomIsFullModalOpen} rid={rid} setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
-                                socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
-                                deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}
-                                headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
-                                generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
-                                isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
-                                setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} setShowOverlayArrow={setShowOverlayArrow}
-                                gameInviteAccepted={gameInviteAccepted} locationData={locationData} />
-                            ) :
-                            (currentView === View.VideoChat ?
-                                <VideoChat sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView}
-                                    messages={messages} setMessages={setMessages} chatPanelOpen={chatPanelOpen} setChatPanelOpen={setChatPanelOpen}
-                                    globalSignal={globalSignal} />
-                                : null
+            {
+                gameMode === GameMode.MODE_NONE && (
+                    <>
+                        {tableViewOpen ?
+                            <TableViewer {...{
+                                socket,
+                                selectedTable, setSelectedTable, clientIpsData, gameInfoData, stepInfoData, setTableViewOpen,
+                                setLoginSuccess, logoutModalOpen, setLogoutModalOpen
+                            }} /> : (currentView === View.Menu ?
+                                (<Menu enterRoomTried={enterRoomTried} setEnterRoomTried={setEnterRoomTried}
+                                    setRoomIsFullModalOpen={setRoomIsFullModalOpen} rid={rid} setGameMode={setGameMode} setItemsLoading={setItemsLoading} setStartModalOpen={setStartModalOpen}
+                                    socket={socket} setNickName={setNickName} setRoomId={setRoomId} setSeeds={setSeeds}
+                                    deviceType={deviceType} boardWidth={boardWidth} boardHeight={boardHeight}
+                                    headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected}
+                                    generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
+                                    isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
+                                    setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} setShowOverlayArrow={setShowOverlayArrow}
+                                    gameInviteAccepted={gameInviteAccepted} locationData={locationData} />
+                                ) :
+                                (currentView === View.VideoChat ?
+                                    <VideoChat sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView}
+                                        messages={messages} setMessages={setMessages} chatPanelOpen={chatPanelOpen} setChatPanelOpen={setChatPanelOpen}
+                                        globalSignal={globalSignal} videoCallModalOpen={videoCallModalOpen}
+                                        setVideoCallModalOpen={setVideoCallModalOpen} />
+                                    : null
+                                )
                             )
-                        )
-                    }
-                </>)
+                        }
+                    </>)
             }
-            {gameMode !== GameMode.MODE_NONE && (
-                <>
-                    {completelyReady &&
-                        <>
-                            <AudioIconComponent audioEnabled={localAudioEnabled} setAudioEnabled={setLocalAudioEnabled} isAnother={false} />
-                            <AudioIconComponent audioEnabled={peerAudioEnabled} setAudioEnabled={setPeerAudioEnabled} isAnother={true} />
-                        </>
-                    }
-                    {
-                        peerSocketId &&
-                        <div className='audio-call'>
-                            <VideoChat deviceType={deviceType} socket={socket} returnMenuView={returnMenuView}
-                                peerSocketId={peerSocketId} pieceType={pieceType}
-                                localAudioEnabled={localAudioEnabled} setPeerAudioEnabled={setPeerAudioEnabled} />
-                        </div>
-                    }
-                    <ItemManager pageLoaded={pageLoaded} isRestart={isRestart} timeDelay={timeDelay}
-                        items={items} setItems={setItems} itemsLoaded={itemsLoaded} setItemsLoaded={setItemsLoaded}
-                        seeds={seeds} gameMode={gameMode} />
-                    {itemsLoading && allIsOk && itemsLoaded ? (
-                        <>
-                            <Timer isRestart={isRestart} setRestart={setRestart} round={round} totalRound={totalRound}
-                                nickName={nickName} roomId={roomId} />
-                            <Game boardWidth={boardWidth} boardHeight={boardHeight} items={items} setItems={setItems} setRestart={setRestart} round={round} setRound={setRound}
-                                roundMoveArr={roundMoveArr} setRoundMoveArr={setRoundMoveArr}
-                                totalRound={totalRound} setTotalRound={setTotalRound}
-                                gameLog={gameLog} setGameLog={setGameLog} isRestart={isRestart} gameMode={gameMode} setGameMode={setGameMode} GameMode={GameMode}
-                                socket={socket} pieceType={pieceType} lastStep={lastStep} seeds={seeds}
-                                deviceType={deviceType} roomDeviceType={roomDeviceType}
-                                isPlayerLeaveRoomModalOpen={isPlayerLeaveRoomModalOpen} setPlayerLeaveRoomModalOpen={setPlayerLeaveRoomModalOpen}
-                                isPlayerDisconnectedModalOpen={isPlayerDisconnectedModalOpen} setPlayerDisconnectedModalOpen={setPlayerDisconnectedModalOpen}
-                                gameOver={gameOver} setGameOver={setGameOver}
-                                isRestartRequestModalOpen={isRestartRequestModalOpen} setRestartRequestModalOpen={setRestartRequestModalOpen}
-                                restartResponseModalOpen={restartResponseModalOpen} setRestartResponseModalOpen={setRestartResponseModalOpen}
-                                isSkipRound={isSkipRound} setSkipRound={setSkipRound} setRestartInSameRoom={setRestartInSameRoom}
-                                isUndoRound={isUndoRound}
-                                setUndoRoundRequestModalOpen={setUndoRoundRequestModalOpen}
-                                avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB} setChatPanelOpen={setChatPanelOpen}
-                                completelyReady={completelyReady}
-                            />
-                            <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
-                                roomId={roomId} nickName={nickName} setChatPanelOpen={setChatPanelOpen}
-                                gameMode={gameMode} />
-                            {commonModalOpen &&
-                                <Modal modalInfo={commonModalText} setModalOpen={setCommonModalOpen} />
-                            }
-                            {undoRoundRequestModalOpen &&
-                                <Modal modalInfo='等待对方回应...' setModalOpen={setUndoRoundRequestModalOpen} timeDelay={false} />
-                            }
-                            {
-                                undoRoundResponseModalOpen &&
-                                <ConfirmModal modalInfo='对方请求悔棋，是否同意？' onOkBtnClick={() => {
-                                    socket.emit('undoRoundResponse', true);
-                                    setUndoRoundResponseModalOpen(false);
-                                }} OnCancelBtnClick={() => {
-                                    socket.emit('undoRoundResponse', false);
-                                    setUndoRoundResponseModalOpen(false);
+            {
+                gameMode !== GameMode.MODE_NONE && (
+                    <>
+                        {completelyReady &&
+                            <>
+                                <AudioIconComponent audioEnabled={localAudioEnabled} setAudioEnabled={setLocalAudioEnabled} isAnother={false} />
+                                <AudioIconComponent audioEnabled={peerAudioEnabled} setAudioEnabled={setPeerAudioEnabled} isAnother={true} />
+                            </>
+                        }
+                        {
+                            peerSocketId &&
+                            <div className='audio-call'>
+                                <VideoChat deviceType={deviceType} socket={socket} returnMenuView={returnMenuView}
+                                    peerSocketId={peerSocketId} pieceType={pieceType}
+                                    localAudioEnabled={localAudioEnabled} setPeerAudioEnabled={setPeerAudioEnabled} />
+                            </div>
+                        }
+                        <ItemManager pageLoaded={pageLoaded} isRestart={isRestart} timeDelay={timeDelay}
+                            items={items} setItems={setItems} itemsLoaded={itemsLoaded} setItemsLoaded={setItemsLoaded}
+                            seeds={seeds} gameMode={gameMode} />
+                        {itemsLoading && allIsOk && itemsLoaded ? (
+                            <>
+                                <Timer isRestart={isRestart} setRestart={setRestart} round={round} totalRound={totalRound}
+                                    nickName={nickName} roomId={roomId} />
+                                <Game boardWidth={boardWidth} boardHeight={boardHeight} items={items} setItems={setItems} setRestart={setRestart} round={round} setRound={setRound}
+                                    roundMoveArr={roundMoveArr} setRoundMoveArr={setRoundMoveArr}
+                                    totalRound={totalRound} setTotalRound={setTotalRound}
+                                    gameLog={gameLog} setGameLog={setGameLog} isRestart={isRestart} gameMode={gameMode} setGameMode={setGameMode} GameMode={GameMode}
+                                    socket={socket} pieceType={pieceType} lastStep={lastStep} seeds={seeds}
+                                    deviceType={deviceType} roomDeviceType={roomDeviceType}
+                                    isPlayerLeaveRoomModalOpen={isPlayerLeaveRoomModalOpen} setPlayerLeaveRoomModalOpen={setPlayerLeaveRoomModalOpen}
+                                    isPlayerDisconnectedModalOpen={isPlayerDisconnectedModalOpen} setPlayerDisconnectedModalOpen={setPlayerDisconnectedModalOpen}
+                                    gameOver={gameOver} setGameOver={setGameOver}
+                                    isRestartRequestModalOpen={isRestartRequestModalOpen} setRestartRequestModalOpen={setRestartRequestModalOpen}
+                                    restartResponseModalOpen={restartResponseModalOpen} setRestartResponseModalOpen={setRestartResponseModalOpen}
+                                    isSkipRound={isSkipRound} setSkipRound={setSkipRound} setRestartInSameRoom={setRestartInSameRoom}
+                                    isUndoRound={isUndoRound}
+                                    setUndoRoundRequestModalOpen={setUndoRoundRequestModalOpen}
+                                    avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB} setChatPanelOpen={setChatPanelOpen}
+                                    completelyReady={completelyReady}
+                                />
+                                <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
+                                    roomId={roomId} nickName={nickName} setChatPanelOpen={setChatPanelOpen}
+                                    gameMode={gameMode} />
+                                {commonModalOpen &&
+                                    <Modal modalInfo={commonModalText} setModalOpen={setCommonModalOpen} />
                                 }
-                                } />
-                            }
-                            {
-                                chatPanelOpen &&
-                                <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} ncobj={socket} />}
-                        </>
-                    ) : (
-                        startModalOpen &&
-                        <StartModal
-                            roomIsFullModalOpen={roomIsFullModalOpen} setRoomIsFullModalOpen={setRoomIsFullModalOpen} isRestart={isRestart} setStartModalOpen={setStartModalOpen}
-                            setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} matched={matched}
-                            joined={joined} setAllIsOk={setAllIsOk} restartInSameRoom={restartInSameRoom} roomId={roomId} headCount={headCount} />
-                    )}
-                </>)
+                                {undoRoundRequestModalOpen &&
+                                    <Modal modalInfo='等待对方回应...' setModalOpen={setUndoRoundRequestModalOpen} timeDelay={false} />
+                                }
+                                {
+                                    undoRoundResponseModalOpen &&
+                                    <ConfirmModal modalInfo='对方请求悔棋，是否同意？' onOkBtnClick={() => {
+                                        socket.emit('undoRoundResponse', true);
+                                        setUndoRoundResponseModalOpen(false);
+                                    }} OnCancelBtnClick={() => {
+                                        socket.emit('undoRoundResponse', false);
+                                        setUndoRoundResponseModalOpen(false);
+                                    }
+                                    } />
+                                }
+                                {
+                                    chatPanelOpen &&
+                                    <ChatPanel messages={messages} setMessages={setMessages} setChatPanelOpen={setChatPanelOpen} ncobj={socket} />}
+                            </>
+                        ) : (
+                            startModalOpen &&
+                            <StartModal
+                                roomIsFullModalOpen={roomIsFullModalOpen} setRoomIsFullModalOpen={setRoomIsFullModalOpen} isRestart={isRestart} setStartModalOpen={setStartModalOpen}
+                                setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} matched={matched}
+                                joined={joined} setAllIsOk={setAllIsOk} restartInSameRoom={restartInSameRoom} roomId={roomId} headCount={headCount} />
+                        )}
+                    </>)
             }
-            {videoCallModalOpen &&
-                <VideoCallModal props={{
-                    parent: 'ChaosGomoku',
-                    setVideoCallModalOpen,
-                }} />
+            {deviceType === DeviceType.PC && !sid &&
+                < div style={{
+                    display: (showLive2DRole ? 'block' : 'none'),
+                    zIndex: 2,
+                }}>
+                    <Live2DRole />
+                </div>
             }
-            {saveVideoModalOpen &&
+            {/* Modal */}
+            {
+                saveVideoModalOpen &&
                 <SaveVideoModal
                     globalSignal={globalSignal}
                     setGlobalSignal={setGlobalSignal}
@@ -537,7 +541,7 @@ function ChaosGomoku() {
                 />
             }
 
-        </React.StrictMode>
+        </React.StrictMode >
     );
 }
 

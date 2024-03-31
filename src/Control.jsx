@@ -2026,6 +2026,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     pieceType,/*用于确定主动方 */
     localAudioEnabled, setPeerAudioEnabled, /**显示麦克风图标 */
     globalSignal, /**用于跨组件通信 */
+    videoCallModalOpen, setVideoCallModalOpen
 }) {
     // 通话
     const [me, setMe] = useState("");               // 本地socketId
@@ -2251,6 +2252,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             setMe(socket.id);
         }
     }, [socket.connected]);
+
+    useEffect(() => {
+        if (callAccepted) {
+            setVideoCallModalOpen(false);
+        }
+    }, [callAccepted]);
 
     useEffect(() => {
         const iceServers = [];
@@ -3301,7 +3308,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         </div>
                     }
                 </div>
-                <ToolBar />
+                <ToolBar backgroundColor='black' />
                 {!peerSocketId && /*以下都不会在游戏语音通话模块中加载 */
                     <>
                         <div>
@@ -3412,6 +3419,15 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             setOutboundFrameWidth={setOutboundFrameWidth_SC}
                             setOutboundFrameHeight={setOutboundFrameHeight_SC}
                         />
+                        {videoCallModalOpen &&
+                            <VideoCallModal props={{
+                                parent: 'ChaosGomoku',
+                                setVideoCallModalOpen,
+                                callAccepted, isNameReadOnly, name, onNameTextAreaChange,
+                                isIdToCallReadOnly, idToCall, onIdToCallTextAreaChange,
+                                callEnded, onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick,
+                            }} />
+                        }
                     </>
                 }
             </div >
@@ -3701,14 +3717,14 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
         switch (position) {
             case 'top-left':
                 return {
-                    top: '1rem',
-                    left: '1rem',
+                    top: 0,
+                    left: 0,
                     zIndex: 40,
                 };
             case 'top-left-local-video':
                 return {
-                    top: '1rem',
-                    left: '1rem',
+                    top: 0,
+                    left: 0,
                     fontSize: '16px',
                     maxWidth: '40%',
                     height: 'auto',
@@ -3726,16 +3742,16 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                 };
             case 'top-right':
                 return {
-                    top: '1rem',
-                    right: '1rem',
+                    top: 0,
+                    right: 0,
                     zIndex: 20,
                 };
             case 'bottom-left':
                 return { bottom: '1rem', left: '1rem' };
             case 'bottom-right':
-                return { bottom: '1rem', right: '1rem' };
+                return { bottom: 0, right: 0 };
             default:
-                return { top: '1rem', left: '1rem' };
+                return { top: 0, left: 0 };
         }
     };
     function toggleStatPanel() {
@@ -3805,7 +3821,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                     position: 'absolute',
                     padding: '10px',
                     color: 'white',
-                    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+                    backgroundColor: 'rgba(0, 0, 0, 0)',
                     fontSize: '12px',
                     maxWidth: '100%',
                     whiteSpace: 'pre-warp',
@@ -3823,12 +3839,6 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                         {showMediaCtlMenu &&
                             <>
                                 <img src={CloseMediaCtlMenuIcon} alt="CloseMediaCtlMenu" className="icon close-menu-icon" onClick={toggleCtlMenu} />
-                                <VideoCallModal props={{
-                                    callAccepted, isNameReadOnly, name, onNameTextAreaChange, isIdToCallReadOnly,
-                                    idToCall, onIdToCallTextAreaChange, callEnded, onLeaveCallBtnClick,
-                                    onInviteCallBtnClick, onCallUserBtnClick
-                                }}
-                                />
                                 <div className='func-icon-container'>
                                     {
                                         <>
@@ -3861,7 +3871,6 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                     <img src={SelectVideoIcon} alt="SelectVideo" className="icon" onClick={() => {
                                         setSelectVideoModalOpen(true);
                                     }} />
-                                    <ReturnMenuButton sid={sid} onBtnClick={onReturnMenuBtnClick} />
                                 </div>
                             </>
                         }

@@ -1686,7 +1686,7 @@
   justify-items: center;
   align-items: center;
   gap: 0px;
-  background-color: rgba(255, 255, 255, 0.5);
+  background-color: rgb(0, 0, 0, 1);
   /* padding: 2rem; */
   overflow-x: var(--video-container-overflow-x);
   /* 启用水平滚动条 */
@@ -1709,8 +1709,8 @@
   height: 100%;
   overflow-y: hidden;
   overflow-x: hidden;
-  border: 2px solid rgb(255, 255, 255);
-  background-color: rgb(0, 0, 0, 0.8);
+  /* border: 2px solid rgb(255, 255, 255); */
+  background-color: rgb(0, 0, 0, 1);
   order: 2;
 }
 
@@ -1726,12 +1726,13 @@
   height: 100%;
   overflow-y: hidden;
   overflow-x: hidden;
+  border: 1px solid rgb(56, 46, 46);
 }
 
 .enlarged-video-container .video video {
   position: relative;
   object-fit: contain;
-  border: 2px solid rgb(255, 255, 255);
+  /* border: 1px solid rgb(255, 255, 255); */
   background-color: transparent;
   padding: -2px;
   width: 100%;
@@ -1747,8 +1748,8 @@
   height: var(--video-container-video-height);
   overflow-y: hidden;
   overflow-x: hidden;
-  border: 2px solid rgb(117, 117, 117);
-  margin: -2px;
+  border: 1px solid rgb(56, 46, 46);
+  /* margin: -2px; */
 }
 
 /* 修改此处以应对宽屏，改为自动缩放 */

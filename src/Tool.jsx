@@ -43,6 +43,11 @@ function FloatBall({ setElementSize, props }) {
             setIsExpanded(!isExpanded);
         }
     };
+
+    const onVideoCallBtnClick = () => {
+        props?.enterVideoChatView();
+        props?.setVideoCallModalOpen(true);
+    }
     return (
         <div ref={props.elementRef} className="floating-button-container">
             <div className={`floating-button ${isExpanded ? 'expanded' : ''}
@@ -54,8 +59,8 @@ function FloatBall({ setElementSize, props }) {
             </div>
             {
                 <div className={`floating-button-options ${props.componentBoundPos} ${isExpanded ? 'expand' : ''}`}>
-                    <button onClick={() => props?.setVideoCallModalOpen(true)}
-                        onTouchStart={() => props?.setVideoCallModalOpen(true)}>
+                    <button onClick={onVideoCallBtnClick}
+                        onTouchStart={onVideoCallBtnClick}>
                         视频通话
                     </button>
 
@@ -231,6 +236,7 @@ function DraggableComponent({ Element, props }) {
 
 function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
     setVideoCallModalOpen, deviceType, setSaveVideoModalOpen, globalSignal,
+    enterVideoChatView,
 }) {
     return (
         <DraggableComponent Element={FloatBall} props={{
@@ -241,6 +247,7 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
             deviceType,
             setSaveVideoModalOpen,
             globalSignal,
+            enterVideoChatView
         }} />
     );
 }
