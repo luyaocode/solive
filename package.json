@@ -34,6 +34,7 @@
     "react-icons": "^5.0.1",
     "react-live2d": "^1.0.31",
     "react-modal": "^3.16.1",
+    "react-progressbar": "^15.4.1",
     "react-router-dom": "^6.22.3",
     "react-scripts": "5.0.1",
     "react-toastify": "^10.0.3",

@@ -16,11 +16,13 @@ import {
     LoginStatus,
     Avatar_Number_X,
     Avatar_Number_Y,
-    View, PublicMsg_Max_Length, Notice_Max_Length, TitleNotice
+    View, PublicMsg_Max_Length, Notice_Max_Length, TitleNotice,
+    GlobalSignal,
 } from './ConstDefine.jsx';
 import Client from './Client.jsx';
 import { DraggableButton, Live2DRole } from './Tool.jsx';
 import { VideoCallModal } from './Control.jsx';
+import { SaveVideoModal } from './VideoChat.jsx';
 
 function ChaosGomoku() {
     const [boardWidth, setBoardWidth] = useState(0);
@@ -170,12 +172,21 @@ function ChaosGomoku() {
     // 悬浮球控制
     const [showLive2DRole, setShowLive2DRole] = useState(false);
     const [videoCallModalOpen, setVideoCallModalOpen] = useState(false);
+    const [saveVideoModalOpen, setSaveVideoModalOpen] = useState(false);
 
     // 信号
     const [globalSignal, setGlobalSignal] = useState({});
+
+    // 持续200ms的信号
     useEffect(() => {
-        if (globalSignal?.returnMenu) {
-            setTimeout(() => setGlobalSignal(prev => ({ ...prev, returnMenu: false })), 200);
+        if (globalSignal && globalSignal[GlobalSignal.Active]) {
+            setTimeout(() => setGlobalSignal(prev => {
+                const newSignal = { ...prev };
+                for (const key in newSignal) {
+                    newSignal[key] = false;
+                }
+                return newSignal;
+            }), 200);
         }
     }, [globalSignal]);
 
@@ -360,18 +371,24 @@ function ChaosGomoku() {
 
     return (
         <React.StrictMode className='game-container'>
-            <div style={{
-                width: '100%',
-                height: '100%',
-                display: (showLive2DRole ? 'block' : 'none'),
-                position: 'absolute'
-            }}>
-                <Live2DRole />
-            </div>
+            {deviceType === DeviceType.PC &&
+                <div style={{
+                    width: '100%',
+                    height: '100%',
+                    display: (showLive2DRole ? 'block' : 'none'),
+                    position: 'absolute'
+                }}>
+                    <Live2DRole />
+                </div>
+            }
             <DraggableButton setShowLive2DRole={setShowLive2DRole}
                 showLive2DRole={showLive2DRole}
                 setGlobalSignal={setGlobalSignal}
-                setVideoCallModalOpen={setVideoCallModalOpen} />
+                setVideoCallModalOpen={setVideoCallModalOpen}
+                deviceType={deviceType}
+                setSaveVideoModalOpen={setSaveVideoModalOpen}
+                globalSignal={globalSignal}
+            />
             {receiveInviteModalOpen &&
                 <ConfirmModal modalInfo='有人邀请您开始游戏，是否同意？' onOkBtnClick={() => {
                     setGameInviteAccepted(true);
@@ -513,6 +530,13 @@ function ChaosGomoku() {
                     parent: 'ChaosGomoku',
                     setVideoCallModalOpen,
                 }} />
+            }
+            {saveVideoModalOpen &&
+                <SaveVideoModal
+                    globalSignal={globalSignal}
+                    setGlobalSignal={setGlobalSignal}
+                    setSaveVideoModalOpen={setSaveVideoModalOpen}
+                />
             }
 
         </React.StrictMode>

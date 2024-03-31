@@ -28,7 +28,7 @@ import {
     DeviceType, CloseMediaCtlMenuIcon, DragIcon, FullScreenIcon,
     root,
     Piece_Type_White,
-    InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate,
+    InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate, GlobalSignal,
 } from './ConstDefine.jsx';
 import { VideoRecorder } from './VideoChat.jsx';
 import { Howl } from 'howler';
@@ -2182,7 +2182,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
 
     useEffect(() => {
-        if (globalSignal?.returnMenu) {
+        if (globalSignal && globalSignal[GlobalSignal.Active] && globalSignal[GlobalSignal.ReturnMenu]) {
             onReturnMenuBtnClick();
         }
     }, [globalSignal]);
@@ -4039,6 +4039,23 @@ function ButtonBox({ onOkBtnClick, OnCancelBtnClick, okBtnInfo = '确定', cance
     );
 }
 
+// 包含N个按钮的组合框
+function ButtonBoxN({ props }) {
+    return (
+        <div className='button-confirm-container'>
+            {props?.infoArray.map((e, i) => {
+                return (
+                    <button key={i} className='button-normal' variant="contained" color="primary"
+                        onClick={props?.onClickArray ? props.onClickArray[i] : undefined}
+                        disabled={props?.disabled ? props?.disabled[i] : false}>
+                        {e}
+                    </button>
+                );
+            })}
+        </div>
+    );
+}
+
 function OverlayArrow({ onClick, currentView }) {
     const [isArrowVisible, setIsArrowVisible] = useState(false);
     const handleClick = () => {
@@ -4449,5 +4466,5 @@ export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
     Menu, ConfirmModal, InfoModal, Modal, SettingsButton, LoginButton, LoginModal,
     TableViewer, PlayerAvatar, ChatPanel, VideoChat, OverlayArrow, NoticeBoard,
-    AudioIconComponent, ReturnMenuButton, VideoCallModal,
+    AudioIconComponent, ReturnMenuButton, VideoCallModal, ButtonBox, ButtonBoxN, XSign,
 };

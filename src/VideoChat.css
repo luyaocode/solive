@@ -48,6 +48,11 @@
     border-radius: 5px;
     padding: 10px;
     box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+    display: none;
+}
+
+.floating-button-options.expand {
+    display: flex;
 }
 
 .floating-button-options.left {
@@ -88,4 +93,9 @@
 
 .floating-button-options button:hover {
     background-color: #044182;
+}
+
+.progress-bar {
+    margin-top: 1rem;
+    margin-bottom: 0;
 }

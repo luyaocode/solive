@@ -158,3 +158,13 @@ export const InitMediaTrackSettings = {
     sampleRate: SampleRate.Default
 }
 
+export const GlobalSignal = {
+    Active: 'active',
+    ReturnMenu: 'return_menu',
+    SaveVideoBtnClick: 'save_video_btn_click',
+    TranscodeBtnClick: 'transcode_btn_click',
+    PreviewVideoBtnClick: 'preview_btn_click',
+    TranscodeFinished: 'transcode_finished',
+    StopTranscode: 'stop_transcode',
+}
+

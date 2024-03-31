@@ -1,12 +1,22 @@
 import React, { useState, useEffect, useRef } from 'react';
 import Draggable from 'react-draggable';
 import ReactLive2d from 'react-live2d';
+import { FFmpeg } from '@ffmpeg/ffmpeg';
 import { VideoRecorder } from './VideoChat';
 
 import './VideoChat.css';
+import {
+    DeviceType, GlobalSignal
+} from './ConstDefine';
 
 function FloatBall({ setElementSize, props }) {
     const [isExpanded, setIsExpanded] = useState(false);
+    const [isRecording, setIsRecording] = useState(false);
+    const [ffmpeg, setFfmpeg] = useState(new FFmpeg({ log: true }));
+    const [recorder, setRecorder] = useState();
+    const [screenStream, setScreenStream] = useState();
+    const chunksRef = useRef([]);
+    const blobRef = useRef(null);
 
     useEffect(() => {
         if (props?.isBeingDragged) {
@@ -38,27 +48,50 @@ function FloatBall({ setElementSize, props }) {
             <div className={`floating-button ${isExpanded ? 'expanded' : ''}
             ${props.isBeingDragged ? 'dragging' : ''}`}
                 onClick={toggleExpand}
-                onTouchEnd={toggleExpand}
+                onTouchStart={toggleExpand}
             >
                 <span className="fas fa-plus"></span>
             </div>
-            {isExpanded && (
-                <div className={`floating-button-options ${props.componentBoundPos}`}>
-                    <button onClick={() => props?.setVideoCallModalOpen(true)}>
+            {
+                <div className={`floating-button-options ${props.componentBoundPos} ${isExpanded ? 'expand' : ''}`}>
+                    <button onClick={() => props?.setVideoCallModalOpen(true)}
+                        onTouchStart={() => props?.setVideoCallModalOpen(true)}>
                         视频通话
                     </button>
+
+                    {props.deviceType === DeviceType.PC &&
+                        <button onClick={() => {
+                            props?.setShowLive2DRole(prev => !prev);
+                        }}
+                            onTouchStart={() => {
+                                props?.setShowLive2DRole(prev => !prev);
+                            }}>
+                            {props?.showLive2DRole ? '隐藏角色' : '显示角色'}
+                        </button>
+                    }
+
+                    <VideoRecorder setSaveVideoModalOpen={props?.setSaveVideoModalOpen}
+                        globalSignal={props?.globalSignal}
+                        setGlobalSignal={props?.setGlobalSignal}
+                        isRecording={isRecording}
+                        setIsRecording={setIsRecording}
+                        ffmpeg={ffmpeg}
+                        recorder={recorder}
+                        setRecorder={setRecorder}
+                        screenStream={screenStream}
+                        setScreenStream={setScreenStream}
+                        chunksRef={chunksRef}
+                        blobRef={blobRef}
+                    />
+
                     <button onClick={() => {
-                        props?.setShowLive2DRole(prev => !prev);
-                    }}>
-                        {props?.showLive2DRole ? '隐藏角色' : '显示角色'}
-                    </button>
-                    <VideoRecorder />
-                    <button onClick={() => {
-                        props?.setGlobalSignal(prev => ({ ...prev, returnMenu: true }));
-                    }}>返回主页
+                        props?.setGlobalSignal(prev => ({ ...prev, [GlobalSignal.Active]: true, [GlobalSignal.ReturnMenu]: true }));
+                    }}
+                        onTouchStart={() => {
+                            props?.setGlobalSignal(prev => ({ ...prev, [GlobalSignal.Active]: true, [GlobalSignal.ReturnMenu]: true }));
+                        }}>返回主页
                     </button>
                 </div>
-            )
             }
         </div >
     );
@@ -197,13 +230,17 @@ function DraggableComponent({ Element, props }) {
 }
 
 function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
-    setVideoCallModalOpen }) {
+    setVideoCallModalOpen, deviceType, setSaveVideoModalOpen, globalSignal,
+}) {
     return (
         <DraggableComponent Element={FloatBall} props={{
             showLive2DRole,
             setShowLive2DRole,
             setGlobalSignal,
             setVideoCallModalOpen,
+            deviceType,
+            setSaveVideoModalOpen,
+            globalSignal,
         }} />
     );
 }
