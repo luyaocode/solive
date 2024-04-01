@@ -2,7 +2,9 @@ import React, { useState, useEffect, useRef } from 'react';
 import { fetchFile, toBlobURL } from '@ffmpeg/util';
 import ProgressBar from 'react-progressbar';
 
-import { ButtonBoxN, XSign, ButtonBox } from './Control.jsx'
+import {
+    ButtonBoxN, XSign, ButtonBox, Switch,
+} from './Control.jsx'
 import './VideoChat.css';
 import './Game.css';
 import { GlobalSignal } from './ConstDefine.jsx';
@@ -105,6 +107,8 @@ function VideoRecorder({ setSaveVideoModalOpen, globalSignal,
     toggleExpand
 }) {
 
+    const [audioEnabled, setAudioEnabled] = useState(false);
+
     useEffect(() => {
         window.addEventListener('error', function (event) {
             event.preventDefault();
@@ -144,10 +148,23 @@ function VideoRecorder({ setSaveVideoModalOpen, globalSignal,
     }
 
     const startRecording = async () => {
-        const stream = await navigator.mediaDevices.getDisplayMedia({
+        const screenStream = await navigator.mediaDevices.getDisplayMedia({
             video: true,
-            audio: true
+            audio: !audioEnabled
         });
+        let stream = screenStream;
+        if (audioEnabled) {
+            const audioStream = await navigator.mediaDevices.getUserMedia({
+                audio: true,
+            });
+            stream = new MediaStream();
+            screenStream.getTracks().forEach(track => {
+                stream.addTrack(track)
+            });
+            audioStream.getTracks().forEach(track => {
+                stream.addTrack(track);
+            });
+        }
         if (!stream) return;
         chunksRef.current = [];
         blobRef.current = null;
@@ -228,7 +245,10 @@ function VideoRecorder({ setSaveVideoModalOpen, globalSignal,
 
     return (
         <>
-            <button onClick={toggleRecord} onTouchStart={toggleRecord}>{isRecording ? '停止录制' : '录制视频'}</button>
+            <div className='video-recorder'>
+                <button onClick={toggleRecord} onTouchStart={toggleRecord}>{isRecording ? '停止录制' : '录制视频'}</button>
+                <Switch isOn={audioEnabled} setIsOn={setAudioEnabled} onInfo='外部音频' offInfo='内部音频' />
+            </div>
         </>
     );
 }

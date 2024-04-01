@@ -2272,9 +2272,9 @@
 
 .switch {
   position: relative;
-  width: 60px;
-  height: 30px;
-  border-radius: 15px;
+  width: 3.6rem;
+  height: 1.6rem;
+  border-radius: 1rem;
   background-color: #ccc;
   cursor: pointer;
 }
@@ -2283,10 +2283,10 @@
   position: absolute;
   top: 0;
   left: 0;
-  width: 30px;
-  height: 30px;
+  width: 1.6rem;
+  height: 1.6rem;
   border-radius: 50%;
-  background-color: rgb(253, 254, 255);
+  background-color: rgb(239, 246, 246);
   transition: transform 0.3s ease;
 }
 
@@ -2295,7 +2295,7 @@
 }
 
 .switch.on .switch-toggle {
-  transform: translateX(30px);
+  transform: translateX(2rem);
 }
 
 .switch.off .switch-toggle {
@@ -2316,7 +2316,7 @@
 }
 
 .switch.off .switch-label {
-  right: 5px;
+  left: 5px;
 }
 
 /* icon */

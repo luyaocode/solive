@@ -4553,4 +4553,5 @@ export {
     Menu, ConfirmModal, InfoModal, Modal, SettingsButton, LoginButton, LoginModal,
     TableViewer, PlayerAvatar, ChatPanel, VideoChat, OverlayArrow, NoticeBoard,
     AudioIconComponent, ReturnMenuButton, VideoCallModal, ButtonBox, ButtonBoxN, XSign,
+    Switch,
 };
