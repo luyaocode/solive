@@ -3086,7 +3086,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             )}
                             <TextOverlay
                                 isMediaCtlMenu={true}
-                                position="top-left"
+                                position="top-center"
                                 content={name}
                                 audioEnabled={audioEnabled}
                                 setAudioEnabled={setAudioEnabled}
@@ -3765,7 +3765,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                     top: 0,
                     left: '50%',
                     transform: 'translateX(-50%)',
-                    zIndex: 30,
+                    zIndex: 40,
                 };
             case 'top-right':
                 return {
@@ -3992,7 +3992,8 @@ function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice,
 
     return (
         <div className="audio-device-selector-container">
-            <img src={audioIcon} alt="Audio" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={toggleAudioOpen} />
+            <img src={audioIcon} alt="Audio" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={toggleAudioOpen}
+                style={{ margin: 0 }} />
             <select id="audioDevices" className="select" disabled={selectedMediaStream}
                 onChange={handleSelectChange}>
                 {renderAudioDeviceOptions()}
@@ -4052,7 +4053,8 @@ function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice,
 
     return (
         <div className="video-device-selector-container">
-            <img src={videoIcon} alt="Audio" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={toggleVideoOpen} />
+            <img src={videoIcon} alt="Audio" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={toggleVideoOpen}
+                style={{ margin: 0 }} />
             <select id="videoDevices" className="select" disabled={selectedMediaStream}
                 onChange={handleSelectChange}>
                 {renderVideoDeviceOptions()}

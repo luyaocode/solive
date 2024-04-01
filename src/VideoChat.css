@@ -5,6 +5,7 @@
     height: 2rem;
     max-width: 4rem;
     max-height: 4rem;
+    /* z-index: 101; */
 }
 
 .floating-button {

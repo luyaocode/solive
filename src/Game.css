@@ -1582,6 +1582,7 @@
   max-height: 100%;
   overflow-y: hidden;
   overflow-x: hidden;
+  z-index: 19;
 }
 
 .video-chat-view::-webkit-scrollbar {
@@ -1831,11 +1832,10 @@
   flex-direction: row;
   background-color: #1a1a1d;
   border-radius: 10px;
-  padding: 6px;
   color: #fff;
   font-family: Arial, sans-serif;
-  width: 6rem;
   background-color: transparent;
+  margin: 0.5rem;
 }
 
 .audio-device-selector-container .icon {
@@ -1850,14 +1850,16 @@
 }
 
 .select {
-  width: 100%;
+  width: 1.5rem;
   font-size: 16px;
   border-radius: 5px;
   background-color: #5d5d5d;
   color: #fff;
   border: none;
-  margin-right: 1rem;
-  margin-left: 0rem;
+  text-indent: -9999px;
+  outline: none;
+  /* margin-bottom: 0.5rem; */
+  cursor: pointer;
 }
 
 .select[disabled] {
@@ -1878,11 +1880,10 @@
   flex-direction: row;
   background-color: #1a1a1d;
   border-radius: 10px;
-  padding: 6px;
   color: #fff;
   font-family: Arial, sans-serif;
-  width: 6rem;
   background-color: transparent;
+  margin: 0.5rem;
 }
 
 .video-device-selector-container .icon {
@@ -1897,15 +1898,16 @@
   flex-wrap: wrap;
   background-color: #5d5d5d;
   border-radius: 10px;
-  padding: 0rem 1rem;
   color: #fff;
   font-family: Arial, sans-serif;
+  margin-top: 0.5rem;
+  padding: 0.5rem;
 }
 
 .func-icon-container .icon {
   min-width: 1.5rem;
-  margin-right: 1rem;
   cursor: pointer;
+  margin: 0.5rem;
 }
 
 /* 底部遮罩 */
@@ -2476,15 +2478,13 @@
 }
 
 .slider-container input[type="range"] {
-  border: 1px solid #ccc;
-  border-radius: 4px;
   writing-mode: bt-lr;
   appearance: slider-vertical;
   height: 100%;
   position: absolute;
   top: 0;
   left: 50%;
-  transform: translateX(-45%);
+  transform: translateX(-38%);
   direction: rtl;
   display: none;
 }
@@ -2676,12 +2676,13 @@
 
 .media-ctl-menu .close-menu-icon {
   width: 1.5rem;
+  left: 50%;
+  transform: translateX(-50%);
 }
 
 .media-ctl-menu .icon {
   width: 1.5rem;
   max-width: 20%;
-  padding-bottom: 0.5rem;
   z-index: 100;
 }
 
