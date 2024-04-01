@@ -240,9 +240,19 @@ function ChaosGomoku() {
     }, [currentView]);
 
     useEffect(() => {
+        if (currentView === View.Game) {
+
+        } else {
+
+        }
+    }, [currentView]);
+
+    useEffect(() => {
         if (socket) {
             enterVideoChatView();
-            setVideoCallModalOpen(true);
+            if (!sid) {
+                setVideoCallModalOpen(true);
+            }
         }
     }, [socket]);
 
@@ -425,6 +435,8 @@ function ChaosGomoku() {
                 enterVideoChatView={enterVideoChatView}
                 floatButtonVisible={floatButtonVisible}
                 setFloatButtonVisible={setFloatButtonVisible}
+                sid={sid}
+                currentView={currentView}
             />
             {
                 receiveInviteModalOpen &&
@@ -536,7 +548,7 @@ function ChaosGomoku() {
                                     isUndoRound={isUndoRound}
                                     setUndoRoundRequestModalOpen={setUndoRoundRequestModalOpen}
                                     avatarIndex={avatarIndex} avatarIndexPB={avatarIndexPB} setChatPanelOpen={setChatPanelOpen}
-                                    completelyReady={completelyReady}
+                                    completelyReady={completelyReady} globalSignal={globalSignal}
                                 />
                                 <GameLog isRestart={isRestart} gameLog={gameLog} setGameLog={setGameLog}
                                     roomId={roomId} nickName={nickName} setChatPanelOpen={setChatPanelOpen}

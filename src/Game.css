@@ -2462,12 +2462,14 @@
   position: relative;
   margin-left: 10px;
   margin-right: 10px;
+  display: flex;
+  flex-direction: column;
 }
 
 .media-track-settings-modal label {
   display: block;
   margin-bottom: 10px;
-  /* 调整每个 label 之间的间距 */
+  font-weight: bold;
 }
 
 .media-track-settings-modal p {

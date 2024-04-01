@@ -8,7 +8,10 @@ import {
   Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
   , FreezeSpell
 } from './Item.ts'
-import { GameMode, Piece_Type_Black, Piece_Type_White, DeviceType, root, _ } from './ConstDefine.jsx';
+import {
+  GameMode, Piece_Type_Black, Piece_Type_White, DeviceType, root, _,
+  GlobalSignal,
+} from './ConstDefine.jsx';
 
 // 样式
 const Init_Square_Style = 'square';
@@ -1342,7 +1345,7 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
   restartResponseModalOpen, setRestartResponseModalOpen,
   isSkipRound, setSkipRound, setRestartInSameRoom, isUndoRound,
   setUndoRoundRequestModalOpen, avatarIndex, avatarIndexPB, setChatPanelOpen,
-  completelyReady }) {
+  completelyReady, globalSignal }) {
 
   const [canSkipRound, setCanSkipRound] = useState(true);
   // 消息弹窗
@@ -1680,6 +1683,11 @@ function Game({ boardWidth, boardHeight, items, setItems, setRestart,
 
   const ExitButton = () => {
     let description = "退出";
+    useEffect(() => {
+      if (globalSignal && globalSignal[GlobalSignal.Active] && globalSignal[GlobalSignal.ReturnMenu]) {
+        onButtonClick();
+      }
+    }, [globalSignal]);
     function onButtonClick() {
       setConfirmModalOpen(true);
     }

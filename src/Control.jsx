@@ -1646,7 +1646,7 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
         }
     };
 
-    const handleEchoCancellationChange = () => {
+    const handleEchoCancellationChange = (e) => {
         setEchoCancellation_Temp((prevValue) => !prevValue);
     };
 
@@ -1713,40 +1713,44 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
                 <span className="close-button" onClick={onCancelBtnClick}>
                     &times;
                 </span>
-                <label style={{ marginTop: '2rem' }}>
-                    Local Video Width:
-                    <input type="number" value={localVideoWidth_Temp} onChange={handleWidthChange}
-                        onBlur={handleWidthBlur}
-                        min={FrameWidth.Min} max={FrameWidth.Max} />
-                </label>
-                <label>
-                    Local Video Height:
-                    <input type="number" value={localVideoHeight_Temp} onChange={handleHeightChange}
-                        onBlur={handleHeightBlur}
-                        min={FrameHeight.Min} max={FrameHeight.Max} />
-                </label>
-                <label>
-                    Local Frame Rate:
-                    <input type="range" min="30" max="120" value={localFrameRate_Temp} onChange={handleFrameRateChange} />
-                    {localFrameRate_Temp}
-                </label>
-                <label>
-                    Echo Cancellation:
-                    <button onClick={handleEchoCancellationChange}>{echoCancellation_Temp ? 'On' : 'Off'}</button>
-                </label>
-                <label>
-                    Noise Suppression:
-                    <button onClick={handleNoiseSuppressionChange}>{noiseSuppression_Temp ? 'On' : 'Off'}</button>
-                </label>
-                <label>
-                    Sample Rate:
-                    <input type="number" value={sampleRate_Temp} onChange={handleSampleRateChange}
-                        onBlur={handleSampleRateBlur}
-                        min={SampleRate.Min} max={SampleRate.Max} />
-                </label>
+                <div className='video-settings'>
+                    <label>
+                        视频宽度:
+                        <input type="number" value={localVideoWidth_Temp} onChange={handleWidthChange}
+                            onBlur={handleWidthBlur}
+                            min={FrameWidth.Min} max={FrameWidth.Max} />
+                    </label>
+                    <label>
+                        视频高度:
+                        <input type="number" value={localVideoHeight_Temp} onChange={handleHeightChange}
+                            onBlur={handleHeightBlur}
+                            min={FrameHeight.Min} max={FrameHeight.Max} />
+                    </label>
+                    <label>
+                        帧率:
+                        <input type="range" min="30" max="120" value={localFrameRate_Temp} onChange={handleFrameRateChange} />
+                        {localFrameRate_Temp}
+                    </label>
+                </div>
+                <div className='audio-settings'>
+                    <label style={{ width: 'fit-content' }}>
+                        回声消除:
+                        <button onClick={handleEchoCancellationChange}>{echoCancellation_Temp ? '开启' : '关闭'}</button>
+                    </label>
+                    <label style={{ width: 'fit-content' }}>
+                        噪声抑制:
+                        <button onClick={handleNoiseSuppressionChange}>{noiseSuppression_Temp ? '开启' : '关闭'}</button>
+                    </label>
+                    <label>
+                        采样率:
+                        <input type="number" value={sampleRate_Temp} onChange={handleSampleRateChange}
+                            onBlur={handleSampleRateBlur}
+                            min={SampleRate.Min} max={SampleRate.Max} />
+                    </label>
+                </div>
                 <div className='media-track-settings-button-confirm-container'>
                     <button className='button-normal' style={{ marginLeft: '0' }} variant="contained" color="primary" onClick={onRestoreBtnClick}>
-                        恢复默认参数
+                        恢复默认
                     </button>
                     <button className='button-normal' variant="contained" color="primary" onClick={onCancelBtnClick}>
                         取消
@@ -1900,7 +1904,7 @@ function VolumeCtlSlider({ handleVolumeChange, videoRef, volume, setVolume }) {
                 setVolume(parseFloat(event.target.value));
                 handleVolumeChange(event, videoRef)
             }}
-        />
+            title='音量' />
     );
 }
 
@@ -2520,7 +2524,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 .then(stream => {
                     if (stream) {
                         setLocalStream(stream);
-                        myVideo.current.srcObject = stream;
+                        if (myVideo?.current) {
+                            myVideo.current.srcObject = stream;
+                        }
                     }
                 });
 
@@ -3913,27 +3919,28 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                         onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
                                         <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef}
                                             volume={myVideoVolume} setVolume={setMyVideoVolume} />
-                                        <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick} />
+                                        <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick}
+                                            title='扬声器' />
                                     </div>
                                     <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
                                         setIsShareScreen(prev => !prev);
-                                    }} />
+                                    }} title='分享屏幕' />
                                     <img src={MessageIcon} alt="Message" className="icon" onClick={() => {
                                         setChatPanelOpen(prev => !prev);
-                                    }} />
+                                    }} title='短信' />
                                     <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
                                         setMediaTrackSettingsModalOpen(prev => !prev);
-                                    }} />
+                                    }} title='媒体轨道设置' />
                                     <img src={SwitchCameraIcon} alt="SwitchCamera" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
                                         setFacingMode(prev => (prev === FacingMode.Behind ? FacingMode.Front : FacingMode.Behind));
-                                    }} />
+                                    }} title='切换摄像头' />
                                     <img src={SelectVideoIcon} alt="SelectVideo" className="icon" onClick={() => {
                                         setSelectVideoModalOpen(true);
-                                    }} />
+                                    }} title='共享视频' />
                                     <div id='float-button-icon' className={`float-button-icon ${floatButtonVisible ? 'clicked' : ''}`}
                                         onClick={
                                             () => setFloatButtonVisible(prev => !prev)
-                                        }>
+                                        } title='其他'>
                                     </div>
                                 </div>
                             </>
@@ -4030,9 +4037,9 @@ function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice,
     return (
         <div className="audio-device-selector-container">
             <img src={audioIcon} alt="Audio" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={toggleAudioOpen}
-                style={{ margin: 0 }} />
+                style={{ margin: 0 }} title='麦克风' />
             <select id="audioDevices" className="select" disabled={selectedMediaStream}
-                onChange={handleSelectChange}>
+                onChange={handleSelectChange} title='音频设备'>
                 {renderAudioDeviceOptions()}
             </select>
         </div>
@@ -4090,10 +4097,10 @@ function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice,
 
     return (
         <div className="video-device-selector-container">
-            <img src={videoIcon} alt="Audio" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={toggleVideoOpen}
-                style={{ margin: 0 }} />
+            <img src={videoIcon} alt="Video" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={toggleVideoOpen}
+                style={{ margin: 0 }} title='摄像头' />
             <select id="videoDevices" className="select" disabled={selectedMediaStream}
-                onChange={handleSelectChange}>
+                onChange={handleSelectChange} title='视频设备'>
                 {renderVideoDeviceOptions()}
             </select>
         </div>

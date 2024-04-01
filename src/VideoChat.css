@@ -23,17 +23,7 @@
     transition: background-color 0.3s;
 }
 
-
-.floating-button:hover {
-    /* background-color: #ffb8b4; */
-}
-
-.floating-button.expanded {
-    /* background-color: #ffcf7d; */
-}
-
 .floating-button.dragging {
-    /* background-color: #8e8f8e; */
     width: 4rem;
     height: 4rem;
 }
@@ -90,7 +80,13 @@
     transition: background-color 0.3s;
 }
 
-.floating-button-options button:hover {
+.floating-button-options button[disabled] {
+    background-color: #dddddd;
+    color: #999999;
+    cursor: not-allowed;
+}
+
+.floating-button-options button:not([disabled]):hover {
     background-color: #044182;
 }
 

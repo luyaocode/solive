@@ -6,7 +6,7 @@ import { VideoRecorder } from './VideoChat';
 
 import './VideoChat.css';
 import {
-    DeviceType, GlobalSignal, Window_Max_Height_Factor
+    DeviceType, GlobalSignal, View, Window_Max_Height_Factor
 } from './ConstDefine';
 
 function FloatBall({ setElementSize, props }) {
@@ -73,7 +73,8 @@ function FloatBall({ setElementSize, props }) {
             {
                 <div className={`floating-button-options ${props.componentBoundPos} ${isExpanded ? 'expand' : ''}`}>
                     <button onClick={onVideoCallBtnClick}
-                        onTouchStart={onVideoCallBtnClick}>
+                        onTouchStart={onVideoCallBtnClick}
+                        disabled={props.videoCallBtnDisabled}>
                         视频通话
                     </button>
 
@@ -99,10 +100,12 @@ function FloatBall({ setElementSize, props }) {
                         toggleExpand={toggleExpand}
                     />
 
-                    <button onClick={onReturnMenuBtnClick}
-                        onTouchStart={onReturnMenuBtnClick}>
-                        返回主页
-                    </button>
+                    {!props?.sid &&
+                        <button onClick={onReturnMenuBtnClick}
+                            onTouchStart={onReturnMenuBtnClick}>
+                            返回主页
+                        </button>
+                    }
                 </div>
             }
         </div >
@@ -235,7 +238,8 @@ function DraggableComponent({ Element, props }) {
     const checkOverlap = (event, ui, id) => {
         const draggableBounds = event.target.getBoundingClientRect();
         if (draggableBounds.left === 0 || draggableBounds.right === 0) return;
-        const imgBounds = document.getElementById(id).getBoundingClientRect();
+        const imgBounds = document.getElementById(id)?.getBoundingClientRect();
+        if (!imgBounds) return;
         const draggableCenterX = (draggableBounds.left + draggableBounds.right) / 2;
         const draggableCenterY = (draggableBounds.top + draggableBounds.bottom) / 2;
         const imgCenterX = (imgBounds.left + imgBounds.right) / 2;
@@ -267,7 +271,7 @@ function DraggableComponent({ Element, props }) {
                 <Element setElementSize={setElementSize} props={{
                     ...props,
                     elementRef, isDragging, componentBoundPos, clickOutside,
-                    setClickOutside, isBeingDragged, setPosition, bounds
+                    setClickOutside, isBeingDragged, setPosition, bounds,
                 }} />
             </div>
         </Draggable>
@@ -276,8 +280,17 @@ function DraggableComponent({ Element, props }) {
 
 function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
     setVideoCallModalOpen, deviceType, setSaveVideoModalOpen, globalSignal,
-    enterVideoChatView, floatButtonVisible, setFloatButtonVisible,
+    enterVideoChatView, floatButtonVisible, setFloatButtonVisible, sid, currentView
 }) {
+    const [videoCallBtnDisabled, setVideoCallBtnDisabled] = useState(false);
+    useEffect(() => {
+        if (currentView === View.Game) {
+            setVideoCallBtnDisabled(true);
+        }
+        else {
+            setVideoCallBtnDisabled(false);
+        }
+    }, [currentView]);
     return (
         <DraggableComponent Element={FloatBall} props={{
             showLive2DRole,
@@ -290,6 +303,8 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
             enterVideoChatView,
             floatButtonVisible,
             setFloatButtonVisible,
+            sid,
+            videoCallBtnDisabled,
         }} />
     );
 }
