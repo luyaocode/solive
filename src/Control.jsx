@@ -2171,6 +2171,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     const [localVideoDisplayRenderKey, setLocalVideoDisplayRenderKey] = useState(0);
     const [showVideoPlayer, setShowVideoPlayer] = useState(false);
+    const [enlargedVideoFrom, setEnlargedVideoFrom] = useState();
 
     const myVideo = useRef();
     const userVideo = useRef();
@@ -2230,6 +2231,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (!showVideoPlayer || !videoPlayerRef.current) return;
         if (remoteStream) {
             videoPlayerRef.current.srcObject = remoteStream;
+            setEnlargedVideoFrom(getEnlargedVideoFrom(remoteStream.id));
+        }
+        else {
+            videoPlayerRef.current.srcObject = localStream;
+            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream.id));
         }
     }, [showVideoPlayer, videoPlayerRef.current, remoteStream]);
 
@@ -2237,6 +2243,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (!showVideoPlayer || !videoPlayerRef.current) return;
         if (localScreenStream) {
             videoPlayerRef.current.srcObject = localScreenStream;
+            setEnlargedVideoFrom(getEnlargedVideoFrom(localScreenStream.id));
+        }
+        else {
+            videoPlayerRef.current.srcObject = localStream;
+            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream.id));
         }
     }, [showVideoPlayer, videoPlayerRef.current, localScreenStream]);
 
@@ -2244,6 +2255,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (!showVideoPlayer || !videoPlayerRef.current) return;
         if (remoteScreenStream) {
             videoPlayerRef.current.srcObject = remoteScreenStream;
+            setEnlargedVideoFrom(getEnlargedVideoFrom(remoteScreenStream.id));
+        }
+        else {
+            videoPlayerRef.current.srcObject = localStream;
+            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream.id));
         }
     }, [showVideoPlayer, videoPlayerRef.current, remoteScreenStream]);
 
@@ -3002,12 +3018,32 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         };
     }, [remoteStream]);
 
+    const getEnlargedVideoFrom = (streamId) => {
+        if (!streamId) return undefined;
+        let from;
+        if (streamId === myVideo?.current?.srcObject?.id) {
+            from = name;
+        } else if (streamId === userVideo?.current?.srcObject?.id) {
+            from = anotherName;
+        }
+        else if (streamId === shareScreenVideo?.current?.srcObject?.id) {
+            from = name + '的屏幕';
+        }
+        else if (streamId === remoteShareScreenVideo?.current?.srcObject?.id) {
+            from = anotherName + '的屏幕';
+        }
+        return from;
+    };
+
 
     const handleVideoClick = (event) => {
         if (videoPlayerRef?.current && event.currentTarget?.srcObject &&
             videoPlayerRef.current.srcObject !== event.currentTarget.srcObject) {
-            videoPlayerRef.current.srcObject = event.currentTarget.srcObject
+            videoPlayerRef.current.srcObject = event.currentTarget.srcObject;
         }
+        const streamId = event.currentTarget?.srcObject?.id;
+        const from = getEnlargedVideoFrom(streamId);
+        setEnlargedVideoFrom(from);
         event.preventDefault();
         event.stopPropagation();
     };
@@ -3089,9 +3125,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 <img src={SpeakerIcon} alt="Speaker" style={{ position: 'absolute', bottom: 0, left: 0, zIndex: 0, height: '100%', width: '100%' }} />
                             )}
                             <TextOverlay
+                                position="top-left"
+                                content={name}
+                            />
+                            <TextOverlay
                                 isMediaCtlMenu={true}
                                 position="top-center"
-                                content={name}
                                 audioEnabled={audioEnabled}
                                 setAudioEnabled={setAudioEnabled}
                                 videoEnabled={videoEnabled}
@@ -3318,6 +3357,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 <video ref={videoPlayerRef} playsInline muted autoPlay
                                     style={{ position: 'relative', zIndex: 0, width: '100%' }}
                                     onClick={handleVideoClick}
+                                />
+                                <TextOverlay
+                                    position="top-left"
+                                    content={enlargedVideoFrom}
                                 />
                                 <TextOverlay
                                     position="bottom-right"
@@ -3751,6 +3794,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                     top: 0,
                     left: 0,
                     zIndex: 40,
+                    maxWidth: '45%'
                 };
             case 'top-left-local-video':
                 return {

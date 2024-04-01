@@ -17,11 +17,10 @@ import {
     Avatar_Number_X,
     Avatar_Number_Y,
     View, PublicMsg_Max_Length, Notice_Max_Length, TitleNotice,
-    GlobalSignal,
+    GlobalSignal, Window_Max_Height_Factor,
 } from './ConstDefine.jsx';
 import Client from './Client.jsx';
 import { DraggableButton, Live2DRole } from './Tool.jsx';
-import { VideoCallModal } from './Control.jsx';
 import { SaveVideoModal } from './VideoChat.jsx';
 
 function ChaosGomoku() {
@@ -211,6 +210,10 @@ function ChaosGomoku() {
     }, []);
 
     useEffect(() => {
+        root.style.setProperty('--Window_Max_Height_Factor', Window_Max_Height_Factor);
+    }, []);
+
+    useEffect(() => {
         if (gameInviteAccepted) {
             setGameInviteAccepted(false);
         }
@@ -218,6 +221,7 @@ function ChaosGomoku() {
 
     const enterVideoChatView = () => {
         setCurrentView(View.VideoChat);
+        setGlobalSignal(prev => ({ ...prev, [GlobalSignal.Active]: true, [GlobalSignal.SetFloatBallPosion]: 'bottom-center' }));
     }
     const returnMenuView = () => {
         setCurrentView(View.Menu);
@@ -526,7 +530,7 @@ function ChaosGomoku() {
             {deviceType === DeviceType.PC && !sid &&
                 < div style={{
                     display: (showLive2DRole ? 'block' : 'none'),
-                    zIndex: 2,
+                    zIndex: 19,
                 }}>
                     <Live2DRole />
                 </div>

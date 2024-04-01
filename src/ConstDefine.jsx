@@ -166,5 +166,9 @@ export const GlobalSignal = {
     PreviewVideoBtnClick: 'preview_btn_click',
     TranscodeFinished: 'transcode_finished',
     StopTranscode: 'stop_transcode',
+    SetFloatBallPosion: 'set_float_ball_posion',
 }
+
+/*预留5%底部空白*/
+export const Window_Max_Height_Factor = 0.95;
 

@@ -6,7 +6,7 @@ import { VideoRecorder } from './VideoChat';
 
 import './VideoChat.css';
 import {
-    DeviceType, GlobalSignal
+    DeviceType, GlobalSignal, Window_Max_Height_Factor
 } from './ConstDefine';
 
 function FloatBall({ setElementSize, props }) {
@@ -48,6 +48,7 @@ function FloatBall({ setElementSize, props }) {
         props?.enterVideoChatView();
         props?.setVideoCallModalOpen(true);
         toggleExpand();
+        props?.setPosition({ x: props?.bounds?.right / 2, y: props?.bounds?.bottom });
     };
 
     const onLive2DBtnClick = () => {
@@ -120,6 +121,14 @@ function DraggableComponent({ Element, props }) {
     const elementRef = useRef(null);
 
     useEffect(() => {
+        if (props?.globalSignal && props?.globalSignal[GlobalSignal.Active]) {
+            if (props?.globalSignal[GlobalSignal.SetFloatBallPosion] === 'bottom-center') {
+                setPosition({ x: bounds.right / 2, y: bounds.bottom });
+            }
+        }
+    }, [props?.globalSignal]);
+
+    useEffect(() => {
         if (!elementRef.current) return;
         const handleDragableOutsideClick = (event) => {
             if (elementRef.current && !elementRef.current.contains(event.target)) {
@@ -139,7 +148,7 @@ function DraggableComponent({ Element, props }) {
             left: 0,
             top: 0,
             right: window.innerWidth - width,
-            bottom: window.innerHeight - height,
+            bottom: (window.innerHeight) * Window_Max_Height_Factor - height,
         });
         const initialX = (window.innerWidth - width) / 2;
         const initialY = 0;
@@ -233,7 +242,7 @@ function DraggableComponent({ Element, props }) {
                 <Element setElementSize={setElementSize} props={{
                     ...props,
                     elementRef, isDragging, componentBoundPos, clickOutside,
-                    setClickOutside, isBeingDragged,
+                    setClickOutside, isBeingDragged, setPosition, bounds
                 }} />
             </div>
         </Draggable>
