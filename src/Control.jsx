@@ -2255,10 +2255,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     }, [showVideoPlayer, videoPlayerRef.current, remoteScreenStream]);
 
     useEffect(() => {
-        if (socket) {
+        if (socket.id) {
             setMe(socket.id);
         }
-    }, [socket]);
+    }, [socket.id]);
 
     useEffect(() => {
         if (callAccepted) {
