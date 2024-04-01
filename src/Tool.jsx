@@ -132,7 +132,7 @@ function DraggableComponent({ Element, props }) {
     useEffect(() => {
         if (props?.globalSignal && props?.globalSignal[GlobalSignal.Active]) {
             if (props?.globalSignal[GlobalSignal.SetFloatBallPosition] === 'bottom-center') {
-                setPosition({ x: bounds.right / 2, y: bounds.bottom });
+                setPosition({ x: bounds.right, y: bounds.bottom / 2 });
             }
         }
     }, [props?.globalSignal]);
@@ -159,8 +159,8 @@ function DraggableComponent({ Element, props }) {
             right: window.innerWidth - width,
             bottom: (window.innerHeight) * Window_Max_Height_Factor - height,
         });
-        const initialX = (window.innerWidth - width) / 2;
-        const initialY = 0;
+        const initialX = window.innerWidth - width;
+        const initialY = (window.innerHeight - height) / 2;
         setPosition({ x: initialX, y: initialY });
     }
 

@@ -3362,6 +3362,42 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     iconSrc={FullScreenIcon}
                                     parentRef={videoPlayerRef}
                                 />
+                                <TextOverlay
+                                    isMediaCtlMenu={true}
+                                    position="top-center"
+                                    audioEnabled={audioEnabled}
+                                    setAudioEnabled={setAudioEnabled}
+                                    videoEnabled={videoEnabled}
+                                    setVideoEnabled={setVideoEnabled}
+                                    handleVolumeChange={handleVolumeChange}
+                                    videoRef={myVideo}
+                                    setSelectedAudioDevice={setSelectedAudioDevice}
+                                    setSelectedVideoDevice={setSelectedVideoDevice}
+                                    callAccepted={callAccepted}
+                                    isNameReadOnly={isNameReadOnly}
+                                    name={name}
+                                    onNameTextAreaChange={onNameTextAreaChange}
+                                    isIdToCallReadOnly={isIdToCallReadOnly}
+                                    idToCall={idToCall}
+                                    onIdToCallTextAreaChange={onIdToCallTextAreaChange}
+                                    isShareScreen={isShareScreen}
+                                    setIsShareScreen={setIsShareScreen}
+                                    setChatPanelOpen={setChatPanelOpen}
+                                    selectedMediaStream={selectedMediaStream}
+                                    setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
+                                    setFacingMode={setFacingMode}
+                                    setSelectVideoModalOpen={setSelectVideoModalOpen}
+                                    callEnded={callEnded}
+                                    onLeaveCallBtnClick={onLeaveCallBtnClick}
+                                    onInviteCallBtnClick={onInviteCallBtnClick}
+                                    onCallUserBtnClick={onCallUserBtnClick}
+                                    sid={sid}
+                                    onReturnMenuBtnClick={onReturnMenuBtnClick}
+                                    myVideoVolume={myVideoVolume}
+                                    setMyVideoVolume={setMyVideoVolume}
+                                    setFloatButtonVisible={setFloatButtonVisible}
+                                    floatButtonVisible={floatButtonVisible}
+                                />
                             </div>
                         </div>
                     }
@@ -3497,9 +3533,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 callEnded, onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick,
                                 socket,
                             }} />
-                        }
-                        {
-
                         }
                     </>
                 }
@@ -3753,6 +3786,10 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     const node = useRef();
     const volumeSliderContainerRef = useRef();
     const volumeSliderTimerRef = useRef();
+
+    useEffect(() => {
+        setShowMediaCtlMenu(!callAccepted);
+    }, [callAccepted]);
 
     useEffect(() => {
         if (selectedMediaStream) {
