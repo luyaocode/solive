@@ -2255,7 +2255,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     }, [showVideoPlayer, videoPlayerRef.current, remoteScreenStream]);
 
     useEffect(() => {
-        if (socket.connected) {
+        if (socket) {
             setMe(socket.id);
         }
     }, [socket]);
