@@ -118,7 +118,13 @@ function DraggableComponent({ Element, props }) {
     const [initialPosition, setInitialPosition] = useState({ x: 0, y: 0 });
     const [componentBoundPos, setComponentBoundPos] = useState('');
     const [clickOutside, setClickOutside] = useState(false);
+    const [overlap, setOverlap] = useState(false);
+
     const elementRef = useRef(null);
+
+    useEffect(() => {
+        props?.setFloatButtonVisible(!overlap);
+    }, [overlap]);
 
     useEffect(() => {
         if (props?.globalSignal && props?.globalSignal[GlobalSignal.Active]) {
@@ -223,6 +229,24 @@ function DraggableComponent({ Element, props }) {
 
     const handleDrag = (e, ui) => {
         setIsBeingDragged(true);
+        checkOverlap(e, ui, 'float-button-icon');
+    };
+
+    const checkOverlap = (event, ui, id) => {
+        const draggableBounds = event.target.getBoundingClientRect();
+        if (draggableBounds.left === 0 || draggableBounds.right === 0) return;
+        const imgBounds = document.getElementById(id).getBoundingClientRect();
+        const draggableCenterX = (draggableBounds.left + draggableBounds.right) / 2;
+        const draggableCenterY = (draggableBounds.top + draggableBounds.bottom) / 2;
+        const imgCenterX = (imgBounds.left + imgBounds.right) / 2;
+        const imgCenterY = (imgBounds.top + imgBounds.bottom) / 2;
+        const draggableHalfWidth = (draggableBounds.right - draggableBounds.left) / 2;
+        const distance = Math.sqrt(Math.pow(draggableCenterX - imgCenterX, 2) + Math.pow(draggableCenterY - imgCenterY, 2));
+        if (distance < draggableHalfWidth) {
+            setOverlap(true);
+        } else {
+            setOverlap(false);
+        }
     };
 
     return (
@@ -238,6 +262,7 @@ function DraggableComponent({ Element, props }) {
                 left: 0,
                 top: 0,
                 zIndex: 20,
+                opacity: props?.floatButtonVisible ? '1' : '0',
             }}>
                 <Element setElementSize={setElementSize} props={{
                     ...props,
@@ -251,7 +276,7 @@ function DraggableComponent({ Element, props }) {
 
 function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
     setVideoCallModalOpen, deviceType, setSaveVideoModalOpen, globalSignal,
-    enterVideoChatView,
+    enterVideoChatView, floatButtonVisible, setFloatButtonVisible,
 }) {
     return (
         <DraggableComponent Element={FloatBall} props={{
@@ -262,7 +287,9 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
             deviceType,
             setSaveVideoModalOpen,
             globalSignal,
-            enterVideoChatView
+            enterVideoChatView,
+            floatButtonVisible,
+            setFloatButtonVisible,
         }} />
     );
 }

@@ -26,21 +26,18 @@ import {
     ShareScreenIcon, StopShareScreenIcon, StatPanelIcon, SwitchCameraIcon,
     BGM1, BGM2, SmallSpeakerIcon, SmallSpeakerSilentIcon, MediaCtlMenuIcon,
     DeviceType, CloseMediaCtlMenuIcon, DragIcon, FullScreenIcon,
-    root,
+    root, FloatButtonIcon,
     Piece_Type_White,
     InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate, GlobalSignal,
 } from './ConstDefine.jsx';
-import { VideoRecorder } from './VideoChat.jsx';
 import { Howl } from 'howler';
 import {
     Sword, Shield, Bow, InfectPotion, TimeBomb, XFlower
     , FreezeSpell
 } from './Item.ts';
 
-import _, { set } from 'lodash';
-import { showNotification, formatDate } from './Plugin.jsx'
-import { useFetcher } from 'react-router-dom';
-
+import _ from 'lodash';
+import { showNotification } from './Plugin.jsx'
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
     const [seconds, setSeconds] = useState(0);
@@ -2026,7 +2023,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     pieceType,/*用于确定主动方 */
     localAudioEnabled, setPeerAudioEnabled, /**显示麦克风图标 */
     globalSignal, /**用于跨组件通信 */
-    videoCallModalOpen, setVideoCallModalOpen
+    videoCallModalOpen, setVideoCallModalOpen, setFloatButtonVisible,
+    floatButtonVisible,
 }) {
     // 通话
     const [me, setMe] = useState("");               // 本地socketId
@@ -3149,6 +3147,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 onReturnMenuBtnClick={onReturnMenuBtnClick}
                                 myVideoVolume={myVideoVolume}
                                 setMyVideoVolume={setMyVideoVolume}
+                                setFloatButtonVisible={setFloatButtonVisible}
+                                floatButtonVisible={floatButtonVisible}
                             />
                             <TextOverlay
                                 position="top-left-local-video"
@@ -3727,22 +3727,18 @@ function VideoCallModal({ props }) {
 
 function TextOverlay({ position, content, contents, audioEnabled, setAudioEnabled,
     iconSrc, videoEnabled, setVideoEnabled, setSelectedAudioDevice,
-    setSelectedVideoDevice, callAccepted,
-    selectedFileName, setSelectedMediaStream, isMediaCtlMenu,
-    videoRef, handleVolumeChange,
-    isNameReadOnly, name, onNameTextAreaChange,
-    isIdToCallReadOnly, idToCall, onIdToCallTextAreaChange,
-    peerSocketId,
-    isShareScreen, setIsShareScreen, setChatPanelOpen, selectedMediaStream,
+    setSelectedVideoDevice, callAccepted, selectedFileName, setSelectedMediaStream,
+    isMediaCtlMenu, videoRef, handleVolumeChange, name, peerSocketId, isShareScreen,
+    setIsShareScreen, setChatPanelOpen, selectedMediaStream,
     setMediaTrackSettingsModalOpen, setFacingMode, setSelectVideoModalOpen,
-    callEnded, onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick,
-    sid, onReturnMenuBtnClick, isShowLocalVideo, selectedVideoRef,
-    parentRef, handleVideoClick, myVideoVolume, setMyVideoVolume,
-    localVideoDisplayRenderKey }) {
+    isShowLocalVideo, selectedVideoRef, parentRef, handleVideoClick,
+    myVideoVolume, setMyVideoVolume, localVideoDisplayRenderKey, setFloatButtonVisible,
+    floatButtonVisible,
+}) {
 
     const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
     const [showStatPanel, setShowStatPanel] = useState(false);
-    const [showMediaCtlMenu, setShowMediaCtlMenu] = useState(false);
+    const [showMediaCtlMenu, setShowMediaCtlMenu] = useState(true);
     const node = useRef();
     const volumeSliderContainerRef = useRef();
     const volumeSliderTimerRef = useRef();
@@ -3934,6 +3930,11 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                     <img src={SelectVideoIcon} alt="SelectVideo" className="icon" onClick={() => {
                                         setSelectVideoModalOpen(true);
                                     }} />
+                                    <div id='float-button-icon' className={`float-button-icon ${floatButtonVisible ? 'clicked' : ''}`}
+                                        onClick={
+                                            () => setFloatButtonVisible(prev => !prev)
+                                        }>
+                                    </div>
                                 </div>
                             </>
                         }

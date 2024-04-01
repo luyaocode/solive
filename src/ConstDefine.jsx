@@ -94,6 +94,9 @@ export const MediaCtlMenuIcon = '/picture/svg/MediaCtlMenuIcon.svg';
 export const CloseMediaCtlMenuIcon = '/picture/svg/CloseMediaCtlMenuIcon.svg';
 export const DragIcon = '/picture/svg/DragIcon.svg';
 export const FullScreenIcon = '/picture/svg/FullScreenIcon.svg';
+export const FloatButtonIcon = '/picture/svg/FloatButtonIcon.svg';
+export const FloatButtonClickedIcon = '/picture/svg/FloatButtonClickedIcon.svg';
+export const FloatButtonNotClickedIcon = '/picture/svg/FloatButtonNotClickedIcon.svg';
 
 export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
 export const BGM2 = '/audio/bgm/after_the_rain.mp3';
@@ -171,4 +174,11 @@ export const GlobalSignal = {
 
 /*预留5%底部空白*/
 export const Window_Max_Height_Factor = 0.95;
+
+export const WebsiteTitle = {
+    Menu: '混乱五子棋',
+    Game: '混乱五子棋',
+    Table: '混乱五子棋',
+    VideoChat: '▓▓▓▓▓▓▓▓',
+}
 

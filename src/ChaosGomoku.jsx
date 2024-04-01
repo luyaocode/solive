@@ -17,7 +17,7 @@ import {
     Avatar_Number_X,
     Avatar_Number_Y,
     View, PublicMsg_Max_Length, Notice_Max_Length, TitleNotice,
-    GlobalSignal, Window_Max_Height_Factor,
+    GlobalSignal, Window_Max_Height_Factor, WebsiteTitle,
 } from './ConstDefine.jsx';
 import Client from './Client.jsx';
 import { DraggableButton, Live2DRole } from './Tool.jsx';
@@ -106,6 +106,8 @@ function ChaosGomoku() {
 
     // 公告板
     const [notices, setNotices] = useState([]);
+    const [showNoticeBoard, setShowNoticeBoard] = useState(false);
+
     useEffect(() => {
         if (notices.length > Notice_Max_Length) {
             setNotices(prev => prev.slice(prev.length / 2));
@@ -148,6 +150,8 @@ function ChaosGomoku() {
     // 系统界面
     const [currentView, setCurrentView] = useState(View.Menu);
     const [showOverlayArrow, setShowOverlayArrow] = useState(false);
+    const [websiteTitle, setWebsiteTitle] = useState();
+
     useEffect(() => {
         if (currentView === View.Menu && !isLoginModalOpen) {
             setShowOverlayArrow(true);
@@ -172,6 +176,7 @@ function ChaosGomoku() {
     const [showLive2DRole, setShowLive2DRole] = useState(false);
     const [videoCallModalOpen, setVideoCallModalOpen] = useState(false);
     const [saveVideoModalOpen, setSaveVideoModalOpen] = useState(false);
+    const [floatButtonVisible, setFloatButtonVisible] = useState(true);
 
     // 信号
     const [globalSignal, setGlobalSignal] = useState({});
@@ -212,6 +217,41 @@ function ChaosGomoku() {
     useEffect(() => {
         root.style.setProperty('--Window_Max_Height_Factor', Window_Max_Height_Factor * 100 + '%');
     }, []);
+
+    // 调整主页面为视频通话
+    useEffect(() => {
+        if (currentView === View.Menu && !firstLoad) {
+            root.style.setProperty('--menu-container-display', 'flex');
+            setShowNoticeBoard(true);
+        }
+        else {
+            root.style.setProperty('--menu-container-display', 'none');
+            setShowNoticeBoard(false);
+        }
+    }, [currentView, socket]);
+
+    useEffect(() => {
+        if (currentView === View.VideoChat) {
+            setWebsiteTitle(WebsiteTitle.VideoChat);
+            setFloatButtonVisible(false);
+        } else {
+            setWebsiteTitle(WebsiteTitle.Menu);
+        }
+    }, [currentView]);
+
+    useEffect(() => {
+        if (socket) {
+            enterVideoChatView();
+            setVideoCallModalOpen(true);
+        }
+    }, [socket]);
+
+    useEffect(() => {
+        if (websiteTitle) {
+            const titleEle = document.getElementById("dynamicTitle");
+            titleEle.textContent = websiteTitle;
+        }
+    }, [websiteTitle]);
 
     useEffect(() => {
         if (gameInviteAccepted) {
@@ -383,6 +423,8 @@ function ChaosGomoku() {
                 setSaveVideoModalOpen={setSaveVideoModalOpen}
                 globalSignal={globalSignal}
                 enterVideoChatView={enterVideoChatView}
+                floatButtonVisible={floatButtonVisible}
+                setFloatButtonVisible={setFloatButtonVisible}
             />
             {
                 receiveInviteModalOpen &&
@@ -393,7 +435,8 @@ function ChaosGomoku() {
                     OnCancelBtnClick={() => setReceiveInviteModalOpen(false)} />
             }
             {
-                true && <NoticeBoard currentView={currentView} notices={notices} publicMsgs={publicMsgs}
+                showNoticeBoard &&
+                <NoticeBoard currentView={currentView} notices={notices} publicMsgs={publicMsgs}
                     setPublicMsgs={setPublicMsgs} socket={socket} locationData={locationData}
                     fetchLocation={fetchLocation} currentOutsideText={currentOutsideText} />
             }
@@ -446,7 +489,8 @@ function ChaosGomoku() {
                                     <VideoChat sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView}
                                         messages={messages} setMessages={setMessages} chatPanelOpen={chatPanelOpen} setChatPanelOpen={setChatPanelOpen}
                                         globalSignal={globalSignal} videoCallModalOpen={videoCallModalOpen}
-                                        setVideoCallModalOpen={setVideoCallModalOpen} />
+                                        setVideoCallModalOpen={setVideoCallModalOpen} setFloatButtonVisible={setFloatButtonVisible}
+                                        floatButtonVisible={floatButtonVisible} />
                                     : null
                                 )
                             )

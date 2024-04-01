@@ -58,6 +58,7 @@
 
   /* 5% Blank Given */
   --Window_Max_Height_Factor: 95%;
+  --menu-container-display: none;
 }
 
 .App {
@@ -857,7 +858,7 @@
   margin: 0 auto;
   padding: 1rem;
   text-align: center;
-  display: flex;
+  /* display: flex; */
   flex-direction: column;
   overflow-y: auto;
   height: var(--Window_Max_Height_Factor);
@@ -865,6 +866,7 @@
   max-height: var(--Window_Max_Height_Factor);
   /*预留5%空白*/
   max-width: 100%;
+  display: var(--menu-container-display);
 }
 
 .menu-header {
@@ -1904,13 +1906,13 @@
   color: #fff;
   font-family: Arial, sans-serif;
   margin-top: 0.5rem;
-  padding: 0.5rem;
+  padding: 0.5rem 1rem;
 }
 
 .func-icon-container .icon {
   min-width: 1.5rem;
   cursor: pointer;
-  margin: 0.5rem;
+  margin: 0.5rem 1rem;
 }
 
 /* 底部遮罩 */
@@ -2326,6 +2328,23 @@
   cursor: pointer;
   z-index: 100;
   width: 1.5rem;
+}
+
+.float-button-icon {
+  background-image: url(/public/picture/svg/FloatButtonNotClickedIcon.svg);
+  background-position: center;
+  background-repeat: no-repeat;
+  /* position: relative; */
+  cursor: pointer;
+  z-index: 100;
+  width: 1.5rem;
+  display: block;
+  height: 1.5rem;
+  margin: 0.5rem;
+}
+
+.clicked {
+  background-image: url(/public/picture/svg/FloatButtonClickedIcon.svg);
 }
 
 .grayed-out {
