@@ -2383,6 +2383,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 video: true,
                 audio: true
             });
+            stream.oninactive = function () {
+                stream.getTracks().forEach(track => track.stop());
+                setIsShareScreen(false);
+            };
             return stream;
         } catch (error) {
             console.error('Error accessing screen:', error);
