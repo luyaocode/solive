@@ -2229,37 +2229,25 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     useEffect(() => {
         if (!showVideoPlayer || !videoPlayerRef.current) return;
-        if (remoteStream) {
+        if (remoteStream?.active) {
             videoPlayerRef.current.srcObject = remoteStream;
             setEnlargedVideoFrom(getEnlargedVideoFrom(remoteStream?.id));
-        }
-        else {
-            videoPlayerRef.current.srcObject = localStream;
-            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream?.id));
         }
     }, [showVideoPlayer, videoPlayerRef.current, remoteStream]);
 
     useEffect(() => {
         if (!showVideoPlayer || !videoPlayerRef.current) return;
-        if (localScreenStream) {
+        if (localScreenStream?.active) {
             videoPlayerRef.current.srcObject = localScreenStream;
             setEnlargedVideoFrom(getEnlargedVideoFrom(localScreenStream?.id));
-        }
-        else {
-            videoPlayerRef.current.srcObject = localStream;
-            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream?.id));
         }
     }, [showVideoPlayer, videoPlayerRef.current, localScreenStream]);
 
     useEffect(() => {
         if (!showVideoPlayer || !videoPlayerRef.current) return;
-        if (remoteScreenStream) {
+        if (remoteScreenStream?.active) {
             videoPlayerRef.current.srcObject = remoteScreenStream;
             setEnlargedVideoFrom(getEnlargedVideoFrom(remoteScreenStream?.id));
-        }
-        else {
-            videoPlayerRef.current.srcObject = localStream;
-            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream?.id));
         }
     }, [showVideoPlayer, videoPlayerRef.current, remoteScreenStream]);
 
@@ -3206,48 +3194,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 parentRef={myVideo}
                             />
                         </div>
-                        {isShareScreen &&
-                            <div className='video'>
-                                <video ref={shareScreenVideo} playsInline muted autoPlay
-                                    style={{ position: 'relative', zIndex: 0, width: '100%' }}
-                                    onClick={handleVideoClick} />
-                                <TextOverlay
-                                    position="top-left"
-                                    content={name + '的屏幕'}
-                                />
-                                <TextOverlay
-                                    position="top-right"
-                                    iconSrc={StatPanelIcon}
-                                    contents={[
-                                        {
-                                            name: 'Video Bitrate',
-                                            data: outboundVideoBitrate_SC.toFixed(4),
-                                            unit: 'Mbps'
-                                        },
-                                        {
-                                            name: 'Video Frame Rate',
-                                            data: outboundFramesPerSecond_SC.toFixed(2),
-                                            unit: ''
-                                        },
-                                        {
-                                            name: 'Video Frame Width',
-                                            data: outboundFrameWidth_SC.toFixed(0),
-                                            unit: ''
-                                        },
-                                        {
-                                            name: 'Video Frame Width',
-                                            data: outboundFrameHeight_SC.toFixed(0),
-                                            unit: ''
-                                        },
-                                    ]}
-                                />
-                                <TextOverlay
-                                    position="bottom-right"
-                                    iconSrc={FullScreenIcon}
-                                    parentRef={shareScreenVideo}
-                                />
-                            </div>
-                        }
                         {callAccepted && !callEnded ?
                             <div className="video">
                                 <video ref={userVideo} playsInline autoPlay loop={true} controls={false}
@@ -3302,6 +3248,48 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 />
                             </div>
                             : null
+                        }
+                        {isShareScreen &&
+                            <div className='video'>
+                                <video ref={shareScreenVideo} playsInline muted autoPlay
+                                    style={{ position: 'relative', zIndex: 0, width: '100%' }}
+                                    onClick={handleVideoClick} />
+                                <TextOverlay
+                                    position="top-left"
+                                    content={name + '的屏幕'}
+                                />
+                                <TextOverlay
+                                    position="top-right"
+                                    iconSrc={StatPanelIcon}
+                                    contents={[
+                                        {
+                                            name: 'Video Bitrate',
+                                            data: outboundVideoBitrate_SC.toFixed(4),
+                                            unit: 'Mbps'
+                                        },
+                                        {
+                                            name: 'Video Frame Rate',
+                                            data: outboundFramesPerSecond_SC.toFixed(2),
+                                            unit: ''
+                                        },
+                                        {
+                                            name: 'Video Frame Width',
+                                            data: outboundFrameWidth_SC.toFixed(0),
+                                            unit: ''
+                                        },
+                                        {
+                                            name: 'Video Frame Width',
+                                            data: outboundFrameHeight_SC.toFixed(0),
+                                            unit: ''
+                                        },
+                                    ]}
+                                />
+                                <TextOverlay
+                                    position="bottom-right"
+                                    iconSrc={FullScreenIcon}
+                                    parentRef={shareScreenVideo}
+                                />
+                            </div>
                         }
                         {isReceiveShareScreen &&
                             <div className='video'>
