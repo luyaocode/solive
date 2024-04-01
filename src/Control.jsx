@@ -2231,11 +2231,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (!showVideoPlayer || !videoPlayerRef.current) return;
         if (remoteStream) {
             videoPlayerRef.current.srcObject = remoteStream;
-            setEnlargedVideoFrom(getEnlargedVideoFrom(remoteStream.id));
+            setEnlargedVideoFrom(getEnlargedVideoFrom(remoteStream?.id));
         }
         else {
             videoPlayerRef.current.srcObject = localStream;
-            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream.id));
+            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream?.id));
         }
     }, [showVideoPlayer, videoPlayerRef.current, remoteStream]);
 
@@ -2243,11 +2243,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (!showVideoPlayer || !videoPlayerRef.current) return;
         if (localScreenStream) {
             videoPlayerRef.current.srcObject = localScreenStream;
-            setEnlargedVideoFrom(getEnlargedVideoFrom(localScreenStream.id));
+            setEnlargedVideoFrom(getEnlargedVideoFrom(localScreenStream?.id));
         }
         else {
             videoPlayerRef.current.srcObject = localStream;
-            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream.id));
+            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream?.id));
         }
     }, [showVideoPlayer, videoPlayerRef.current, localScreenStream]);
 
@@ -2255,11 +2255,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (!showVideoPlayer || !videoPlayerRef.current) return;
         if (remoteScreenStream) {
             videoPlayerRef.current.srcObject = remoteScreenStream;
-            setEnlargedVideoFrom(getEnlargedVideoFrom(remoteScreenStream.id));
+            setEnlargedVideoFrom(getEnlargedVideoFrom(remoteScreenStream?.id));
         }
         else {
             videoPlayerRef.current.srcObject = localStream;
-            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream.id));
+            setEnlargedVideoFrom(getEnlargedVideoFrom(localStream?.id));
         }
     }, [showVideoPlayer, videoPlayerRef.current, remoteScreenStream]);
 

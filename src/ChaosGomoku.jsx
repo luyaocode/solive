@@ -210,7 +210,7 @@ function ChaosGomoku() {
     }, []);
 
     useEffect(() => {
-        root.style.setProperty('--Window_Max_Height_Factor', Window_Max_Height_Factor);
+        root.style.setProperty('--Window_Max_Height_Factor', Window_Max_Height_Factor * 100 + '%');
     }, []);
 
     useEffect(() => {

@@ -204,7 +204,7 @@ function DraggableComponent({ Element, props }) {
         }
         else if (x / y < window.innerWidth / window.innerHeight) {
             if (x < bounds.bottom - y) {
-                nx = 0;
+                nx = bounds.left;
             }
             else {
                 ny = bounds.bottom;
@@ -215,7 +215,7 @@ function DraggableComponent({ Element, props }) {
                 nx = bounds.right;
             }
             else {
-                ny = 0;
+                ny = bounds.top;
             }
         }
         return { nx: nx, ny: ny };
