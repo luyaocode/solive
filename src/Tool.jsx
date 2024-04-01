@@ -100,7 +100,7 @@ function FloatBall({ setElementSize, props }) {
                         toggleExpand={toggleExpand}
                     />
 
-                    {!props?.sid &&
+                    {(!props?.sid && !props?.subpage) &&
                         <button onClick={onReturnMenuBtnClick}
                             onTouchStart={onReturnMenuBtnClick}>
                             返回主页
@@ -131,7 +131,7 @@ function DraggableComponent({ Element, props }) {
 
     useEffect(() => {
         if (props?.globalSignal && props?.globalSignal[GlobalSignal.Active]) {
-            if (props?.globalSignal[GlobalSignal.SetFloatBallPosion] === 'bottom-center') {
+            if (props?.globalSignal[GlobalSignal.SetFloatBallPosition] === 'bottom-center') {
                 setPosition({ x: bounds.right / 2, y: bounds.bottom });
             }
         }
@@ -280,7 +280,8 @@ function DraggableComponent({ Element, props }) {
 
 function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
     setVideoCallModalOpen, deviceType, setSaveVideoModalOpen, globalSignal,
-    enterVideoChatView, floatButtonVisible, setFloatButtonVisible, sid, currentView
+    enterVideoChatView, floatButtonVisible, setFloatButtonVisible, sid, subpage,
+    currentView
 }) {
     const [videoCallBtnDisabled, setVideoCallBtnDisabled] = useState(false);
     useEffect(() => {
@@ -303,7 +304,7 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
             enterVideoChatView,
             floatButtonVisible,
             setFloatButtonVisible,
-            sid,
+            sid, subpage,
             videoCallBtnDisabled,
         }} />
     );

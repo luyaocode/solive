@@ -169,7 +169,7 @@ export const GlobalSignal = {
     PreviewVideoBtnClick: 'preview_btn_click',
     TranscodeFinished: 'transcode_finished',
     StopTranscode: 'stop_transcode',
-    SetFloatBallPosion: 'set_float_ball_posion',
+    SetFloatBallPosition: 'set_float_ball_position',
 }
 
 /*预留5%底部空白*/
@@ -180,5 +180,9 @@ export const WebsiteTitle = {
     Game: '混乱五子棋',
     Table: '混乱五子棋',
     VideoChat: '▓▓▓▓▓▓▓▓',
+}
+
+export const SubPage = {
+    VideoCall: 'video-call',
 }
 

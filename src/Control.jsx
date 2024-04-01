@@ -1935,7 +1935,8 @@ function TextArea({ isReadyOnly, placeholder, label, value, onChange }) {
 }
 
 function CallButton({ callAccepted, callEnded, idToCall,
-    onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick }) {
+    onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick,
+    socket }) {
     return (
         <div className="call-button">
             {callAccepted && !callEnded ? (
@@ -1946,10 +1947,10 @@ function CallButton({ callAccepted, callEnded, idToCall,
             ) : (
                 <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'center' }}>
                     <Button variant="contained" color="primary" onClick={onInviteCallBtnClick}
-                        className='invite-call-button'>
+                        className='invite-call-button' disabled={!(socket?.connected)}>
                         邀请通话
                     </Button>
-                    <Button disabled={idToCall?.length === 0} color="primary" aria-label="call"
+                    <Button disabled={idToCall?.length === 0 || !(socket?.connected)} color="primary" aria-label="call"
                         onClick={onCallUserBtnClick}
                         className='call-user-button'>
                         呼叫
@@ -2257,7 +2258,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (socket.connected) {
             setMe(socket.id);
         }
-    }, [socket.connected]);
+    }, [socket]);
 
     useEffect(() => {
         if (callAccepted) {
@@ -2355,7 +2356,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             setIsNameReadOnly(true);
             setPrepareCallModal(true);
         }
-    }, []);
+    }, [sid, socket]);
 
     useEffect(() => {
         switch (deviceType) {
@@ -3494,7 +3495,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 callAccepted, isNameReadOnly, name, onNameTextAreaChange,
                                 isIdToCallReadOnly, idToCall, onIdToCallTextAreaChange,
                                 callEnded, onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick,
+                                socket,
                             }} />
+                        }
+                        {
+
                         }
                     </>
                 }
@@ -3724,7 +3729,7 @@ function VideoCallModal({ props }) {
                     <CallButton callAccepted={props?.callAccepted} callEnded={props?.callEnded}
                         idToCall={props?.idToCall} onLeaveCallBtnClick={props?.onLeaveCallBtnClick}
                         onInviteCallBtnClick={props?.onInviteCallBtnClick}
-                        onCallUserBtnClick={props?.onCallUserBtnClick} />
+                        onCallUserBtnClick={props?.onCallUserBtnClick} socket={props?.socket} />
                 </div>
             </div >
         </>

@@ -17,7 +17,7 @@ import {
     Avatar_Number_X,
     Avatar_Number_Y,
     View, PublicMsg_Max_Length, Notice_Max_Length, TitleNotice,
-    GlobalSignal, Window_Max_Height_Factor, WebsiteTitle,
+    GlobalSignal, Window_Max_Height_Factor, WebsiteTitle, SubPage
 } from './ConstDefine.jsx';
 import Client from './Client.jsx';
 import { DraggableButton, Live2DRole } from './Tool.jsx';
@@ -163,6 +163,7 @@ function ChaosGomoku() {
 
     // 路由
     const { sid } = useParams(); // socketId in url
+    const { subpage } = useParams();
     useEffect(() => {
         if (sid && socket) {
             enterVideoChatView();
@@ -220,7 +221,7 @@ function ChaosGomoku() {
 
     // 调整主页面为视频通话
     useEffect(() => {
-        if (currentView === View.Menu && !firstLoad) {
+        if (currentView === View.Menu && (!sid && !subpage)) {
             root.style.setProperty('--menu-container-display', 'flex');
             setShowNoticeBoard(true);
         }
@@ -240,15 +241,7 @@ function ChaosGomoku() {
     }, [currentView]);
 
     useEffect(() => {
-        if (currentView === View.Game) {
-
-        } else {
-
-        }
-    }, [currentView]);
-
-    useEffect(() => {
-        if (socket) {
+        if (socket && subpage === SubPage.VideoCall) {
             enterVideoChatView();
             if (!sid) {
                 setVideoCallModalOpen(true);
@@ -271,7 +264,7 @@ function ChaosGomoku() {
 
     const enterVideoChatView = () => {
         setCurrentView(View.VideoChat);
-        setGlobalSignal(prev => ({ ...prev, [GlobalSignal.Active]: true, [GlobalSignal.SetFloatBallPosion]: 'bottom-center' }));
+        setGlobalSignal(prev => ({ ...prev, [GlobalSignal.Active]: true, [GlobalSignal.SetFloatBallPosition]: 'bottom-center' }));
     }
     const returnMenuView = () => {
         setCurrentView(View.Menu);
@@ -435,7 +428,7 @@ function ChaosGomoku() {
                 enterVideoChatView={enterVideoChatView}
                 floatButtonVisible={floatButtonVisible}
                 setFloatButtonVisible={setFloatButtonVisible}
-                sid={sid}
+                sid={sid} subpage={subpage}
                 currentView={currentView}
             />
             {

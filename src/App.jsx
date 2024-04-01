@@ -6,6 +6,7 @@ const App = () => {
         <Router>
             <Routes>
                 <Route path="/" element={<ChaosGomoku />} />
+                <Route path="/:subpage" element={<ChaosGomoku />} />
                 <Route path="/call/:sid" element={<ChaosGomoku />} />
                 <Route path="/room/:rid" element={<ChaosGomoku />} />
             </Routes>
