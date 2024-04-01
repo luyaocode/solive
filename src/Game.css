@@ -1853,7 +1853,7 @@
   width: 100%;
   font-size: 16px;
   border-radius: 5px;
-  background-color: #363636;
+  background-color: #5d5d5d;
   color: #fff;
   border: none;
   margin-right: 1rem;
@@ -2478,14 +2478,15 @@
 .slider-container input[type="range"] {
   border: 1px solid #ccc;
   border-radius: 4px;
+  writing-mode: bt-lr;
+  appearance: slider-vertical;
+  height: 100%;
   position: absolute;
-  bottom: 100%;
-  left: 30%;
-  transform: translateX(-50%);
-  display: none;
-  writing-mode: vertical-lr;
+  top: 0;
+  left: 50%;
+  transform: translateX(-45%);
   direction: rtl;
-  height: 150%;
+  display: none;
 }
 
 .slider-container.show-input input[type="range"] {
@@ -2680,7 +2681,6 @@
 .media-ctl-menu .icon {
   width: 1.5rem;
   max-width: 20%;
-  padding-top: 0.5rem;
   padding-bottom: 0.5rem;
   z-index: 100;
 }

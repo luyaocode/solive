@@ -102,6 +102,7 @@ function VideoRecorder({ setSaveVideoModalOpen, globalSignal,
     setScreenStream,
     chunksRef,
     blobRef,
+    toggleExpand
 }) {
 
     useEffect(() => {
@@ -215,6 +216,7 @@ function VideoRecorder({ setSaveVideoModalOpen, globalSignal,
     };
 
     const toggleRecord = async () => {
+        toggleExpand();
         if (recorder?.state === 'recording') {
             stopRecording();
         }

@@ -40,14 +40,26 @@ function FloatBall({ setElementSize, props }) {
 
     const toggleExpand = () => {
         if (!props.isDragging) {
-            setIsExpanded(!isExpanded);
+            setIsExpanded(prev => !prev);
         }
     };
 
     const onVideoCallBtnClick = () => {
         props?.enterVideoChatView();
         props?.setVideoCallModalOpen(true);
-    }
+        toggleExpand();
+    };
+
+    const onLive2DBtnClick = () => {
+        props?.setShowLive2DRole(prev => !prev);
+        toggleExpand();
+    };
+
+    const onReturnMenuBtnClick = () => {
+        props?.setGlobalSignal(prev => ({ ...prev, [GlobalSignal.Active]: true, [GlobalSignal.ReturnMenu]: true }));
+        toggleExpand();
+    };
+
     return (
         <div ref={props.elementRef} className="floating-button-container">
             <div className={`floating-button ${isExpanded ? 'expanded' : ''}
@@ -65,12 +77,8 @@ function FloatBall({ setElementSize, props }) {
                     </button>
 
                     {props.deviceType === DeviceType.PC &&
-                        <button onClick={() => {
-                            props?.setShowLive2DRole(prev => !prev);
-                        }}
-                            onTouchStart={() => {
-                                props?.setShowLive2DRole(prev => !prev);
-                            }}>
+                        <button onClick={onLive2DBtnClick}
+                            onTouchStart={onLive2DBtnClick}>
                             {props?.showLive2DRole ? '隐藏角色' : '显示角色'}
                         </button>
                     }
@@ -87,14 +95,12 @@ function FloatBall({ setElementSize, props }) {
                         setScreenStream={setScreenStream}
                         chunksRef={chunksRef}
                         blobRef={blobRef}
+                        toggleExpand={toggleExpand}
                     />
 
-                    <button onClick={() => {
-                        props?.setGlobalSignal(prev => ({ ...prev, [GlobalSignal.Active]: true, [GlobalSignal.ReturnMenu]: true }));
-                    }}
-                        onTouchStart={() => {
-                            props?.setGlobalSignal(prev => ({ ...prev, [GlobalSignal.Active]: true, [GlobalSignal.ReturnMenu]: true }));
-                        }}>返回主页
+                    <button onClick={onReturnMenuBtnClick}
+                        onTouchStart={onReturnMenuBtnClick}>
+                        返回主页
                     </button>
                 </div>
             }

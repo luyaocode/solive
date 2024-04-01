@@ -2531,10 +2531,26 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     userVideo.current.srcObject.getTracks().forEach(track => {
                         track.stop();
                     });
-                    userVideo.current.srcObject = null; // 清除引用，以便内存回收
+                    userVideo.current.srcObject = null;
                 }
                 if (connectionRef.current) {
                     connectionRef.current.peer.destroy();
+                }
+                // 退出屏幕共享
+                if (remoteShareScreenVideo.current && remoteShareScreenVideo.current.srcObject) {
+                    remoteShareScreenVideo.current.srcObject.getTracks().forEach(track => {
+                        track.stop();
+                    });
+                    remoteShareScreenVideo.current.srcObject = null;
+                }
+                if (shareScreenVideo.current && shareScreenVideo.current.srcObject) {
+                    shareScreenVideo.current.srcObject.getTracks().forEach(track => {
+                        track.stop();
+                    });
+                    shareScreenVideo.current.srcObject = null;
+                }
+                if (shareScreenConnRef.current) {
+                    shareScreenConnRef.current.peer.destroy();
                 }
             });
 
