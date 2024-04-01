@@ -1139,7 +1139,8 @@ function Switch({ isOn, setIsOn, onInfo, offInfo }) {
     };
 
     return (
-        <div className={`switch ${isOn ? 'on' : 'off'}`} onClick={toggleSwitch}>
+        <div className={`switch ${isOn ? 'on' : 'off'}`} onClick={toggleSwitch}
+            onTouchStart={toggleSwitch}>
             <div className="switch-toggle"></div>
             <span className="switch-label">{isOn ? onInfo : offInfo}</span>
         </div>
