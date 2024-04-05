@@ -2263,7 +2263,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     useEffect(() => {
         if (callAccepted) {
-            setVideoCallModalOpen(false);
+            if (typeof setVideoCallModalOpen === 'function') {
+                setVideoCallModalOpen(false);
+            }
         }
     }, [callAccepted]);
 
