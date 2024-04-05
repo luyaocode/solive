@@ -48,7 +48,7 @@ function FloatBall({ setElementSize, props }) {
         props?.enterVideoChatView();
         props?.setVideoCallModalOpen(true);
         toggleExpand();
-        props?.setPosition({ x: props?.bounds?.right / 2, y: props?.bounds?.bottom });
+        props?.setPosition({ x: props?.bounds?.right, y: props?.bounds?.bottom / 2 });
     };
 
     const onLive2DBtnClick = () => {

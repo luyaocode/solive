@@ -97,6 +97,7 @@ export const FullScreenIcon = '/picture/svg/FullScreenIcon.svg';
 export const FloatButtonIcon = '/picture/svg/FloatButtonIcon.svg';
 export const FloatButtonClickedIcon = '/picture/svg/FloatButtonClickedIcon.svg';
 export const FloatButtonNotClickedIcon = '/picture/svg/FloatButtonNotClickedIcon.svg';
+export const RemoteDesktopIcon = '/picture/svg/RemoteDesktopIcon.svg';
 
 export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
 export const BGM2 = '/audio/bgm/after_the_rain.mp3';
@@ -120,7 +121,6 @@ export const TitleNotice = {
     locationData: {
         country: '中国',
         region: '湖北',
-        city: '广水',
     }
 }
 
@@ -179,10 +179,16 @@ export const WebsiteTitle = {
     Menu: '混乱五子棋',
     Game: '混乱五子棋',
     Table: '混乱五子棋',
-    VideoChat: '▓▓▓▓▓▓▓▓',
+    VideoChat: '直播·会议·音视频通话',
 }
 
 export const SubPage = {
     VideoCall: 'video-call',
 }
+
+export const mouseEvents = [
+    'mousedown', 'mouseup', 'click', 'dblclick', 'contextmenu',
+    'mouseenter', 'mouseleave', 'mouseover', 'mouseout', 'mousemove',
+    'wheel'
+];
 
