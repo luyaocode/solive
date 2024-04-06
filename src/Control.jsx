@@ -7,8 +7,10 @@ import wrtc from "wrtc"
 import QRCode from 'qrcode.react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
+import ProgressBar from 'react-progressbar';
 
 import './Game.css';
+import './VideoChat.css';
 import {
     Avatar_Number_X,
     Avatar_Number_Y,
@@ -26,7 +28,7 @@ import {
     ShareScreenIcon, StopShareScreenIcon, StatPanelIcon, SwitchCameraIcon,
     BGM1, BGM2, SmallSpeakerIcon, SmallSpeakerSilentIcon, MediaCtlMenuIcon,
     DeviceType, CloseMediaCtlMenuIcon, DragIcon, FullScreenIcon,
-    root, FloatButtonIcon,
+    root, FileTransferIcon, Chunk_Max_Size,
     Piece_Type_White,
     InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate, GlobalSignal,
 } from './ConstDefine.jsx';
@@ -2023,6 +2025,258 @@ function ToolBar({ backgroundColor }) {
     );
 }
 
+function TransferModal({ setModalOpen, peer, fileTransferAccepted, setFileTransferAccepted,
+    setWaitConfirmTransferFileModalOpen }) {
+    const [dragging, setDragging] = useState(false);
+    const [filePath, setFilePath] = useState();
+    const [selFile, setSelFile] = useState();
+    const [progress, setProgress] = useState(0);
+    const [controller, setController] = useState(new AbortController());
+
+    useEffect(() => {
+        return () => setFileTransferAccepted(false);
+    }, []);
+
+    useEffect(() => {
+        if (fileTransferAccepted) {
+            sendFile(peer, selFile);
+        }
+    }, [fileTransferAccepted]);
+
+    const handleFileChange = (e) => {
+        const file = e.target.files[0];
+        if (!file) return;
+        setFilePath(file.name);
+        setSelFile(file);
+    };
+
+    const onDrop = (e) => {
+        e.preventDefault();
+        setDragging(false);
+        const file = e.dataTransfer.files[0];
+        setFilePath(file.name);
+        setSelFile(file);
+    };
+
+    const onDragOver = (e) => {
+        e.preventDefault();
+        setDragging(true);
+    };
+
+    const onDragLeave = () => {
+        setDragging(false);
+    };
+
+    const handleInputClick = (e) => {
+    };
+
+    const handleAreaClick = (e) => {
+    };
+
+    function wait(ms) {
+        return new Promise(resolve => setTimeout(resolve, ms));
+    }
+
+    const sendFile = (peer, file) => {
+        const chunkSize = Chunk_Max_Size;
+        const reader = new FileReader();
+        const MAX_BUFFERED_AMOUNT = 1024;
+        const newController = new AbortController();
+        setController(newController);
+        const { signal } = newController;
+        reader.onload = () => {
+            const fileArrayBuffer = reader.result;
+            const fileSize = fileArrayBuffer.byteLength;
+            let offset = 0;
+            let chunkIndex = 0;
+            let isFirstChunk = true;
+            peer.send(JSON.stringify({
+                type: 'transferFile',
+                fileName: file.name,
+                fileSize, fileSize
+            }));
+            async function sendChunks() {
+                try {
+                    while (offset < fileSize) {
+                        if (signal.aborted) {
+                            console.log('Transmission aborted');
+                            return;
+                        }
+                        const bufferedAmount = peer._channel.bufferedAmount;
+                        if (bufferedAmount > MAX_BUFFERED_AMOUNT) {
+                            await wait(10);
+                            continue;
+                        }
+                        const isLastChunk = offset + chunkSize >= fileSize;
+                        const chunk = new Uint8Array(fileArrayBuffer.slice(offset, offset + chunkSize));
+                        const messageBytes = new Uint8Array(10);
+                        messageBytes[0] = (chunkIndex >> 56) & 0xFF;
+                        messageBytes[1] = (chunkIndex >> 48) & 0xFF;
+                        messageBytes[2] = (chunkIndex >> 40) & 0xFF;
+                        messageBytes[3] = (chunkIndex >> 32) & 0xFF;
+                        messageBytes[4] = (chunkIndex >> 24) & 0xFF;
+                        messageBytes[5] = (chunkIndex >> 16) & 0xFF;
+                        messageBytes[6] = (chunkIndex >> 8) & 0xFF;
+                        messageBytes[7] = chunkIndex & 0xFF;
+                        messageBytes[8] = isFirstChunk ? 1 : 0;
+                        messageBytes[9] = isLastChunk ? 1 : 0;
+
+                        const data = new Uint8Array(messageBytes.length + chunk.length);
+                        data.set(messageBytes, 0);
+                        data.set(chunk, messageBytes.length);
+
+                        peer.send(data);
+                        offset += chunkSize;
+                        if (isLastChunk) {
+                            setProgress(Number((100).toFixed(2)));
+                        }
+                        else {
+                            setProgress(Number((offset / fileSize * 100).toFixed(2)));
+                        }
+                        chunkIndex++;
+                        isFirstChunk = false;
+                    }
+                }
+                catch (error) {
+                    if (error.name === 'AbortError') {
+                        console.log('Transmission aborted');
+                        return;
+                    }
+                }
+            }
+            sendChunks();
+        }
+        reader.readAsArrayBuffer(file);
+    };
+
+    const onOkBtnClick = () => {
+        if (peer && selFile) {
+            const reader = new FileReader();
+            reader.onload = () => {
+                const fileArrayBuffer = reader.result;
+                const fileSize = fileArrayBuffer.byteLength;
+                peer.send(JSON.stringify({
+                    type: 'transferFileRequest',
+                    fileName: selFile.name,
+                    fileSize: fileSize,
+                }));
+                setWaitConfirmTransferFileModalOpen(true);
+            };
+            reader.readAsArrayBuffer(selFile);
+        }
+    };
+
+    const onCancelBtnClick = () => {
+        controller.abort();
+        setModalOpen(false);
+    };
+
+    return (
+        <div className='select-video-modal-overlay'
+            onDrop={onDrop}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}>
+            <div className='select-video-modal'>
+                <span className="close-button" onClick={() => setModalOpen(false)}>
+                    &times;
+                </span>
+                <label htmlFor="fileTransferInput" className='file-upload'>
+                    <input id="fileTransferInput" type="file" accept="*/*"
+                        style={{ display: 'none' }}
+                        onClick={handleInputClick}
+                        onChange={handleFileChange}
+                    />
+                    <div className={`drag-drop-area ${dragging ? 'dragging' : ''}`}
+                        onDrop={onDrop}
+                        onDragOver={onDragOver}
+                        onDragLeave={onDragLeave}
+                        onClick={handleAreaClick}
+                    >
+                        <span>＋</span>
+                        {
+                            filePath ? (
+                                <p>已选择文件：{filePath}</p>
+                            ) : (
+                                <p>将文件拖放到此处</p>
+                            )
+                        }
+                    </div>
+                </label>
+                <div className='progress-bar'>
+                    {progress !== 0 && <span>{progress}%</span>}
+                    <ProgressBar completed={progress} />
+                </div>
+                <ButtonBox onOkBtnClick={onOkBtnClick} OnCancelBtnClick={onCancelBtnClick} />
+            </div >
+        </div >
+    );
+}
+
+function AcceptFileModal({ setModalOpen, progress, setFileTransferAccepted, peer,
+    preAcceptFileName, preAcceptFileSize }) {
+    const onOkBtnClick = () => {
+        setFileTransferAccepted(true);
+        peer.send(JSON.stringify({
+            type: 'transferFileAccepted',
+            value: true,
+        }));
+    };
+    const onCancelBtnClick = () => {
+        setFileTransferAccepted(false);
+        peer.send(JSON.stringify({
+            type: 'transferFileAccepted',
+            value: false,
+        }));
+        setModalOpen(false);
+    };
+
+    const formatFileSize = (sizeInBytes) => {
+        if (sizeInBytes < 1024) {
+            return `${sizeInBytes} B`;
+        } else if (sizeInBytes < 1024 * 1024) {
+            return `${(sizeInBytes / 1024).toFixed(2)} KB`;
+        } else if (sizeInBytes < 1024 * 1024 * 1024) {
+            return `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
+        } else {
+            return `${(sizeInBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
+        }
+    };
+
+    const formattedFileSize = formatFileSize(preAcceptFileSize);
+    const styles = {
+        container: {
+            backgroundColor: '#f0f0f0',
+            padding: '10px',
+            borderRadius: '5px',
+            textAlign: 'center',
+            margin: '20px',
+        },
+        fileName: {
+            fontWeight: 'bold',
+            marginRight: '5px',
+        },
+    };
+    return (
+        <div className='select-video-modal-overlay'>
+            <div className='select-video-modal'>
+                <span className="close-button" onClick={() => setModalOpen(false)}>
+                    &times;
+                </span>
+                <div style={styles.container}>
+                    <span>
+                        收到远程文件 <span style={styles.fileName}>{preAcceptFileName}</span>[{formattedFileSize}]，是否接收？
+                    </span>
+                </div>
+                <div className='progress-bar'>
+                    {progress !== 0 && <span>{progress}%</span>}
+                    <ProgressBar completed={progress} />
+                </div>
+                <ButtonBox onOkBtnClick={onOkBtnClick} OnCancelBtnClick={onCancelBtnClick} />
+            </div >
+        </div >
+    );
+}
+
 function VideoChat({ sid, deviceType, socket, returnMenuView,
     messages, setMessages, chatPanelOpen, setChatPanelOpen,
     peerSocketId/* 游戏中对方的socke id*/,
@@ -2186,6 +2440,39 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const timerRef = useRef();
     const videoPlayerRef = useRef(null);
 
+    // 文件传输
+    const expectedChunkIndexRef = useRef(0);
+    const receivedChunksRef = useRef([]);
+    const isTransferCompleteRef = useRef(false);
+    const receiveFileNameRef = useRef('default_received_file_name');
+    const [transferFileModalOpen, setTransferFileModalOpen] = useState(false);
+    const [preAcceptFileModalOpen, setPreAcceptFileModalOpen] = useState(false); // Confirm modal
+    const [preAcceptFileName, setPreAcceptFileName] = useState();
+    const [preAcceptFileSize, setPreAcceptFileSize] = useState(0);
+    const [receivedBytes, setReceivedBytes] = useState(0);
+    const [receiveFileProgress, setReceiveFileProgress] = useState(0);
+    const [fileTransferAccepted, setFileTransferAccepted] = useState(false); //Both true to transfer
+    const [waitConfirmTransferFileModalOpen, setWaitConfirmTransferFileModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (receivedBytes) {
+            setReceiveFileProgress(Number((receivedBytes / preAcceptFileSize * 100).toFixed(2)));
+        }
+    }, [receivedBytes]);
+
+    useEffect(() => {
+        if (fileTransferAccepted) {
+            setTimeout(() => setFileTransferAccepted(false), 1000);
+        }
+    }, [fileTransferAccepted]);
+
+    const initTransferRefs = (fileName) => {
+        setReceivedBytes(0);
+        expectedChunkIndexRef.current = 0;
+        receivedChunksRef.current = [];
+        isTransferCompleteRef.current = false;
+        receiveFileNameRef.current = fileName ? fileName : 'default_received_file_name';
+    }
 
     useEffect(() => {
         if (globalSignal && globalSignal[GlobalSignal.Active] && globalSignal[GlobalSignal.ReturnMenu]) {
@@ -2712,20 +2999,37 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             // There is process not defined bug
             // Now it is solved by installing module 'process'.
             peer.on('data', (data) => {
-                const msg = JSON.parse(data);
-                if (msg.type === 'remoteAudioStatus') {
-                    setRemoteAudioEnabled(msg.status);
-                }
-                else if (msg.type === 'remoteVideoStatus') {
-                    setRemoteVideoEnabled(msg.status);
-                }
-                else if (msg.sender) { // 文本通信
-                    console.log('Received message from peer: ' + msg.text);
-                    if (!chatPanelOpen) {
-                        showNotification(msg.text);
+                if (isJSON(data)) {
+                    const msg = JSON.parse(data);
+                    if (msg.type === 'remoteAudioStatus') {
+                        setRemoteAudioEnabled(msg.status);
                     }
-                    msg.sender = 'other';
-                    setMessages(prev => [...prev, msg]);
+                    else if (msg.type === 'remoteVideoStatus') {
+                        setRemoteVideoEnabled(msg.status);
+                    }
+                    else if (msg.sender) { // 文本通信
+                        console.log('Received message from peer: ' + msg.text);
+                        if (!chatPanelOpen) {
+                            showNotification(msg.text);
+                        }
+                        msg.sender = 'other';
+                        setMessages(prev => [...prev, msg]);
+                    }
+                    else if (msg.type === 'transferFileRequest') {
+                        setPreAcceptFileModalOpen(true);
+                        setPreAcceptFileName(msg.fileName);
+                        setPreAcceptFileSize(msg.fileSize);
+                    }
+                    else if (msg.type === 'transferFileAccepted') {
+                        setFileTransferAccepted(msg.value);
+                        setWaitConfirmTransferFileModalOpen(false);
+                    }
+                    else if (msg.type === 'transferFile') {
+                        initTransferRefs(msg.fileName);
+                    }
+                }
+                else {
+                    receiveTransferFile(data);
                 }
             });
             return () => {
@@ -2733,6 +3037,63 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             }
         }
     }, [connectionRef.current, chatPanelOpen]);
+
+    const isJSON = (str) => {
+        try {
+            JSON.parse(str);
+            return true;
+        } catch (e) {
+            return false;
+        }
+    }
+
+    const receiveTransferFile = (data) => {
+        const messageBytes = data.slice(0, 10);
+        const chunkData = data.slice(10);
+        const chunkIndex =
+            (messageBytes[0] << 56) |
+            (messageBytes[1] << 48) |
+            (messageBytes[2] << 40) |
+            (messageBytes[3] << 32) |
+            (messageBytes[4] << 24) |
+            (messageBytes[5] << 16) |
+            (messageBytes[6] << 8) |
+            messageBytes[7];
+        const isFirstChunk = messageBytes[8] === 1;
+        const isLastChunk = messageBytes[9] === 1;
+        if (chunkIndex === expectedChunkIndexRef.current) {
+            receivedChunksRef.current.push(chunkData);
+            setReceivedBytes(prev => prev + chunkData.byteLength);
+            if (isFirstChunk) {
+                setReceivedBytes(0);
+            }
+            if (isLastChunk) {
+                const receivedArrayBuffer = new Uint8Array(receivedChunksRef.current.reduce((acc, byteChunk) => {
+                    const tmp = new Uint8Array(acc.byteLength + byteChunk.byteLength);
+                    tmp.set(new Uint8Array(acc), 0);
+                    tmp.set(new Uint8Array(byteChunk), acc.byteLength);
+                    return tmp.buffer;
+                }, new ArrayBuffer(0)));
+                const receivedBlob = new Blob([receivedArrayBuffer]);
+                const downloadLink = document.createElement('a');
+                downloadLink.href = URL.createObjectURL(receivedBlob);
+                downloadLink.download = receiveFileNameRef.current;
+                downloadLink.style.display = 'none';
+                document.body.appendChild(downloadLink);
+                downloadLink.click();
+
+                document.body.removeChild(downloadLink);
+                URL.revokeObjectURL(downloadLink.href);
+                initTransferRefs();
+                setPreAcceptFileModalOpen(false);
+                setPreAcceptFileName();
+                setPreAcceptFileSize(0);
+                setReceivedBytes(0);
+                setReceiveFileProgress(0);
+            }
+            expectedChunkIndexRef.current += 1;
+        }
+    };
 
     useEffect(() => {
         if (shareScreenConnRef.current) {
@@ -3159,6 +3520,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 setMyVideoVolume={setMyVideoVolume}
                                 setFloatButtonVisible={setFloatButtonVisible}
                                 floatButtonVisible={floatButtonVisible}
+                                setTransferFileModalOpen={setTransferFileModalOpen}
                             />
                             <TextOverlay
                                 position="top-left-local-video"
@@ -3400,6 +3762,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     setMyVideoVolume={setMyVideoVolume}
                                     setFloatButtonVisible={setFloatButtonVisible}
                                     floatButtonVisible={floatButtonVisible}
+                                    setTransferFileModalOpen={setTransferFileModalOpen}
                                 />
                             </div>
                         </div>
@@ -3536,6 +3899,30 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 callEnded, onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick,
                                 socket,
                             }} />
+                        }
+                        {
+                            transferFileModalOpen &&
+                            <TransferModal setModalOpen={setTransferFileModalOpen}
+                                peer={connectionRef?.current?.peer}
+                                fileTransferAccepted={fileTransferAccepted}
+                                setFileTransferAccepted={setFileTransferAccepted}
+                                setWaitConfirmTransferFileModalOpen={setWaitConfirmTransferFileModalOpen}
+                            />
+                        }
+                        {
+                            preAcceptFileModalOpen &&
+                            <AcceptFileModal setModalOpen={setPreAcceptFileModalOpen}
+                                progress={receiveFileProgress}
+                                setFileTransferAccepted={setFileTransferAccepted}
+                                peer={connectionRef?.current?.peer}
+                                preAcceptFileName={preAcceptFileName}
+                                preAcceptFileSize={preAcceptFileSize}
+                            />
+                        }
+                        {waitConfirmTransferFileModalOpen &&
+                            <Modal modalInfo='等待对方同意...' setModalOpen={setWaitConfirmTransferFileModalOpen}
+                                timeDelay={false}
+                            />
                         }
                     </>
                 }
@@ -3780,7 +4167,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     setMediaTrackSettingsModalOpen, setFacingMode, setSelectVideoModalOpen,
     isShowLocalVideo, selectedVideoRef, parentRef, handleVideoClick,
     myVideoVolume, setMyVideoVolume, localVideoDisplayRenderKey, setFloatButtonVisible,
-    floatButtonVisible,
+    floatButtonVisible, setTransferFileModalOpen,
 }) {
 
     const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
@@ -3982,6 +4369,10 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                     <img src={SelectVideoIcon} alt="SelectVideo" className="icon" onClick={() => {
                                         setSelectVideoModalOpen(true);
                                     }} title='共享视频' />
+                                    <img src={FileTransferIcon} alt="FileTransfer" className="icon" onClick={() => {
+                                        setTransferFileModalOpen(true);
+                                    }
+                                    } title='传输文件' />
                                     <div id='float-button-icon' className={`float-button-icon ${floatButtonVisible ? 'clicked' : ''}`}
                                         onClick={
                                             () => setFloatButtonVisible(prev => !prev)

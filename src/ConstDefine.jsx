@@ -98,6 +98,7 @@ export const FloatButtonIcon = '/picture/svg/FloatButtonIcon.svg';
 export const FloatButtonClickedIcon = '/picture/svg/FloatButtonClickedIcon.svg';
 export const FloatButtonNotClickedIcon = '/picture/svg/FloatButtonNotClickedIcon.svg';
 export const RemoteDesktopIcon = '/picture/svg/RemoteDesktopIcon.svg';
+export const FileTransferIcon = '/picture/svg/FileTransferIcon.svg';
 
 export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
 export const BGM2 = '/audio/bgm/after_the_rain.mp3';
@@ -191,4 +192,6 @@ export const mouseEvents = [
     'mouseenter', 'mouseleave', 'mouseover', 'mouseout', 'mousemove',
     'wheel'
 ];
+
+export const Chunk_Max_Size = 50 * 1024;/**单次发送上限50KB */
 

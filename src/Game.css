@@ -2712,3 +2712,65 @@
 #live2d-container {
   position: fixed;
 }
+
+/*  drag-drop-area*/
+.file-upload {
+  text-align: center;
+  display: inline-block;
+  position: relative;
+  overflow: hidden;
+  margin-left: 50%;
+  margin-top: 2rem;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 400px;
+}
+
+.file-upload input[type="file"] {
+  position: absolute;
+  opacity: 0;
+  top: 0;
+  left: 50%;
+  width: 100%;
+  height: auto;
+  background-color: #0c4204;
+  cursor: pointer;
+  overflow: hidden;
+}
+
+.file-upload span {
+  display: inline-block;
+  position: relative;
+  padding: 10px 20px;
+  margin: 1rem;
+  border-radius: 1rem;
+  background: transparent;
+  color: #000000;
+  border-radius: 5px;
+  cursor: pointer;
+  transition: background-color 0.3s ease;
+  height: auto;
+  overflow: hidden;
+  font-size: 4rem;
+}
+
+.drag-drop-area {
+  margin-left: 50%;
+  transform: translateX(-50%);
+  width: 100%;
+  max-width: 400px;
+  height: 400px;
+  border: 2px dashed #ccc;
+  border-radius: 5px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  font-size: 16px;
+  color: #555;
+  cursor: pointer;
+}
+
+.drag-drop-area.dragging {
+  border-color: #007bff;
+}
