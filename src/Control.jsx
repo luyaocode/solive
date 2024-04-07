@@ -39,7 +39,7 @@ import {
 } from './Item.ts';
 
 import _ from 'lodash';
-import { showNotification } from './Plugin.jsx'
+import { showNotification, formatFileSize } from './Plugin.jsx'
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
     const [seconds, setSeconds] = useState(0);
@@ -2026,15 +2026,21 @@ function ToolBar({ backgroundColor }) {
 }
 
 function TransferModal({ setModalOpen, peer, fileTransferAccepted, setFileTransferAccepted,
-    setWaitConfirmTransferFileModalOpen }) {
+    setWaitConfirmTransferFileModalOpen, modalVisible, setModalVisible,
+    receiveFileProgress, preAcceptFileName, preAcceptFileSize
+}) {
     const [dragging, setDragging] = useState(false);
     const [filePath, setFilePath] = useState();
     const [selFile, setSelFile] = useState();
     const [progress, setProgress] = useState(0);
     const [controller, setController] = useState(new AbortController());
+    const [stopTransferFileModalOpen, setStopTransferFileModalOpen] = useState(false);
 
     useEffect(() => {
-        return () => setFileTransferAccepted(false);
+        return () => {
+            setFileTransferAccepted(false);
+            setModalVisible(true);
+        };
     }, []);
 
     useEffect(() => {
@@ -2150,6 +2156,9 @@ function TransferModal({ setModalOpen, peer, fileTransferAccepted, setFileTransf
     };
 
     const onOkBtnClick = () => {
+        if (progress > 0 && progress < 100) {
+            return;
+        }
         if (peer && selFile) {
             const reader = new FileReader();
             reader.onload = () => {
@@ -2167,19 +2176,47 @@ function TransferModal({ setModalOpen, peer, fileTransferAccepted, setFileTransf
     };
 
     const onCancelBtnClick = () => {
+        if (progress > 0 && progress < 100) {
+            setStopTransferFileModalOpen(true);
+        }
+        else {
+            setModalOpen(false);
+        }
+    };
+
+    const stopTransferFile = () => {
         controller.abort();
-        setModalOpen(false);
+        setStopTransferFileModalOpen(false);
+        setProgress(0);
+        if (peer) {
+            peer.send(JSON.stringify({
+                type: 'transferFileStopped',
+            }));
+        }
+    };
+
+    const closeModal = () => {
+        if (progress > 0 && progress < 100) {
+            setModalVisible(false);
+        }
+        else {
+            setModalOpen(false);
+        }
     };
 
     return (
-        <div className='select-video-modal-overlay'
+        <div className='select-video-modal-overlay' style={{
+            display: modalVisible ? '' : 'none'
+        }}
             onDrop={onDrop}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}>
             <div className='select-video-modal'>
-                <span className="close-button" onClick={() => setModalOpen(false)}>
+                <span className="close-button" onClick={closeModal}>
                     &times;
                 </span>
+                <ReceivingFileInfo progress={receiveFileProgress} preAcceptFileName={preAcceptFileName}
+                    preAcceptFileSize={preAcceptFileSize} />
                 <label htmlFor="fileTransferInput" className='file-upload'>
                     <input id="fileTransferInput" type="file" accept="*/*"
                         style={{ display: 'none' }}
@@ -2197,7 +2234,7 @@ function TransferModal({ setModalOpen, peer, fileTransferAccepted, setFileTransf
                             filePath ? (
                                 <p>已选择文件：{filePath}</p>
                             ) : (
-                                <p>将文件拖放到此处</p>
+                                <p>将文件拖放到此处，建议文件小于1 GB</p>
                             )
                         }
                     </div>
@@ -2206,40 +2243,68 @@ function TransferModal({ setModalOpen, peer, fileTransferAccepted, setFileTransf
                     {progress !== 0 && <span>{progress}%</span>}
                     <ProgressBar completed={progress} />
                 </div>
-                <ButtonBox onOkBtnClick={onOkBtnClick} OnCancelBtnClick={onCancelBtnClick} />
+                <ButtonBox onOkBtnClick={onOkBtnClick} OnCancelBtnClick={onCancelBtnClick} okBtnInfo='上传' />
             </div >
+            {
+                stopTransferFileModalOpen &&
+                <ConfirmModal modalInfo='文件上传中，确定终止吗？' onOkBtnClick={stopTransferFile}
+                    OnCancelBtnClick={() => setStopTransferFileModalOpen(false)} />
+            }
         </div >
     );
 }
 
-function AcceptFileModal({ setModalOpen, progress, setFileTransferAccepted, peer,
+function ReceivingFileInfo({ progress, preAcceptFileName, preAcceptFileSize, }) {
+    const formattedFileSize = formatFileSize(preAcceptFileSize);
+    const styles = {
+        container: {
+            backgroundColor: '#f0f0f0',
+            padding: '10px',
+            borderRadius: '5px',
+            textAlign: 'center',
+            margin: '20px',
+        },
+        fileName: {
+            fontWeight: 'bold',
+            marginRight: '5px',
+        },
+    };
+    return (
+        <>
+            {progress !== 0 &&
+                <div>
+                    <div style={styles.container}>
+                        <span>
+                            正在接收远程文件 <span style={styles.fileName}>{preAcceptFileName}</span>[{formattedFileSize}]，请耐心等待
+                        </span>
+                    </div>
+                    <div className='progress-bar'>
+                        <span>{progress}%</span>
+                        <ProgressBar completed={progress} />
+                    </div>
+                </div >
+            }
+        </>
+    );
+}
+
+function AcceptFileModal({ setModalOpen, progress, setReceiveFileAccepted, peer,
     preAcceptFileName, preAcceptFileSize }) {
     const onOkBtnClick = () => {
-        setFileTransferAccepted(true);
+        setReceiveFileAccepted(true);
         peer.send(JSON.stringify({
             type: 'transferFileAccepted',
             value: true,
         }));
     };
     const onCancelBtnClick = () => {
-        setFileTransferAccepted(false);
+        if (progress === 0)
+            setReceiveFileAccepted(false);
         peer.send(JSON.stringify({
             type: 'transferFileAccepted',
             value: false,
         }));
         setModalOpen(false);
-    };
-
-    const formatFileSize = (sizeInBytes) => {
-        if (sizeInBytes < 1024) {
-            return `${sizeInBytes} B`;
-        } else if (sizeInBytes < 1024 * 1024) {
-            return `${(sizeInBytes / 1024).toFixed(2)} KB`;
-        } else if (sizeInBytes < 1024 * 1024 * 1024) {
-            return `${(sizeInBytes / (1024 * 1024)).toFixed(2)} MB`;
-        } else {
-            return `${(sizeInBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
-        }
     };
 
     const formattedFileSize = formatFileSize(preAcceptFileSize);
@@ -2259,21 +2324,49 @@ function AcceptFileModal({ setModalOpen, progress, setFileTransferAccepted, peer
     return (
         <div className='select-video-modal-overlay'>
             <div className='select-video-modal'>
-                <span className="close-button" onClick={() => setModalOpen(false)}>
+                <span className="close-button" onClick={onCancelBtnClick}>
                     &times;
                 </span>
                 <div style={styles.container}>
-                    <span>
-                        收到远程文件 <span style={styles.fileName}>{preAcceptFileName}</span>[{formattedFileSize}]，是否接收？
-                    </span>
+                    {progress === 0 ?
+                        <span>
+                            收到远程文件 <span style={styles.fileName}>{preAcceptFileName}</span>[{formattedFileSize}]，是否接收？
+                        </span> :
+                        <span>
+                            正在接收远程文件 <span style={styles.fileName}>{preAcceptFileName}</span>[{formattedFileSize}]，请耐心等待
+                        </span>
+                    }
                 </div>
                 <div className='progress-bar'>
                     {progress !== 0 && <span>{progress}%</span>}
                     <ProgressBar completed={progress} />
                 </div>
-                <ButtonBox onOkBtnClick={onOkBtnClick} OnCancelBtnClick={onCancelBtnClick} />
+                {progress === 0 &&
+                    <ButtonBox onOkBtnClick={onOkBtnClick} OnCancelBtnClick={onCancelBtnClick} />
+                }
             </div >
         </div >
+    );
+}
+
+function WaitModal({ modalInfo, setModalOpen, onCancelBtnClick, peer }) {
+    function onCancelBtnClick() {
+        setModalOpen(false);
+        if (peer) {
+            peer.send(JSON.stringify({
+                type: 'transferFileCanceled',
+            }));
+        }
+    }
+    return (
+        <div className="modal-overlay">
+            <div className="modal">
+                <p>{modalInfo}</p>
+                <div className='button-confirm-container'>
+                    <Button onClick={onCancelBtnClick}>取消</Button>
+                </div>
+            </div>
+        </div>
     );
 }
 
@@ -2446,12 +2539,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const isTransferCompleteRef = useRef(false);
     const receiveFileNameRef = useRef('default_received_file_name');
     const [transferFileModalOpen, setTransferFileModalOpen] = useState(false);
+    const [transferFileModalVisible, setTransferFileModalVisible] = useState(true);
     const [preAcceptFileModalOpen, setPreAcceptFileModalOpen] = useState(false); // Confirm modal
     const [preAcceptFileName, setPreAcceptFileName] = useState();
     const [preAcceptFileSize, setPreAcceptFileSize] = useState(0);
     const [receivedBytes, setReceivedBytes] = useState(0);
     const [receiveFileProgress, setReceiveFileProgress] = useState(0);
-    const [fileTransferAccepted, setFileTransferAccepted] = useState(false); //Both true to transfer
+    const [fileTransferAccepted, setFileTransferAccepted] = useState(false);// Caller transfer when true
+    const [receiveFileAccepted, setReceiveFileAccepted] = useState(false);// Callee receive when true
     const [waitConfirmTransferFileModalOpen, setWaitConfirmTransferFileModalOpen] = useState(false);
 
     useEffect(() => {
@@ -2468,6 +2563,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     const initTransferRefs = (fileName) => {
         setReceivedBytes(0);
+        setReceiveFileProgress(0);
         expectedChunkIndexRef.current = 0;
         receivedChunksRef.current = [];
         isTransferCompleteRef.current = false;
@@ -2725,7 +2821,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         }
                         setLocalScreenStream(stream);
                         shareScreenVideo.current.srcObject = stream;
-                        shareScreen(stream, another);
+                        if (callAccepted) {
+                            shareScreen(stream, another);
+                        }
                     }
                     else {
                         setIsShareScreen(false);
@@ -3020,9 +3118,17 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         setPreAcceptFileName(msg.fileName);
                         setPreAcceptFileSize(msg.fileSize);
                     }
+                    else if (msg.type === 'transferFileCanceled') {
+                        setPreAcceptFileModalOpen(false);
+                        setPreAcceptFileName();
+                        setPreAcceptFileSize(0);
+                    }
                     else if (msg.type === 'transferFileAccepted') {
                         setFileTransferAccepted(msg.value);
                         setWaitConfirmTransferFileModalOpen(false);
+                    }
+                    else if (msg.type === 'transferFileStopped') {
+                        initTransferRefs();
                     }
                     else if (msg.type === 'transferFile') {
                         initTransferRefs(msg.fileName);
@@ -3446,6 +3552,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         stopAnotherScreenSharing();
 
         // 此处需要采用leaveCall相同逻辑销毁peer。目前存在挂断但是还能分享屏幕的bug
+
     };
 
     const onInviteCallBtnClick = () => {
@@ -3454,7 +3561,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     const onCallUserBtnClick = () => {
         callUser(idToCall);
-    }
+    };
 
     const onReturnMenuBtnClick = () => {
         if (callAccepted) {
@@ -3463,7 +3570,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         else {
             returnMenuView();
         }
-    }
+    };
 
     return (
         <>
@@ -3521,6 +3628,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 setFloatButtonVisible={setFloatButtonVisible}
                                 floatButtonVisible={floatButtonVisible}
                                 setTransferFileModalOpen={setTransferFileModalOpen}
+                                setTransferFileModalVisible={setTransferFileModalVisible}
                             />
                             <TextOverlay
                                 position="top-left-local-video"
@@ -3763,6 +3871,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     setFloatButtonVisible={setFloatButtonVisible}
                                     floatButtonVisible={floatButtonVisible}
                                     setTransferFileModalOpen={setTransferFileModalOpen}
+                                    setTransferFileModalVisible={setTransferFileModalVisible}
                                 />
                             </div>
                         </div>
@@ -3907,22 +4016,27 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 fileTransferAccepted={fileTransferAccepted}
                                 setFileTransferAccepted={setFileTransferAccepted}
                                 setWaitConfirmTransferFileModalOpen={setWaitConfirmTransferFileModalOpen}
+                                modalVisible={transferFileModalVisible}
+                                setModalVisible={setTransferFileModalVisible}
+                                receiveFileProgress={receiveFileProgress}
+                                preAcceptFileName={preAcceptFileName}
+                                preAcceptFileSize={preAcceptFileSize}
                             />
                         }
                         {
                             preAcceptFileModalOpen &&
                             <AcceptFileModal setModalOpen={setPreAcceptFileModalOpen}
                                 progress={receiveFileProgress}
-                                setFileTransferAccepted={setFileTransferAccepted}
+                                setReceiveFileAccepted={setReceiveFileAccepted}
                                 peer={connectionRef?.current?.peer}
                                 preAcceptFileName={preAcceptFileName}
                                 preAcceptFileSize={preAcceptFileSize}
                             />
                         }
                         {waitConfirmTransferFileModalOpen &&
-                            <Modal modalInfo='等待对方同意...' setModalOpen={setWaitConfirmTransferFileModalOpen}
-                                timeDelay={false}
-                            />
+                            <WaitModal modalInfo='等待对方同意...'
+                                setModalOpen={setWaitConfirmTransferFileModalOpen}
+                                peer={connectionRef?.current?.peer} />
                         }
                     </>
                 }
@@ -4167,7 +4281,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     setMediaTrackSettingsModalOpen, setFacingMode, setSelectVideoModalOpen,
     isShowLocalVideo, selectedVideoRef, parentRef, handleVideoClick,
     myVideoVolume, setMyVideoVolume, localVideoDisplayRenderKey, setFloatButtonVisible,
-    floatButtonVisible, setTransferFileModalOpen,
+    floatButtonVisible, setTransferFileModalOpen, setTransferFileModalVisible,
 }) {
 
     const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
@@ -4258,6 +4372,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     }
 
     function toggleCtlMenu() {
+        const prev = showMediaCtlMenu;
         setShowMediaCtlMenu(prev => !prev);
     }
 
@@ -4371,6 +4486,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                     }} title='共享视频' />
                                     <img src={FileTransferIcon} alt="FileTransfer" className="icon" onClick={() => {
                                         setTransferFileModalOpen(true);
+                                        setTransferFileModalVisible(true);
                                     }
                                     } title='传输文件' />
                                     <div id='float-button-icon' className={`float-button-icon ${floatButtonVisible ? 'clicked' : ''}`}
@@ -4398,7 +4514,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                     }}
                     />
                 }
-                {content && !showMediaCtlMenu && content}
+                {content && (isMediaCtlMenu ? !showMediaCtlMenu : true) && content}
                 {isShowLocalVideo &&
                     <LocalVideoDisplay selectedMediaStream={selectedMediaStream} onBackButtonClick={onBackButtonClick}
                         selectedFileName={selectedFileName} selectedVideoRef={selectedVideoRef}
