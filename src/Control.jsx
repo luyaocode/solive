@@ -1769,7 +1769,7 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
 
 function SelectVideoModal({ setModalOpen, selectedVideoRef, setSelectedMediaStream,
     selectedLocalFile, setSelectedLocalFile, audioSource, setAudioSource,
-    audioCtx, setAudioCtx }) {
+    audioCtx, setAudioCtx, setUrl }) {
     const videoRef = useRef(null);
     const [selFile, setSelFile] = useState();
     const [inputDisabled, setInputDisabled] = useState(true);
@@ -1790,7 +1790,9 @@ function SelectVideoModal({ setModalOpen, selectedVideoRef, setSelectedMediaStre
             if (!video.paused) {
                 video.pause();
             }
-            video.src = URL.createObjectURL(file);
+            const url = URL.createObjectURL(file);
+            video.src = url;
+            setUrl(url);
             await video.play();
             if (replaceCameraMideaStream) {
                 let actx, source;
@@ -2523,6 +2525,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [localVideoDisplayRenderKey, setLocalVideoDisplayRenderKey] = useState(0);
     const [showVideoPlayer, setShowVideoPlayer] = useState(false);
     const [enlargedVideoFrom, setEnlargedVideoFrom] = useState();
+    const [localVideoUrl, setLocalVideoUrl] = useState();
+
+    useEffect(() => {
+        if (!selectedMediaStream && localVideoUrl) {
+            URL.revokeObjectURL(localVideoUrl);
+        }
+    }, [selectedMediaStream]);
 
     const myVideo = useRef();
     const userVideo = useRef();
@@ -3958,7 +3967,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     setSelectedMediaStream={setSelectedMediaStream}
                                     selectedLocalFile={selectedLocalFile} setSelectedLocalFile={setSelectedLocalFile}
                                     audioSource={audioSource} setAudioSource={setAudioSource}
-                                    setAudioCtx={setAudioCtx} audioCtx={audioCtx} />
+                                    setAudioCtx={setAudioCtx} audioCtx={audioCtx} setUrl={setLocalVideoUrl} />
                             }
                         </div>
                         <VideoStatsTool

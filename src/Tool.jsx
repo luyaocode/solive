@@ -45,6 +45,7 @@ function FloatBall({ setElementSize, props }) {
     };
 
     const onVideoCallBtnClick = () => {
+        if (props.videoCallBtnDisabled) return;
         props?.enterVideoChatView();
         props?.setVideoCallModalOpen(true);
         toggleExpand();
@@ -79,27 +80,27 @@ function FloatBall({ setElementSize, props }) {
                     </button>
 
                     {props.deviceType === DeviceType.PC &&
-                        <button onClick={onLive2DBtnClick}
-                            onTouchStart={onLive2DBtnClick}>
-                            {props?.showLive2DRole ? '隐藏角色' : '显示角色'}
-                        </button>
+                        <>
+                            <button onClick={onLive2DBtnClick}
+                                onTouchStart={onLive2DBtnClick}>
+                                {props?.showLive2DRole ? '隐藏角色' : '显示角色'}
+                            </button>
+                            <VideoRecorder setSaveVideoModalOpen={props?.setSaveVideoModalOpen}
+                                globalSignal={props?.globalSignal}
+                                setGlobalSignal={props?.setGlobalSignal}
+                                isRecording={isRecording}
+                                setIsRecording={setIsRecording}
+                                ffmpeg={ffmpeg}
+                                recorder={recorder}
+                                setRecorder={setRecorder}
+                                screenStream={screenStream}
+                                setScreenStream={setScreenStream}
+                                chunksRef={chunksRef}
+                                blobRef={blobRef}
+                                toggleExpand={toggleExpand}
+                            />
+                        </>
                     }
-
-                    <VideoRecorder setSaveVideoModalOpen={props?.setSaveVideoModalOpen}
-                        globalSignal={props?.globalSignal}
-                        setGlobalSignal={props?.setGlobalSignal}
-                        isRecording={isRecording}
-                        setIsRecording={setIsRecording}
-                        ffmpeg={ffmpeg}
-                        recorder={recorder}
-                        setRecorder={setRecorder}
-                        screenStream={screenStream}
-                        setScreenStream={setScreenStream}
-                        chunksRef={chunksRef}
-                        blobRef={blobRef}
-                        toggleExpand={toggleExpand}
-                    />
-
                     {(!props?.sid && !props?.subpage) &&
                         <button onClick={onReturnMenuBtnClick}
                             onTouchStart={onReturnMenuBtnClick}>
