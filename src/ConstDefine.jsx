@@ -66,6 +66,7 @@ export const Avatar_Number_Y = 5;
 export const Messages_Max_Send = 1000;  // 消息数量上限
 export const Message_Max_Len = 1000;   // 单条消息长度上限
 export const Text_Max_Len = 100; // 单条输入框限制
+export const Live_Room_ID_Len = 8;
 
 export const View = {
     Menu: 0,
@@ -185,6 +186,7 @@ export const WebsiteTitle = {
 
 export const SubPage = {
     VideoCall: 'video-call',
+    LiveStream: 'live-stream'
 }
 
 export const mouseEvents = [
@@ -194,4 +196,8 @@ export const mouseEvents = [
 ];
 
 export const Chunk_Max_Size = 50 * 1024;/**单次发送上限50KB */
+export const LiveStreamRole = {
+    Anchor: 1,
+    Viewer: 2,
+}
 

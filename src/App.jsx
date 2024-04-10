@@ -9,6 +9,7 @@ const App = () => {
                 <Route path="/:subpage" element={<ChaosGomoku />} />
                 <Route path="/call/:sid" element={<ChaosGomoku />} />
                 <Route path="/room/:rid" element={<ChaosGomoku />} />
+                <Route path="/live/:lid" element={<ChaosGomoku />} />
             </Routes>
         </Router>
     );

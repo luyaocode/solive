@@ -176,8 +176,19 @@ function ChaosGomoku() {
     // 悬浮球控制
     const [showLive2DRole, setShowLive2DRole] = useState(false);
     const [videoCallModalOpen, setVideoCallModalOpen] = useState(false);
+    const [liveStreamModalOpen, setLiveStreamModalOpen] = useState(false);
     const [saveVideoModalOpen, setSaveVideoModalOpen] = useState(false);
     const [floatButtonVisible, setFloatButtonVisible] = useState(true);
+
+    // 直播
+    const [isLiveStream, setIsLiveStream] = useState(false);
+    const { lid } = useParams(); // liveId in url
+    useEffect(() => {
+        if (lid && socket) {
+            setIsLiveStream(true);
+            enterVideoChatView();
+        }
+    }, [lid, socket]);
 
     // 信号
     const [globalSignal, setGlobalSignal] = useState({});
@@ -234,17 +245,24 @@ function ChaosGomoku() {
     useEffect(() => {
         if (currentView === View.VideoChat) {
             setWebsiteTitle(WebsiteTitle.VideoChat);
-            setFloatButtonVisible(false);
+            // setFloatButtonVisible(false);
         } else {
             setWebsiteTitle(WebsiteTitle.Menu);
         }
     }, [currentView]);
 
     useEffect(() => {
-        if (socket && subpage === SubPage.VideoCall) {
-            enterVideoChatView();
-            if (!sid) {
-                setVideoCallModalOpen(true);
+        if (socket) {
+            if (subpage === SubPage.VideoCall) {
+                enterVideoChatView();
+                if (!sid) {
+                    setVideoCallModalOpen(true);
+                }
+            }
+            else if (subpage === SubPage.LiveStream) {
+                setIsLiveStream(true);
+                enterVideoChatView();
+                setLiveStreamModalOpen(true);
             }
         }
     }, [socket]);
@@ -422,13 +440,15 @@ function ChaosGomoku() {
                 showLive2DRole={showLive2DRole}
                 setGlobalSignal={setGlobalSignal}
                 setVideoCallModalOpen={setVideoCallModalOpen}
+                setIsLiveStream={setIsLiveStream}
+                setLiveStreamModalOpen={setLiveStreamModalOpen}
                 deviceType={deviceType}
                 setSaveVideoModalOpen={setSaveVideoModalOpen}
                 globalSignal={globalSignal}
                 enterVideoChatView={enterVideoChatView}
                 floatButtonVisible={floatButtonVisible}
                 setFloatButtonVisible={setFloatButtonVisible}
-                sid={sid} subpage={subpage}
+                sid={sid} subpage={subpage} lid={lid}
                 currentView={currentView}
             />
             {
@@ -495,7 +515,8 @@ function ChaosGomoku() {
                                         messages={messages} setMessages={setMessages} chatPanelOpen={chatPanelOpen} setChatPanelOpen={setChatPanelOpen}
                                         globalSignal={globalSignal} videoCallModalOpen={videoCallModalOpen}
                                         setVideoCallModalOpen={setVideoCallModalOpen} setFloatButtonVisible={setFloatButtonVisible}
-                                        floatButtonVisible={floatButtonVisible} />
+                                        floatButtonVisible={floatButtonVisible} liveStreamModalOpen={liveStreamModalOpen}
+                                        setLiveStreamModalOpen={setLiveStreamModalOpen} isLiveStream={isLiveStream} lid={lid} />
                                     : null
                                 )
                             )
@@ -576,7 +597,7 @@ function ChaosGomoku() {
                         )}
                     </>)
             }
-            {deviceType === DeviceType.PC && !sid &&
+            {deviceType === DeviceType.PC && (!rid && !sid && !lid) &&
                 < div style={{
                     display: (showLive2DRole ? 'block' : 'none'),
                     zIndex: 19,

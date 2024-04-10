@@ -52,6 +52,14 @@ function FloatBall({ setElementSize, props }) {
         props?.setPosition({ x: props?.bounds?.right, y: props?.bounds?.bottom / 2 });
     };
 
+    const onLiveStreamBtnClick = () => {
+        props?.setIsLiveStream(true);
+        props?.enterVideoChatView();
+        props?.setLiveStreamModalOpen(true);
+        toggleExpand();
+        props?.setPosition({ x: props?.bounds?.right, y: props?.bounds?.bottom / 2 });
+    };
+
     const onLive2DBtnClick = () => {
         props?.setShowLive2DRole(prev => !prev);
         toggleExpand();
@@ -73,6 +81,10 @@ function FloatBall({ setElementSize, props }) {
             </div>
             {
                 <div className={`floating-button-options ${props.componentBoundPos} ${isExpanded ? 'expand' : ''}`}>
+                    <button onClick={onLiveStreamBtnClick}
+                        onTouchStart={onLiveStreamBtnClick}>
+                        直播
+                    </button>
                     <button onClick={onVideoCallBtnClick}
                         onTouchStart={onVideoCallBtnClick}
                         disabled={props.videoCallBtnDisabled}>
@@ -101,7 +113,7 @@ function FloatBall({ setElementSize, props }) {
                             />
                         </>
                     }
-                    {(!props?.sid && !props?.subpage) &&
+                    {(!props?.sid && !props?.lid && !props?.subpage) &&
                         <button onClick={onReturnMenuBtnClick}
                             onTouchStart={onReturnMenuBtnClick}>
                             返回主页
@@ -280,9 +292,9 @@ function DraggableComponent({ Element, props }) {
 }
 
 function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
-    setVideoCallModalOpen, deviceType, setSaveVideoModalOpen, globalSignal,
-    enterVideoChatView, floatButtonVisible, setFloatButtonVisible, sid, subpage,
-    currentView
+    setVideoCallModalOpen, setIsLiveStream, setLiveStreamModalOpen, deviceType,
+    setSaveVideoModalOpen, globalSignal, enterVideoChatView, floatButtonVisible,
+    setFloatButtonVisible, sid, subpage, lid, currentView
 }) {
     const [videoCallBtnDisabled, setVideoCallBtnDisabled] = useState(false);
     useEffect(() => {
@@ -299,13 +311,15 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
             setShowLive2DRole,
             setGlobalSignal,
             setVideoCallModalOpen,
+            setIsLiveStream,
+            setLiveStreamModalOpen,
             deviceType,
             setSaveVideoModalOpen,
             globalSignal,
             enterVideoChatView,
             floatButtonVisible,
             setFloatButtonVisible,
-            sid, subpage,
+            sid, subpage, lid,
             videoCallBtnDisabled,
         }} />
     );
