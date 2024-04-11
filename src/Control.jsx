@@ -2566,6 +2566,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [anchorSocketId, setAnchorSocketId] = useState();
     const [newViewer, setNewViewer] = useState();
     const [prepareEnterLiveRoomModal, setPrepareEnterLiveRoomModal] = useState(false);
+    const [peerConn, setPeerConn] = useState({});
+    const [anchorSignals, setAnchorSignals] = useState({});
 
     const enterLiveRoom = (liveRoomId) => {
         setPrepareEnterLiveRoomModal(false);
@@ -3141,6 +3143,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             peer.on('error', (err) => {
                 console.error(err);
             });
+            peer.on('close', () => {
+                console.log('连接关闭：' + another);
+            });
 
             // There is process not defined bug
             // Now it is solved by installing module 'process'.
@@ -3516,27 +3521,196 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         return virtualStream;
     };
 
-    // 直播
+    /**
+     * 直播
+     */
+    // useEffect(() => {
+    //     if (calling && selectedRole === LiveStreamRole.Anchor) {
+    //         showNotification(newViewer + '进入直播间', 2000, 'dark', 'top', 'right');
+    //     }
+    // }, [calling]);
+
+
     useEffect(() => {
-        if (calling && selectedRole === LiveStreamRole.Anchor) {
-            showNotification(newViewer + '进入直播间', 2000, 'dark', 'top', 'right');
+        if (peerConn && (peerConn[newViewer] || peerConn[anchorSocketId])) {
+            let peer;
+            if (peerConn[newViewer] && peerConn[newViewer].isCaller) {
+                peer = peerConn[newViewer].peer;
+                peer.on("signal", (data) => {
+                    const dataType = data.type;
+                    if (dataType === 'offer') {
+                        socket.emit("pushStream", {
+                            userToCall: peerConn[newViewer].idToCall,
+                            signalData: data,
+                            from: me ? me : socket.id,
+                            name: name,
+                        });
+                        setAnchorSignals(prev => ({
+                            ...prev,
+                            [peerConn[newViewer].idToCall]: data,
+                        }));
+                    }
+                });
+                // 接收到流（stream）时触发
+                peer.on("stream", (stream) => {
+                    if (userVideo.current) {
+                        userVideo.current.srcObject = stream;
+                        setRemoteStream(stream);
+                    }
+                });
+
+                socket.on("changeTrackAgreed", (signal) => {
+                    if (!peer.destroyed) {
+                        peer.signal(signal);
+                    }
+                });
+
+                peer.on('connect', () => {
+                    console.log('Connected with ' + newViewer);
+                    // checkVideoBitrate(peer);
+                });
+
+            } // 主叫方
+            else if (peerConn[anchorSocketId] && !peerConn[anchorSocketId].isCaller) {
+                peer = peerConn[anchorSocketId].peer;
+                const handleAnswerSignal = (data) => {
+                    const dataType = data.type;
+                    if (dataType === 'answer') {
+                        socket.emit("acceptStream", { signal: data, to: anchorSocketId, name: name, from: me });
+                        // setCallAcceptedSignalSend(true);
+                    }
+                }
+                peer.on("signal", handleAnswerSignal);
+                peer.on("stream", (stream) => {
+                    if (userVideo.current) {
+                        userVideo.current.srcObject = stream;
+                        setRemoteStream(stream);
+                    }
+                });
+                peer.on('connect', () => {
+                    console.log('Connected with ' + anchorSocketId);
+                });
+            }
+
+            peer.on('error', (err) => {
+                console.error(err);
+            });
+            peer.on('close', () => {
+                console.log('连接关闭：' + newViewer);
+            });
+
+            // There is process not defined bug
+            // Now it is solved by installing module 'process'.
+            peer.on('data', (data) => {
+                if (isJSON(data)) {
+                    const msg = JSON.parse(data);
+                    if (msg.type === 'remoteAudioStatus') {
+                        setRemoteAudioEnabled(msg.status);
+                    }
+                    else if (msg.type === 'remoteVideoStatus') {
+                        setRemoteVideoEnabled(msg.status);
+                    }
+                    else if (msg.sender) { // 文本通信
+                        console.log('Received message from peer: ' + msg.text);
+                        if (!chatPanelOpen) {
+                            showNotification(msg.text);
+                        }
+                        msg.sender = 'other';
+                        setMessages(prev => [...prev, msg]);
+                    }
+                    else if (msg.type === 'transferFileRequest') {
+                        setPreAcceptFileModalOpen(true);
+                        setPreAcceptFileName(msg.fileName);
+                        setPreAcceptFileSize(msg.fileSize);
+                    }
+                    else if (msg.type === 'transferFileCanceled') {
+                        setPreAcceptFileModalOpen(false);
+                        setPreAcceptFileName();
+                        setPreAcceptFileSize(0);
+                    }
+                    else if (msg.type === 'transferFileAccepted') {
+                        setFileTransferAccepted(msg.value);
+                        setWaitConfirmTransferFileModalOpen(false);
+                    }
+                    else if (msg.type === 'transferFileStopped') {
+                        initTransferRefs();
+                    }
+                    else if (msg.type === 'transferFile') {
+                        initTransferRefs(msg.fileName);
+                    }
+                }
+                else {
+                    receiveTransferFile(data);
+                }
+            });
+            return () => {
+                peer.removeAllListeners('data'); // Clear effect of chatPanelOpen
+            }
         }
-    }, [calling]);
+    }, [peerConn, anchorSocketId]);
+
+    useEffect(() => {
+        if (socket && peerConn && newViewer) {
+            const handleStreamAccepted = (data) => {
+                const peer = peerConn[newViewer].peer;
+                if (!peer.destroyed) {
+                    peer.signal(data.signal);
+                }
+            };
+
+            socket.off("streamAccepted", handleStreamAccepted);
+            socket.on("streamAccepted", handleStreamAccepted);
+            return () => {
+                socket.off("streamAccepted", handleStreamAccepted);
+            };
+        }
+    }, [socket, peerConn, newViewer]);
+
+    useEffect(() => {
+        if (socket) {
+            const handleGetLiveStream = (data) => {
+                getStream(data.signal, data.from);
+                setCallAccepted(true);
+            };
+
+            socket.off("getLiveStream", handleGetLiveStream);
+            socket.on("getLiveStream", handleGetLiveStream);
+            return () => {
+                socket.off("getLiveStream", handleGetLiveStream);
+            };
+        }
+    }, [socket]);
 
     const pushStream = (viewerId) => {
-        setCalling(true);
+        showNotification(newViewer + '进入直播间', 2000, 'dark', 'top', 'right');
         const peer = createCallPeer(localStream);
-        connectionRef.current = {
-            peer: peer,
-            isCaller: true,
-            idToCall: viewerId,
-        }
-        setTimeout(() => {
-            if (calling && !callAccepted) {
-                setNoResponse(true);
-                setCalling(false);
+        setPeerConn(prev => ({
+            ...prev,
+            [viewerId]: {
+                peer: peer,
+                isCaller: true,
+                idToCall: viewerId,
             }
-        }, 30000);
+        }));
+        // setTimeout(() => {
+        //     if (calling && !callAccepted) {
+        //         setNoResponse(true);
+        //         setCalling(false);
+        //     }
+        // }, 30000);
+    }
+
+    const getStream = (signal, from) => {
+        const peer = createAnswerPeer(localStream);
+        peer.signal(signal);
+        setAnchorSocketId(from);
+        setPeerConn(prev => ({
+            ...prev,
+            [from]: {
+                peer: peer,
+                isCaller: false,
+            }
+        }));
     }
 
     const checkVideoTrack = (stream) => {
@@ -3663,9 +3837,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         leaveCall();
         setIsShareScreen(false);
         stopAnotherScreenSharing();
-
-        // 此处需要采用leaveCall相同逻辑销毁peer。目前存在挂断但是还能分享屏幕的bug
-
     };
 
     const onInviteCallBtnClick = () => {
