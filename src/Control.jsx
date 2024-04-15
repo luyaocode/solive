@@ -2559,40 +2559,17 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [receiveFileAccepted, setReceiveFileAccepted] = useState(false);// Callee receive when true
     const [waitConfirmTransferFileModalOpen, setWaitConfirmTransferFileModalOpen] = useState(false);
 
-    // 直播
-    const [selectedRole, setSelectedRole] = useState();
+    // /////////////直播//////////////////////
+    const [selectedRole, setSelectedRole] = useState();//扮演的角色
     const [liveRoomId, setLiveRoomId] = useState(); // 服务器分配给主播的房间号
     const [liveRoomIdToEnter, setLiveRoomIdToEnter] = useState(); // 观众进入的直播间号
-    const [anchorSocketId, setAnchorSocketId] = useState();
-    const [newViewer, setNewViewer] = useState();
+    const [anchorSocketId, setAnchorSocketId] = useState();// 主播socketId
+    const [anchorName, setAnchorName] = useState();//主播名称
+    const [newViewer, setNewViewer] = useState(); //新加入的观众socketId
+    const [newViewerName, setNewViewerName] = useState();//新加入观众的名称unused
     const [prepareEnterLiveRoomModal, setPrepareEnterLiveRoomModal] = useState(false);
-    const [peerConn, setPeerConn] = useState({});
-    const [anchorSignals, setAnchorSignals] = useState({});
-
-    const enterLiveRoom = (liveRoomId) => {
-        setPrepareEnterLiveRoomModal(false);
-        if (liveRoomId) {
-            socket.emit("enterLiveRoom", liveRoomId);
-        }
-    }
-
-    useEffect(() => {
-        if (newViewer) {
-            pushStream(newViewer);
-            if (isShareScreen && localScreenStream) {
-                shareScreen(localScreenStream, newViewer);
-            }
-        }
-    }, [newViewer]);
-
-    useEffect(() => {
-        if (lid) {
-            setAudioEnabled(false);
-            setVideoEnabled(false);
-            setSelectedRole(LiveStreamRole.Viewer);
-            setPrepareEnterLiveRoomModal(true);
-        }
-    }, [lid]);
+    const [peerConn, setPeerConn] = useState({});//对等连接信息
+    const [screenPeerConn, setScreenPeerConn] = useState({});//共享屏幕对等连接信息
 
     useEffect(() => {
         if (receivedBytes) {
@@ -2840,6 +2817,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (another) {
             socket.emit("shareScreenStopped", { to: another });
         }
+        if (isLiveStream) {
+
+        }
     };
 
     // 使对方停止分享屏幕
@@ -2867,11 +2847,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         setLocalScreenStream(stream);
                         shareScreenVideo.current.srcObject = stream;
                         if (callAccepted) {
-                            if (newViewer) {/**直播 */
-                                shareScreen(stream, newViewer);
-                            }
-                            else {
-                                shareScreen(stream, another);
+                            shareScreen(stream, another);
+                        }
+                        if (isLiveStream && selectedRole === LiveStreamRole.Anchor) {/**直播 */
+                            for (let id in peerConn) {
+                                if (id === 'isCloseConn') continue;
+                                pushScreenStream(id, stream, true);
                             }
                         }
                     }
@@ -3287,7 +3268,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             }
             else {
                 const handleAnswerSignal = (data) => {
-                    socket.emit("acceptShareScreen", { signal: data, to: another });
+                    socket.emit("acceptShareScreen", {
+                        signal: data,
+                        to: another,
+                    });
                 }
                 peer.on("signal", handleAnswerSignal);
                 peer.on("stream", (stream) => {
@@ -3335,12 +3319,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     setCallerSignal(data.signal);
                     setTimeout(() => acceptCall(data.signal, data.from), 5000);
                 }
-                else if ((lid || liveRoomIdToEnter)) { /**直播 */
-                    setCaller(data.from);
-                    setAnotherName(data.name);
-                    setCallerSignal(data.signal);
-                    acceptCall(data.signal, data.from);
-                }
                 else {
                     setReceivingCall(true);
                     setCaller(data.from);
@@ -3356,7 +3334,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         return () => {
             socket.off("callUser", handleCallUser);
         };
-    }, [callAccepted, liveRoomIdToEnter]);
+    }, [callAccepted]);
 
     useEffect(() => {
         return () => {
@@ -3521,17 +3499,35 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         return virtualStream;
     };
 
-    /**
-     * 直播
-     */
-    // useEffect(() => {
-    //     if (calling && selectedRole === LiveStreamRole.Anchor) {
-    //         showNotification(newViewer + '进入直播间', 2000, 'dark', 'top', 'right');
-    //     }
-    // }, [calling]);
+    ///////////////////////////////////直播////////////////////////////////////////////////
+    // 直播
 
+    const enterLiveRoom = (liveRoomId) => {
+        setPrepareEnterLiveRoomModal(false);
+        if (liveRoomId) {
+            socket.emit("enterLiveRoom", liveRoomId);
+        }
+    }
 
     useEffect(() => {
+        if (newViewer) {
+            pushStream(newViewer);
+            if (isShareScreen) {
+                pushScreenStream(newViewer);
+            }
+        }
+    }, [newViewer]);
+
+    useEffect(() => {
+        if (lid) {
+            setAudioEnabled(false);
+            setVideoEnabled(false);
+            setSelectedRole(LiveStreamRole.Viewer);
+            setPrepareEnterLiveRoomModal(true);
+        }
+    }, [lid]);
+    useEffect(() => {
+        if (peerConn['isCloseConn']) return;
         if (peerConn && (peerConn[newViewer] || peerConn[anchorSocketId])) {
             let peer;
             if (peerConn[newViewer] && peerConn[newViewer].isCaller) {
@@ -3545,10 +3541,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             from: me ? me : socket.id,
                             name: name,
                         });
-                        setAnchorSignals(prev => ({
-                            ...prev,
-                            [peerConn[newViewer].idToCall]: data,
-                        }));
                     }
                 });
                 // 接收到流（stream）时触发
@@ -3597,6 +3589,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             });
             peer.on('close', () => {
                 console.log('连接关闭：' + newViewer);
+                setPeerConn(prev => ({
+                    ...prev,
+                    isCloseConn: true,
+                }));
             });
 
             // There is process not defined bug
@@ -3650,9 +3646,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     }, [peerConn, anchorSocketId]);
 
     useEffect(() => {
-        if (socket && peerConn && newViewer) {
+        if (peerConn['isCloseConn']) return;
+        if (socket && peerConn) {
             const handleStreamAccepted = (data) => {
-                const peer = peerConn[newViewer].peer;
+                const peer = peerConn[data.from].peer;
                 if (!peer.destroyed) {
                     peer.signal(data.signal);
                 }
@@ -3664,13 +3661,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 socket.off("streamAccepted", handleStreamAccepted);
             };
         }
-    }, [socket, peerConn, newViewer]);
+    }, [socket, peerConn]);
 
     useEffect(() => {
         if (socket) {
             const handleGetLiveStream = (data) => {
                 getStream(data.signal, data.from);
-                setCallAccepted(true);
+                setAnchorName(data.name);
             };
 
             socket.off("getLiveStream", handleGetLiveStream);
@@ -3681,23 +3678,130 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     }, [socket]);
 
+    useEffect(() => {
+        if (socket) {
+            const handleGetLiveScreenStream = (data) => {
+                setIsReceiveShareScreen(true);
+                getLiveScreenStream(data.signal, data.from);
+            };
+
+            socket.off("getLiveScreenStream", handleGetLiveScreenStream);
+            socket.on("getLiveScreenStream", handleGetLiveScreenStream);
+            return () => {
+                socket.off("getLiveScreenStream", handleGetLiveScreenStream);
+            };
+        }
+    }, [socket]);
+
+
+    useEffect(() => {
+        if (screenPeerConn['isCloseConn']) return;
+        if (socket && screenPeerConn) {
+            const handleLiveScreenStreamAccepted = (data) => {
+                const peer = screenPeerConn[data.from].peer;
+                if (!peer.destroyed) {
+                    peer.signal(data.signal);
+                }
+            };
+
+            socket.off("liveScreenStreamAccepted", handleLiveScreenStreamAccepted);
+            socket.on("liveScreenStreamAccepted", handleLiveScreenStreamAccepted);
+            return () => {
+                socket.off("liveScreenStreamAccepted", handleLiveScreenStreamAccepted);
+            };
+        }
+    }, [socket, screenPeerConn]);
+
+    const registScreenPeer = (id) => {
+        if (screenPeerConn[id] || screenPeerConn[anchorSocketId]) {
+            let peer;
+            if (screenPeerConn[id] && screenPeerConn[id].isSharer) {
+                peer = screenPeerConn[id].peer;
+                peer.on("signal", (data) => {
+                    if (screenPeerConn[id].idToShare) {
+                        socket.emit("pushScreenStream", {
+                            idToShare: screenPeerConn[id].idToShare,
+                            from: socket.id,
+                            signalData: data,
+                        });
+                    }
+                });
+                // 接收到流（stream）时触发
+                peer.on("stream", (stream) => {
+                    if (remoteShareScreenVideo.current) {
+                        remoteShareScreenVideo.current.srcObject = stream;
+                        setRemoteStream(stream);
+                    }
+                });
+            }
+            else if (screenPeerConn[anchorSocketId] && !screenPeerConn[anchorSocketId].isSharer) {
+                peer = screenPeerConn[anchorSocketId].peer;
+                const handleAnswerSignal = (data) => {
+                    socket.emit("acceptLiveScreenStream", {
+                        signal: data,
+                        to: anchorSocketId,
+                        from: me,
+                    });
+                }
+                peer.on("signal", handleAnswerSignal);
+                peer.on("stream", (stream) => {
+                    console.log('receiveLocalScreenStream--------');
+                    stream.getTracks().forEach((track) => {
+                        console.log(track.kind);
+                    });
+                    if (remoteShareScreenVideo.current) {
+                        remoteShareScreenVideo.current.srcObject = stream;
+                        setRemoteScreenStream(stream);
+                    }
+                });
+            }
+            peer.on('error', (err) => {
+                console.error(err);
+            });
+            peer.on('close', () => {
+                console.log('屏幕共享连接关闭：' + id);
+                setScreenPeerConn(prev => ({
+                    ...prev,
+                    isCloseConn: true,
+                }));
+            });
+
+            socket.on("shareScreenStopped", () => {
+                setIsReceiveShareScreen(false);
+                shareScreenConnRef.current.peer.destroy();
+            });
+
+            socket.on("stopShareScreen", () => {
+                setIsShareScreen(false);
+            });
+        }
+    }
+
+    useEffect(() => {
+        if (!screenPeerConn || screenPeerConn['isCloseConn']) return;
+        if (screenPeerConn['batchUpdate']) {
+            for (let id in screenPeerConn) {
+                if (id === 'batchUpdate' || id === 'isCloseConn') continue;
+                registScreenPeer(id);
+            }
+        }
+        else if (screenPeerConn[newViewer] || screenPeerConn[anchorSocketId]) {
+            registScreenPeer(newViewer);
+        }
+    }, [screenPeerConn, anchorSocketId]);
+
     const pushStream = (viewerId) => {
         showNotification(newViewer + '进入直播间', 2000, 'dark', 'top', 'right');
         const peer = createCallPeer(localStream);
         setPeerConn(prev => ({
             ...prev,
+            isCloseConn: false,
             [viewerId]: {
                 peer: peer,
                 isCaller: true,
                 idToCall: viewerId,
-            }
+            },
         }));
-        // setTimeout(() => {
-        //     if (calling && !callAccepted) {
-        //         setNoResponse(true);
-        //         setCalling(false);
-        //     }
-        // }, 30000);
     }
 
     const getStream = (signal, from) => {
@@ -3706,12 +3810,49 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         setAnchorSocketId(from);
         setPeerConn(prev => ({
             ...prev,
+            isCloseConn: false,
             [from]: {
                 peer: peer,
                 isCaller: false,
             }
         }));
     }
+
+    /**
+     * Share screen stream in live streaming
+     * @param {*} viewerId
+     * @param {*} stream
+     * @param {*} batchUpdate
+     */
+    const pushScreenStream = (viewerId, stream, batchUpdate) => {
+        const peer = createCallPeer(stream ? stream : localScreenStream);
+        setScreenPeerConn(prev => {
+            return {
+                ...prev,
+                isCloseConn: false,
+                batchUpdate: batchUpdate,
+                [viewerId]: {
+                    peer: peer,
+                    isSharer: true,
+                    idToShare: viewerId,
+                }
+            }
+        });
+    }
+
+    const getLiveScreenStream = (signal, from) => {
+        const peer = createAnswerPeer();
+        peer.signal(signal);
+        setScreenPeerConn(prev => ({
+            ...prev,
+            isCloseConn: false,
+            [from]: {
+                peer: peer,
+                isSharer: false,
+            }
+        }));
+    };
+    ///////////////////////////////////直播////////////////////////////////////////////////
 
     const checkVideoTrack = (stream) => {
         if (stream) {
@@ -3970,7 +4111,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     parentRef={myVideo}
                                 />
                             </div>}
-                        {selectedRole !== LiveStreamRole.Anchor && callAccepted && !callEnded ?
+                        {(isLiveStream ? (selectedRole === LiveStreamRole.Viewer) : (callAccepted && !callEnded)) ?
                             <div className="video">
                                 <video ref={userVideo} playsInline autoPlay loop={true} controls={false}
                                     style={{
@@ -3983,7 +4124,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 )}
                                 <TextOverlay
                                     position="top-left"
-                                    content={selectedRole === LiveStreamRole.Viewer ? anotherName + '的直播间' : anotherName}
+                                    content={selectedRole === LiveStreamRole.Viewer ? (anchorName ? anchorName + '的直播间' : '') : anotherName}
                                     audioEnabled={hasRemoteAudioTrack}
                                 />
                                 <TextOverlay
