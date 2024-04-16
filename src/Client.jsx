@@ -55,11 +55,14 @@ function Client({ socket, setSocket, setPieceType, setLastStep, setSeeds, gameMo
         const socket = io.connect(serverUrl);
         setSocket(socket);
         socket.on('connect', () => {
-            console.log('Connected to server');
-            setNetConnected(socket.connected);
             // 发送token
             const token = localStorage.getItem('token');
             socket.emit('verifyToken', token);
+
+            socket.on("connected", () => {
+                console.log('Connected to server');
+                setNetConnected(true);
+            });
 
             // 当从服务器接收到消息时触发
             socket.on('message', (data) => {

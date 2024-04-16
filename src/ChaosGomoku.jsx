@@ -262,10 +262,12 @@ function ChaosGomoku() {
             else if (subpage === SubPage.LiveStream) {
                 setIsLiveStream(true);
                 enterVideoChatView();
-                setLiveStreamModalOpen(true);
+                if (netConnected) {
+                    setLiveStreamModalOpen(true);
+                }
             }
         }
-    }, [socket]);
+    }, [socket, netConnected]);
 
     useEffect(() => {
         if (websiteTitle) {
@@ -516,7 +518,7 @@ function ChaosGomoku() {
                                         globalSignal={globalSignal} videoCallModalOpen={videoCallModalOpen}
                                         setVideoCallModalOpen={setVideoCallModalOpen} setFloatButtonVisible={setFloatButtonVisible}
                                         floatButtonVisible={floatButtonVisible} liveStreamModalOpen={liveStreamModalOpen}
-                                        setLiveStreamModalOpen={setLiveStreamModalOpen} isLiveStream={isLiveStream} lid={lid} />
+                                        setLiveStreamModalOpen={setLiveStreamModalOpen} isLiveStream={isLiveStream} lid={lid} netConnected={netConnected} />
                                     : null
                                 )
                             )

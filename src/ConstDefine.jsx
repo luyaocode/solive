@@ -172,6 +172,7 @@ export const GlobalSignal = {
     TranscodeFinished: 'transcode_finished',
     StopTranscode: 'stop_transcode',
     SetFloatBallPosition: 'set_float_ball_position',
+    StopLive: 'stop_live',
 }
 
 /*预留5%底部空白*/

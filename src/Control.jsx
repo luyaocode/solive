@@ -2380,7 +2380,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     globalSignal, /**用于跨组件通信 */
     videoCallModalOpen, setVideoCallModalOpen, setFloatButtonVisible,
     floatButtonVisible,
-    isLiveStream, liveStreamModalOpen, setLiveStreamModalOpen, lid,/**直播 */
+    isLiveStream, liveStreamModalOpen, setLiveStreamModalOpen, lid, netConnected,/**直播 */
 }) {
     // 通话
     const [me, setMe] = useState("");               // 本地socketId
@@ -2411,6 +2411,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [videoEnabled, setVideoEnabled] = useState(peerSocketId ? false : (!isLiveStream));
     const [audioEnabled, setAudioEnabled] = useState(!isLiveStream);
     const [myVideoVolume, setMyVideoVolume] = useState(0); // myVideo volume
+    const [userVideoVolume, setUserVideoVolume] = useState(0); // userVideo volume
+    const [remoteShareScreenVolume, setRemoteShareScreenVolume] = useState(0); // remoteShareScreen volume
     const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
     const [remoteAudioEnabled, setRemoteAudioEnabled] = useState(false);
     const [screenAudioEnabled, setScreenAudioEnabled] = useState(true); // display media audio
@@ -2817,8 +2819,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (another) {
             socket.emit("shareScreenStopped", { to: another });
         }
-        if (isLiveStream) {
-
+        if (isLiveStream) { /**直播 */
+            if (selectedRole === LiveStreamRole.Anchor) {
+                for (let id in peerConn) {
+                    if (id.startsWith('$')) continue;
+                    stopLiveLocalScreenStream(id);
+                    socket.emit("stopLiveScreenStream", { to: id, from: socket.id });
+                }
+            }
         }
     };
 
@@ -2851,7 +2859,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         }
                         if (isLiveStream && selectedRole === LiveStreamRole.Anchor) {/**直播 */
                             for (let id in peerConn) {
-                                if (id === 'isCloseConn') continue;
+                                if (id === '$isCloseConn') continue;
                                 pushScreenStream(id, stream, true);
                             }
                         }
@@ -3501,9 +3509,76 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     ///////////////////////////////////直播////////////////////////////////////////////////
     // 直播
+    const stopLiveRemoteScreenStream = () => {
+        // 退出屏幕共享
+        if (remoteShareScreenVideo.current && remoteShareScreenVideo.current.srcObject) {
+            remoteShareScreenVideo.current.srcObject.getTracks().forEach(track => {
+                track.stop();
+            });
+            remoteShareScreenVideo.current.srcObject = null;
+        }
+        setIsReceiveShareScreen(false);
+    };
+
+    const stopLiveLocalScreenStream = (id) => {
+        const screenPeer = screenPeerConn[id]?.peer;
+        if (shareScreenVideo.current && shareScreenVideo.current.srcObject) {
+            shareScreenVideo.current.srcObject.getTracks().forEach(track => {
+                track.stop();
+            });
+            shareScreenVideo.current.srcObject = null;
+        }
+        if (screenPeer) {
+            screenPeer.destroy();
+        }
+        setIsShareScreen(false);
+    };
+
+    const stopLiveScreenStream = (id) => {
+        stopLiveRemoteScreenStream();
+        stopLiveLocalScreenStream(id);
+    };
+
+    const stopLiveStream = (id) => {
+        if (!id) return;
+        const peer = peerConn[id]?.peer;
+        if (userVideo.current && userVideo.current.srcObject) {
+            userVideo.current.srcObject.getTracks().forEach(track => {
+                track.stop();
+            });
+            userVideo.current.srcObject = null;
+        }
+        if (peer) {
+            peer.destroy();
+        }
+        stopLiveScreenStream(id);
+    };
+
+    const stopLive = () => {
+        for (let id in peerConn) {
+            if (id.startsWith('$')) continue;
+            stopLiveStream(id);
+            socket.emit("stopLiveStream", { to: id, from: socket.id });
+        }
+    };
+
+    const leaveLiveRoom = () => {
+        for (let id in peerConn) {
+            if (id.startsWith('$')) continue;
+            stopLiveStream(id);
+            socket.emit("leaveLiveRoom", { to: id, from: socket.id });
+        }
+    };
+
+    useEffect(() => {
+        if (socket) {
+            socket.on("viewerLeaveLiveRoom", (data) => {
+                // showNotification(data.from + '离开了直播间', 2000, 'dark', 'bottom', 'right');
+            });
+        }
+    }, [socket]);
 
     const enterLiveRoom = (liveRoomId) => {
-        setPrepareEnterLiveRoomModal(false);
         if (liveRoomId) {
             socket.emit("enterLiveRoom", liveRoomId);
         }
@@ -3520,133 +3595,136 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     useEffect(() => {
         if (lid) {
+            setSelectedRole(LiveStreamRole.Viewer);
             setAudioEnabled(false);
             setVideoEnabled(false);
-            setSelectedRole(LiveStreamRole.Viewer);
-            setPrepareEnterLiveRoomModal(true);
-        }
-    }, [lid]);
-    useEffect(() => {
-        if (peerConn['isCloseConn']) return;
-        if (peerConn && (peerConn[newViewer] || peerConn[anchorSocketId])) {
-            let peer;
-            if (peerConn[newViewer] && peerConn[newViewer].isCaller) {
-                peer = peerConn[newViewer].peer;
-                peer.on("signal", (data) => {
-                    const dataType = data.type;
-                    if (dataType === 'offer') {
-                        socket.emit("pushStream", {
-                            userToCall: peerConn[newViewer].idToCall,
-                            signalData: data,
-                            from: me ? me : socket.id,
-                            name: name,
-                        });
-                    }
-                });
-                // 接收到流（stream）时触发
-                peer.on("stream", (stream) => {
-                    if (userVideo.current) {
-                        userVideo.current.srcObject = stream;
-                        setRemoteStream(stream);
-                    }
-                });
-
-                socket.on("changeTrackAgreed", (signal) => {
-                    if (!peer.destroyed) {
-                        peer.signal(signal);
-                    }
-                });
-
-                peer.on('connect', () => {
-                    console.log('Connected with ' + newViewer);
-                    // checkVideoBitrate(peer);
-                });
-
-            } // 主叫方
-            else if (peerConn[anchorSocketId] && !peerConn[anchorSocketId].isCaller) {
-                peer = peerConn[anchorSocketId].peer;
-                const handleAnswerSignal = (data) => {
-                    const dataType = data.type;
-                    if (dataType === 'answer') {
-                        socket.emit("acceptStream", { signal: data, to: anchorSocketId, name: name, from: me });
-                        // setCallAcceptedSignalSend(true);
-                    }
-                }
-                peer.on("signal", handleAnswerSignal);
-                peer.on("stream", (stream) => {
-                    if (userVideo.current) {
-                        userVideo.current.srcObject = stream;
-                        setRemoteStream(stream);
-                    }
-                });
-                peer.on('connect', () => {
-                    console.log('Connected with ' + anchorSocketId);
-                });
-            }
-
-            peer.on('error', (err) => {
-                console.error(err);
-            });
-            peer.on('close', () => {
-                console.log('连接关闭：' + newViewer);
-                setPeerConn(prev => ({
-                    ...prev,
-                    isCloseConn: true,
-                }));
-            });
-
-            // There is process not defined bug
-            // Now it is solved by installing module 'process'.
-            peer.on('data', (data) => {
-                if (isJSON(data)) {
-                    const msg = JSON.parse(data);
-                    if (msg.type === 'remoteAudioStatus') {
-                        setRemoteAudioEnabled(msg.status);
-                    }
-                    else if (msg.type === 'remoteVideoStatus') {
-                        setRemoteVideoEnabled(msg.status);
-                    }
-                    else if (msg.sender) { // 文本通信
-                        console.log('Received message from peer: ' + msg.text);
-                        if (!chatPanelOpen) {
-                            showNotification(msg.text);
-                        }
-                        msg.sender = 'other';
-                        setMessages(prev => [...prev, msg]);
-                    }
-                    else if (msg.type === 'transferFileRequest') {
-                        setPreAcceptFileModalOpen(true);
-                        setPreAcceptFileName(msg.fileName);
-                        setPreAcceptFileSize(msg.fileSize);
-                    }
-                    else if (msg.type === 'transferFileCanceled') {
-                        setPreAcceptFileModalOpen(false);
-                        setPreAcceptFileName();
-                        setPreAcceptFileSize(0);
-                    }
-                    else if (msg.type === 'transferFileAccepted') {
-                        setFileTransferAccepted(msg.value);
-                        setWaitConfirmTransferFileModalOpen(false);
-                    }
-                    else if (msg.type === 'transferFileStopped') {
-                        initTransferRefs();
-                    }
-                    else if (msg.type === 'transferFile') {
-                        initTransferRefs(msg.fileName);
-                    }
-                }
-                else {
-                    receiveTransferFile(data);
-                }
-            });
-            return () => {
-                peer.removeAllListeners('data'); // Clear effect of chatPanelOpen
+            if (netConnected && userVideo.current) {
+                enterLiveRoom(lid);
             }
         }
-    }, [peerConn, anchorSocketId]);
+
+    }, [lid, netConnected, userVideo.current]);
+
+    const registPeerFunc = (peer, id, isAnchor) => {
+        if (isAnchor) {
+            peer.on("signal", (data) => {
+                const dataType = data.type;
+                if (dataType === 'offer') {
+                    socket.emit("pushStream", {
+                        userToCall: id,
+                        signalData: data,
+                        from: socket.id,
+                        name: name,
+                    });
+                }
+            });
+            // 接收到流（stream）时触发
+            peer.on("stream", (stream) => {
+                if (userVideo.current) {
+                    userVideo.current.srcObject = stream;
+                    setRemoteStream(stream);
+                }
+            });
+
+            socket.on("changeTrackAgreed", (signal) => {
+                if (!peer.destroyed) {
+                    peer.signal(signal);
+                }
+            });
+
+            peer.on('connect', () => {
+                console.log('Connected with ' + newViewer);
+            });
+        }
+        else {
+            const handleAnswerSignal = (data) => {
+                const dataType = data.type;
+                if (dataType === 'answer') {
+                    socket.emit("acceptStream", { signal: data, to: id, name: name, from: socket.id });
+                    // setCallAcceptedSignalSend(true);
+                }
+            }
+            peer.on("signal", handleAnswerSignal);
+            peer.on("stream", (stream) => {
+                console.log('receiveStream--------');
+                stream.getTracks().forEach((track) => {
+                    console.log(track.kind);
+                });
+                if (userVideo.current) {
+                    userVideo.current.srcObject = stream;
+                    setRemoteStream(stream);
+                }
+            });
+            peer.on('connect', () => {
+                console.log('Connected with ' + id);
+            });
+        }
+        peer.on('error', (err) => {
+            console.error(err);
+        });
+        peer.on('close', () => {
+            console.log('连接关闭：' + id);
+            setPeerConn(prev => {
+                const { [id]: idToRemoveValue, ...rest } = prev;
+                return {
+                    ...rest,
+                    $isCloseConn: true,
+                };
+            });
+            showNotification(id + '离开了直播间', 2000, 'dark', 'bottom', 'right');
+        });
+
+        // There is process not defined bug
+        // Now it is solved by installing module 'process'.
+        peer.on('data', (data) => {
+            if (isJSON(data)) {
+                const msg = JSON.parse(data);
+                if (msg.type === 'remoteAudioStatus') {
+                    setRemoteAudioEnabled(msg.status);
+                }
+                else if (msg.type === 'remoteVideoStatus') {
+                    setRemoteVideoEnabled(msg.status);
+                }
+                else if (msg.sender) { // 文本通信
+                    console.log('Received message from peer: ' + msg.text);
+                    if (!chatPanelOpen) {
+                        showNotification(msg.text);
+                    }
+                    msg.sender = 'other';
+                    setMessages(prev => [...prev, msg]);
+                }
+                else if (msg.type === 'transferFileRequest') {
+                    setPreAcceptFileModalOpen(true);
+                    setPreAcceptFileName(msg.fileName);
+                    setPreAcceptFileSize(msg.fileSize);
+                }
+                else if (msg.type === 'transferFileCanceled') {
+                    setPreAcceptFileModalOpen(false);
+                    setPreAcceptFileName();
+                    setPreAcceptFileSize(0);
+                }
+                else if (msg.type === 'transferFileAccepted') {
+                    setFileTransferAccepted(msg.value);
+                    setWaitConfirmTransferFileModalOpen(false);
+                }
+                else if (msg.type === 'transferFileStopped') {
+                    initTransferRefs();
+                }
+                else if (msg.type === 'transferFile') {
+                    initTransferRefs(msg.fileName);
+                }
+            }
+            else {
+                receiveTransferFile(data);
+            }
+        });
+        return () => {
+            peer.removeAllListeners('data'); // Clear effect of chatPanelOpen
+        }
+    };
 
     useEffect(() => {
-        if (peerConn['isCloseConn']) return;
+        if (peerConn['$isCloseConn']) return;
         if (socket && peerConn) {
             const handleStreamAccepted = (data) => {
                 const peer = peerConn[data.from].peer;
@@ -3662,6 +3740,36 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             };
         }
     }, [socket, peerConn]);
+
+    useEffect(() => {
+        if (peerConn['$isCloseConn'] || screenPeerConn['$isCloseConn']) return;
+        if (socket && peerConn && screenPeerConn) {
+            const handleStopLiveStream = (data) => {
+                stopLiveStream(data.from);
+            };
+
+            socket.off("liveStreamStopped", handleStopLiveStream);
+            socket.on("liveStreamStopped", handleStopLiveStream);
+            return () => {
+                socket.off("liveStreamStopped", handleStopLiveStream);
+            };
+        }
+    }, [socket, peerConn, screenPeerConn]);
+
+    useEffect(() => {
+        if (screenPeerConn['$isCloseConn']) return;
+        if (socket && screenPeerConn) {
+            const handleStopLiveScreenStream = (data) => {
+                stopLiveRemoteScreenStream(data.from);
+            };
+
+            socket.off("liveScreenStreamStopped", handleStopLiveScreenStream);
+            socket.on("liveScreenStreamStopped", handleStopLiveScreenStream);
+            return () => {
+                socket.off("liveScreenStreamStopped", handleStopLiveScreenStream);
+            };
+        }
+    }, [socket, screenPeerConn]);
 
     useEffect(() => {
         if (socket) {
@@ -3687,6 +3795,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
             socket.off("getLiveScreenStream", handleGetLiveScreenStream);
             socket.on("getLiveScreenStream", handleGetLiveScreenStream);
+
             return () => {
                 socket.off("getLiveScreenStream", handleGetLiveScreenStream);
             };
@@ -3695,7 +3804,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
 
     useEffect(() => {
-        if (screenPeerConn['isCloseConn']) return;
+        if (screenPeerConn['$isCloseConn']) return;
         if (socket && screenPeerConn) {
             const handleLiveScreenStreamAccepted = (data) => {
                 const peer = screenPeerConn[data.from].peer;
@@ -3712,90 +3821,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     }, [socket, screenPeerConn]);
 
-    const registScreenPeer = (id) => {
-        if (screenPeerConn[id] || screenPeerConn[anchorSocketId]) {
-            let peer;
-            if (screenPeerConn[id] && screenPeerConn[id].isSharer) {
-                peer = screenPeerConn[id].peer;
-                peer.on("signal", (data) => {
-                    if (screenPeerConn[id].idToShare) {
-                        socket.emit("pushScreenStream", {
-                            idToShare: screenPeerConn[id].idToShare,
-                            from: socket.id,
-                            signalData: data,
-                        });
-                    }
-                });
-                // 接收到流（stream）时触发
-                peer.on("stream", (stream) => {
-                    if (remoteShareScreenVideo.current) {
-                        remoteShareScreenVideo.current.srcObject = stream;
-                        setRemoteStream(stream);
-                    }
-                });
-            }
-            else if (screenPeerConn[anchorSocketId] && !screenPeerConn[anchorSocketId].isSharer) {
-                peer = screenPeerConn[anchorSocketId].peer;
-                const handleAnswerSignal = (data) => {
-                    socket.emit("acceptLiveScreenStream", {
-                        signal: data,
-                        to: anchorSocketId,
-                        from: me,
-                    });
-                }
-                peer.on("signal", handleAnswerSignal);
-                peer.on("stream", (stream) => {
-                    console.log('receiveLocalScreenStream--------');
-                    stream.getTracks().forEach((track) => {
-                        console.log(track.kind);
-                    });
-                    if (remoteShareScreenVideo.current) {
-                        remoteShareScreenVideo.current.srcObject = stream;
-                        setRemoteScreenStream(stream);
-                    }
-                });
-            }
-            peer.on('error', (err) => {
-                console.error(err);
-            });
-            peer.on('close', () => {
-                console.log('屏幕共享连接关闭：' + id);
-                setScreenPeerConn(prev => ({
-                    ...prev,
-                    isCloseConn: true,
-                }));
-            });
-
-            socket.on("shareScreenStopped", () => {
-                setIsReceiveShareScreen(false);
-                shareScreenConnRef.current.peer.destroy();
-            });
-
-            socket.on("stopShareScreen", () => {
-                setIsShareScreen(false);
-            });
-        }
-    }
-
-    useEffect(() => {
-        if (!screenPeerConn || screenPeerConn['isCloseConn']) return;
-        if (screenPeerConn['batchUpdate']) {
-            for (let id in screenPeerConn) {
-                if (id === 'batchUpdate' || id === 'isCloseConn') continue;
-                registScreenPeer(id);
-            }
-        }
-        else if (screenPeerConn[newViewer] || screenPeerConn[anchorSocketId]) {
-            registScreenPeer(newViewer);
-        }
-    }, [screenPeerConn, anchorSocketId]);
-
     const pushStream = (viewerId) => {
         showNotification(newViewer + '进入直播间', 2000, 'dark', 'top', 'right');
         const peer = createCallPeer(localStream);
+        registPeerFunc(peer, viewerId, true);
         setPeerConn(prev => ({
             ...prev,
-            isCloseConn: false,
+            $isCloseConn: false,
             [viewerId]: {
                 peer: peer,
                 isCaller: true,
@@ -3806,11 +3838,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     const getStream = (signal, from) => {
         const peer = createAnswerPeer(localStream);
+        registPeerFunc(peer, from, false);
         peer.signal(signal);
         setAnchorSocketId(from);
         setPeerConn(prev => ({
             ...prev,
-            isCloseConn: false,
+            $isCloseConn: false,
             [from]: {
                 peer: peer,
                 isCaller: false,
@@ -3818,19 +3851,71 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }));
     }
 
+    const registScreenPeerFunc = (peer, id, isSharer) => {
+        if (isSharer) {
+            peer.on("signal", (data) => {
+                socket.emit("pushScreenStream", {
+                    idToShare: id,
+                    from: socket.id,
+                    signalData: data,
+                });
+            });
+            // 接收到流（stream）时触发
+            peer.on("stream", (stream) => {
+                if (remoteShareScreenVideo.current) {
+                    remoteShareScreenVideo.current.srcObject = stream;
+                    setRemoteStream(stream);
+                }
+            });
+        }
+        else {
+            const handleAnswerSignal = (data) => {
+                socket.emit("acceptLiveScreenStream", {
+                    signal: data,
+                    to: id,
+                    from: socket.id,
+                });
+            }
+            peer.on("signal", handleAnswerSignal);
+            peer.on("stream", (stream) => {
+                console.log('receiveLocalScreenStream--------');
+                stream.getTracks().forEach((track) => {
+                    console.log(track.kind);
+                });
+                if (remoteShareScreenVideo.current) {
+                    remoteShareScreenVideo.current.srcObject = stream;
+                    setRemoteScreenStream(stream);
+                }
+            });
+        }
+
+        peer.on('error', (err) => {
+            console.error(err);
+        });
+        peer.on('close', () => {
+            console.log('屏幕共享连接关闭：' + id);
+            setScreenPeerConn(prev => {
+                const { [id]: idToRemoveValue, ...rest } = prev;
+                return {
+                    ...rest,
+                    $isCloseConn: true,
+                };
+            });
+        });
+    }
+
     /**
      * Share screen stream in live streaming
      * @param {*} viewerId
      * @param {*} stream
-     * @param {*} batchUpdate
      */
-    const pushScreenStream = (viewerId, stream, batchUpdate) => {
+    const pushScreenStream = (viewerId, stream) => {
         const peer = createCallPeer(stream ? stream : localScreenStream);
+        registScreenPeerFunc(peer, viewerId, true);
         setScreenPeerConn(prev => {
             return {
                 ...prev,
-                isCloseConn: false,
-                batchUpdate: batchUpdate,
+                $isCloseConn: false,
                 [viewerId]: {
                     peer: peer,
                     isSharer: true,
@@ -3842,10 +3927,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     const getLiveScreenStream = (signal, from) => {
         const peer = createAnswerPeer();
+        registScreenPeerFunc(peer, from, false);
         peer.signal(signal);
         setScreenPeerConn(prev => ({
             ...prev,
-            isCloseConn: false,
+            $isCloseConn: false,
             [from]: {
                 peer: peer,
                 isSharer: false,
@@ -3915,13 +4001,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (streamId === myVideo?.current?.srcObject?.id) {
             from = name;
         } else if (streamId === userVideo?.current?.srcObject?.id) {
-            from = anotherName;
+            from = (selectedRole === LiveStreamRole.Viewer ? anchorName + '的直播间' : anotherName);
         }
         else if (streamId === shareScreenVideo?.current?.srcObject?.id) {
             from = name + '的屏幕';
         }
         else if (streamId === remoteShareScreenVideo?.current?.srcObject?.id) {
-            from = anotherName + '的屏幕';
+            from = (selectedRole === LiveStreamRole.Viewer ? anchorName : anotherName) + '的屏幕';
         }
         return from;
     };
@@ -4114,6 +4200,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         {(isLiveStream ? (selectedRole === LiveStreamRole.Viewer) : (callAccepted && !callEnded)) ?
                             <div className="video">
                                 <video ref={userVideo} playsInline autoPlay loop={true} controls={false}
+                                    muted={lid} /**直播通过链接打开时默认静音 */
                                     style={{
                                         position: 'relative', zIndex: 0, width: '100%',
                                         opacity: hasRemoteVideoTrack ? '1' : '0'
@@ -4127,6 +4214,17 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     content={selectedRole === LiveStreamRole.Viewer ? (anchorName ? anchorName + '的直播间' : '') : anotherName}
                                     audioEnabled={hasRemoteAudioTrack}
                                 />
+                                {selectedRole === LiveStreamRole.Viewer &&
+                                    <TextOverlay
+                                        isMediaCtlMenu={true}
+                                        isLiveStream={isLiveStream}
+                                        selectedRole={selectedRole}
+                                        position="top-center"
+                                        videoRef={userVideo}
+                                        userVideoVolume={userVideoVolume}
+                                        setUserVideoVolume={setUserVideoVolume}
+                                        handleVolumeChange={handleVolumeChange}
+                                    />}
                                 <TextOverlay
                                     position="top-right"
                                     iconSrc={StatPanelIcon}
@@ -4210,12 +4308,25 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         }
                         {isReceiveShareScreen &&
                             <div className='video'>
-                                <video ref={remoteShareScreenVideo} playsInline autoPlay style={{ position: 'relative', zIndex: 0, width: '400px' }}
+                                <video ref={remoteShareScreenVideo} playsInline autoPlay
+                                    muted={lid} /**直播通过链接打开时默认静音 */
+                                    style={{ position: 'relative', zIndex: 0, width: '400px' }}
                                     onClick={handleVideoClick} />
                                 <TextOverlay
                                     position="top-left"
-                                    content={anotherName + '的屏幕'}
+                                    content={(selectedRole === LiveStreamRole.Viewer ? anchorName : anotherName) + '的屏幕'}
                                 />
+                                {selectedRole === LiveStreamRole.Viewer &&
+                                    <TextOverlay
+                                        isMediaCtlMenu={true}
+                                        isLiveStream={isLiveStream}
+                                        selectedRole={selectedRole}
+                                        position="top-center"
+                                        videoRef={remoteShareScreenVideo}
+                                        userVideoVolume={remoteShareScreenVolume}
+                                        setUserVideoVolume={setRemoteShareScreenVolume}
+                                        handleVolumeChange={handleVolumeChange}
+                                    />}
                                 <TextOverlay
                                     position="top-right"
                                     iconSrc={StatPanelIcon}
@@ -4272,45 +4383,47 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     iconSrc={FullScreenIcon}
                                     parentRef={videoPlayerRef}
                                 />
-                                <TextOverlay
-                                    isMediaCtlMenu={true}
-                                    position="top-center"
-                                    audioEnabled={audioEnabled}
-                                    setAudioEnabled={setAudioEnabled}
-                                    videoEnabled={videoEnabled}
-                                    setVideoEnabled={setVideoEnabled}
-                                    handleVolumeChange={handleVolumeChange}
-                                    videoRef={myVideo}
-                                    setSelectedAudioDevice={setSelectedAudioDevice}
-                                    setSelectedVideoDevice={setSelectedVideoDevice}
-                                    callAccepted={callAccepted}
-                                    isNameReadOnly={isNameReadOnly}
-                                    name={name}
-                                    onNameTextAreaChange={onNameTextAreaChange}
-                                    isIdToCallReadOnly={isIdToCallReadOnly}
-                                    idToCall={idToCall}
-                                    onIdToCallTextAreaChange={onIdToCallTextAreaChange}
-                                    isShareScreen={isShareScreen}
-                                    setIsShareScreen={setIsShareScreen}
-                                    setChatPanelOpen={setChatPanelOpen}
-                                    selectedMediaStream={selectedMediaStream}
-                                    setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
-                                    setFacingMode={setFacingMode}
-                                    setSelectVideoModalOpen={setSelectVideoModalOpen}
-                                    callEnded={callEnded}
-                                    onLeaveCallBtnClick={onLeaveCallBtnClick}
-                                    onInviteCallBtnClick={onInviteCallBtnClick}
-                                    onCallUserBtnClick={onCallUserBtnClick}
-                                    sid={sid}
-                                    onReturnMenuBtnClick={onReturnMenuBtnClick}
-                                    myVideoVolume={myVideoVolume}
-                                    setMyVideoVolume={setMyVideoVolume}
-                                    setFloatButtonVisible={setFloatButtonVisible}
-                                    floatButtonVisible={floatButtonVisible}
-                                    setTransferFileModalOpen={setTransferFileModalOpen}
-                                    setTransferFileModalVisible={setTransferFileModalVisible}
-                                    isLiveStream={isLiveStream}
-                                />
+                                {selectedRole !== LiveStreamRole.Viewer &&
+                                    <TextOverlay
+                                        isMediaCtlMenu={true}
+                                        position="top-center"
+                                        audioEnabled={audioEnabled}
+                                        setAudioEnabled={setAudioEnabled}
+                                        videoEnabled={videoEnabled}
+                                        setVideoEnabled={setVideoEnabled}
+                                        handleVolumeChange={handleVolumeChange}
+                                        videoRef={myVideo}
+                                        setSelectedAudioDevice={setSelectedAudioDevice}
+                                        setSelectedVideoDevice={setSelectedVideoDevice}
+                                        callAccepted={callAccepted}
+                                        isNameReadOnly={isNameReadOnly}
+                                        name={name}
+                                        onNameTextAreaChange={onNameTextAreaChange}
+                                        isIdToCallReadOnly={isIdToCallReadOnly}
+                                        idToCall={idToCall}
+                                        onIdToCallTextAreaChange={onIdToCallTextAreaChange}
+                                        isShareScreen={isShareScreen}
+                                        setIsShareScreen={setIsShareScreen}
+                                        setChatPanelOpen={setChatPanelOpen}
+                                        selectedMediaStream={selectedMediaStream}
+                                        setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
+                                        setFacingMode={setFacingMode}
+                                        setSelectVideoModalOpen={setSelectVideoModalOpen}
+                                        callEnded={callEnded}
+                                        onLeaveCallBtnClick={onLeaveCallBtnClick}
+                                        onInviteCallBtnClick={onInviteCallBtnClick}
+                                        onCallUserBtnClick={onCallUserBtnClick}
+                                        sid={sid}
+                                        onReturnMenuBtnClick={onReturnMenuBtnClick}
+                                        myVideoVolume={myVideoVolume}
+                                        setMyVideoVolume={setMyVideoVolume}
+                                        setFloatButtonVisible={setFloatButtonVisible}
+                                        floatButtonVisible={floatButtonVisible}
+                                        setTransferFileModalOpen={setTransferFileModalOpen}
+                                        setTransferFileModalVisible={setTransferFileModalVisible}
+                                        isLiveStream={isLiveStream}
+                                    />
+                                }
                             </div>
                         </div>
                     }
@@ -4378,9 +4491,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             {prepareEnterLiveRoomModal &&
                                 <ConfirmModal modalInfo="是否进入直播间？" onOkBtnClick={() => {
                                     setPrepareEnterLiveRoomModal(false);
-                                    setTimeout(() => {
-                                        enterLiveRoom(lid);
-                                    }, 1000);
+                                    enterLiveRoom(lid);
                                 }}
                                     noCancelBtn={true} />
                             }
@@ -4473,6 +4584,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 enterLiveRoom={enterLiveRoom}
                                 liveRoomIdToEnter={liveRoomIdToEnter}
                                 setLiveRoomIdToEnter={setLiveRoomIdToEnter}
+                                stopLive={stopLive}
+                                leaveLiveRoom={leaveLiveRoom}
                             />
                         }
                         {
@@ -4742,7 +4855,9 @@ function VideoCallModal({ props }) {
 function LiveStreamModal({ socket, selectedRole, setSelectedRole,
     liveRoomId, setLiveRoomId, setNewViewer,
     setModalOpen, onLiveBtnClick, onViewBtnClick, name, setName,
-    enterLiveRoom, liveRoomIdToEnter, setLiveRoomIdToEnter }) {
+    enterLiveRoom, liveRoomIdToEnter, setLiveRoomIdToEnter,
+    stopLive, leaveLiveRoom,
+}) {
     const [liveUrl, setLiveUrl] = useState();
 
     useEffect(() => {
@@ -4804,9 +4919,22 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
         }
     };
 
+    const onExitBtnClick = () => {
+        if (selectedRole === LiveStreamRole.Anchor) {
+            stopLive();
+        }
+        else {
+            leaveLiveRoom();
+        }
+    };
+
     return (
         <div className='modal-overlay'>
-            <div className='modal'>
+            <div className='modal' style={{
+                paddingTop: '0rem',
+                paddingLeft: '0rem',
+                paddingRight: '0rem',
+            }}>
                 <XSign onClick={onXSignClick} />
                 {!selectedRole ?
                     <ButtonBoxN props={{
@@ -4818,8 +4946,12 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
                 }
                 {selectedRole === LiveStreamRole.Anchor &&
                     <>
-                        <TextArea placeholder='我的昵称' label='Name'
-                            value={name} onChange={onNameTextAreaChange} />
+                        <div style={{
+                            margin: '2rem 1rem'
+                        }}>
+                            <TextArea placeholder='我的昵称' label='Name'
+                                value={name} onChange={onNameTextAreaChange} />
+                        </div>
                         <CopyToClipboard text={liveUrl} style={{ marginRight: '10px' }}>
                             <Button variant="contained" color="primary" onClick={() => showNotification('直播间链接已复制到剪切板', 2000, 'white')}>
                                 分享直播间
@@ -4830,21 +4962,43 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
                                 复制直播间号
                             </Button>
                         </CopyToClipboard>
+                        <Button variant="contained" color="primary" onClick={onExitBtnClick} style={{
+                            backgroundColor: 'red',
+                            color: 'white'
+                        }}>
+                            退出直播
+                        </Button>
                     </>
                 }
                 {selectedRole === LiveStreamRole.Viewer &&
                     <>
-                        <TextArea placeholder='我的昵称' label='Name'
-                            value={name} onChange={onNameTextAreaChange} />
-                        <TextArea placeholder='直播间号' label='LiveRoomId'
-                            value={liveRoomIdToEnter} onChange={onLiveRoomIdTextAreaChange} />
-                        <Button variant="contained" color="primary" onClick={onEnterLiveRoomBtnClick}>
+                        <div style={{
+                            margin: '2rem 1rem'
+                        }}>
+                            <TextArea placeholder='我的昵称' label='Name'
+                                value={name} onChange={onNameTextAreaChange} />
+                        </div>
+                        <div style={{
+                            margin: '2rem 1rem'
+                        }}>
+                            <TextArea placeholder='直播间号' label='LiveRoomId'
+                                value={liveRoomIdToEnter} onChange={onLiveRoomIdTextAreaChange} />
+                        </div>
+
+                        <Button variant="contained" color="primary" style={{ marginRight: '10px' }}
+                            onClick={onEnterLiveRoomBtnClick}>
                             进入直播间
+                        </Button>
+                        <Button variant="contained" color="primary" onClick={onExitBtnClick} style={{
+                            backgroundColor: 'red',
+                            color: 'white'
+                        }}>
+                            退出直播间
                         </Button>
                     </>
                 }
             </div>
-        </div>
+        </div >
     );
 }
 
@@ -4857,7 +5011,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     isShowLocalVideo, selectedVideoRef, parentRef, handleVideoClick,
     myVideoVolume, setMyVideoVolume, localVideoDisplayRenderKey, setFloatButtonVisible,
     floatButtonVisible, setTransferFileModalOpen, setTransferFileModalVisible,
-    isLiveStream,
+    isLiveStream, selectedRole, userVideoVolume, setUserVideoVolume,
 }) {
 
     const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
@@ -4866,6 +5020,12 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     const node = useRef();
     const volumeSliderContainerRef = useRef();
     const volumeSliderTimerRef = useRef();
+
+    useEffect(() => {
+        if (videoRef?.current) {
+            setSpeakerIcon(videoRef.current.muted ? SmallSpeakerSilentIcon : SmallSpeakerIcon);
+        }
+    }, [videoRef]);
 
     useEffect(() => {
         if (!isLiveStream) {
@@ -4957,7 +5117,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     function handleSpeakerClick() {
         if (videoRef.current) {
             if (videoRef.current.muted) {
-                videoRef.current.volume = 0;
+                videoRef.current.volume = 1;
             }
             videoRef.current.muted = !(videoRef.current.muted);
         }
@@ -5030,54 +5190,66 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                             <>
                                 <img src={CloseMediaCtlMenuIcon} alt="CloseMediaCtlMenu" className="icon close-menu-icon" onClick={toggleCtlMenu} />
                                 <div className='func-icon-container'>
-                                    {
+                                    {selectedRole === LiveStreamRole.Viewer ?
                                         <>
-                                            <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled}
-                                                setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted}
-                                                selectedMediaStream={selectedMediaStream} />
-                                            <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled}
-                                                setSelectedDevice={setSelectedVideoDevice} callAccepted={callAccepted}
-                                                selectedMediaStream={selectedMediaStream} />
+                                            <div ref={volumeSliderContainerRef} className="slider-container"
+                                                onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                                                <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef}
+                                                    volume={userVideoVolume} setVolume={setUserVideoVolume} />
+                                                <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick}
+                                                    title='扬声器' />
+                                            </div>
+                                        </> :
+                                        <>
+                                            <>
+                                                <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled}
+                                                    setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted}
+                                                    selectedMediaStream={selectedMediaStream} />
+                                                <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled}
+                                                    setSelectedDevice={setSelectedVideoDevice} callAccepted={callAccepted}
+                                                    selectedMediaStream={selectedMediaStream} />
+                                            </>
+                                            <div ref={volumeSliderContainerRef} className="slider-container"
+                                                onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
+                                                <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef}
+                                                    volume={myVideoVolume} setVolume={setMyVideoVolume} />
+                                                <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick}
+                                                    title='扬声器' />
+                                            </div>
+                                            <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
+                                                setIsShareScreen(prev => !prev);
+                                            }} title='分享屏幕' />
+                                            <img src={MessageIcon} alt="Message" className="icon" onClick={() => {
+                                                setChatPanelOpen(prev => !prev);
+                                            }} title='短信' />
+                                            <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
+                                                setMediaTrackSettingsModalOpen(prev => !prev);
+                                            }} title='媒体轨道设置' />
+                                            <img src={SwitchCameraIcon} alt="SwitchCamera" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
+                                                setFacingMode(prev => (prev === FacingMode.Behind ? FacingMode.Front : FacingMode.Behind));
+                                            }} title='切换摄像头' />
+                                            <img src={SelectVideoIcon} alt="SelectVideo" className="icon" onClick={() => {
+                                                setSelectVideoModalOpen(true);
+                                            }} title='共享视频' />
+                                            <img src={FileTransferIcon} alt="FileTransfer" className="icon" onClick={() => {
+                                                setTransferFileModalOpen(true);
+                                                setTransferFileModalVisible(true);
+                                            }
+                                            } title='传输文件' />
+                                            <div id='float-button-icon' className={`float-button-icon ${floatButtonVisible ? 'clicked' : ''}`}
+                                                onClick={
+                                                    () => setFloatButtonVisible(prev => !prev)
+                                                } title='其他'>
+                                            </div>
                                         </>
                                     }
-                                    <div ref={volumeSliderContainerRef} className="slider-container"
-                                        onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
-                                        <VolumeCtlSlider handleVolumeChange={handleVolumeChange} videoRef={videoRef}
-                                            volume={myVideoVolume} setVolume={setMyVideoVolume} />
-                                        <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick}
-                                            title='扬声器' />
-                                    </div>
-                                    <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
-                                        setIsShareScreen(prev => !prev);
-                                    }} title='分享屏幕' />
-                                    <img src={MessageIcon} alt="Message" className="icon" onClick={() => {
-                                        setChatPanelOpen(prev => !prev);
-                                    }} title='短信' />
-                                    <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
-                                        setMediaTrackSettingsModalOpen(prev => !prev);
-                                    }} title='媒体轨道设置' />
-                                    <img src={SwitchCameraIcon} alt="SwitchCamera" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
-                                        setFacingMode(prev => (prev === FacingMode.Behind ? FacingMode.Front : FacingMode.Behind));
-                                    }} title='切换摄像头' />
-                                    <img src={SelectVideoIcon} alt="SelectVideo" className="icon" onClick={() => {
-                                        setSelectVideoModalOpen(true);
-                                    }} title='共享视频' />
-                                    <img src={FileTransferIcon} alt="FileTransfer" className="icon" onClick={() => {
-                                        setTransferFileModalOpen(true);
-                                        setTransferFileModalVisible(true);
-                                    }
-                                    } title='传输文件' />
-                                    <div id='float-button-icon' className={`float-button-icon ${floatButtonVisible ? 'clicked' : ''}`}
-                                        onClick={
-                                            () => setFloatButtonVisible(prev => !prev)
-                                        } title='其他'>
-                                    </div>
                                 </div>
                             </>
                         }
                     </div>
                 }
-                {iconSrc &&
+                {
+                    iconSrc &&
                     <img src={iconSrc} alt="Icon" className="icon" onClick={() => {
                         switch (iconSrc) {
                             case StatPanelIcon:
@@ -5093,13 +5265,15 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                     />
                 }
                 {content && (isMediaCtlMenu ? !showMediaCtlMenu : true) && content}
-                {isShowLocalVideo &&
+                {
+                    isShowLocalVideo &&
                     <LocalVideoDisplay selectedMediaStream={selectedMediaStream} onBackButtonClick={onBackButtonClick}
                         selectedFileName={selectedFileName} selectedVideoRef={selectedVideoRef}
                         name={name} parentRef={parentRef} handleVideoClick={handleVideoClick}
                         localVideoDisplayRenderKey={localVideoDisplayRenderKey} />
                 }
-                {contents && showStatPanel &&
+                {
+                    contents && showStatPanel &&
                     <div>
                         {
                             contents.map((item, index) => (
