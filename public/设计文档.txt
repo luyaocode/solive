@@ -64,6 +64,9 @@
 7)peer1.signal(answer)
 8)peer1.stream(stream2)
 
+切换流流程：
+切换流，peer1生成新signal，传输给peer2
+
 待办：
 联机麦克风：已完成
 录屏：已完成

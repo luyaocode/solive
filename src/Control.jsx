@@ -2569,6 +2569,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [anchorName, setAnchorName] = useState();//主播名称
     const [newViewer, setNewViewer] = useState(); //新加入的观众socketId
     const [newViewerName, setNewViewerName] = useState();//新加入观众的名称unused
+    const [isConnected, setIsConnected] = useState(false);//观众是否连接到主播
     const [prepareEnterLiveRoomModal, setPrepareEnterLiveRoomModal] = useState(false);
     const [peerConn, setPeerConn] = useState({});//对等连接信息
     const [screenPeerConn, setScreenPeerConn] = useState({});//共享屏幕对等连接信息
@@ -3028,11 +3029,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     useEffect(() => {
         if (callAcceptedSignalSend) {
             setCallAcceptedSignalSend(false);
-            // 重写peer监听器
+            // 重写被动方peer监听器
             const handleAnswerSignal = (data) => {
                 if (callAccepted) {
                     socket.emit("changeTrack", { signal: data, to: caller });
-                } // 主叫方切换流
+                } // 当主叫方切换流
                 else {
                     socket.emit("acceptCall", { signal: data, to: caller });
                 }
@@ -3508,7 +3509,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     };
 
     ///////////////////////////////////直播////////////////////////////////////////////////
-    // 直播
+
     const stopLiveRemoteScreenStream = () => {
         // 退出屏幕共享
         if (remoteShareScreenVideo.current && remoteShareScreenVideo.current.srcObject) {
@@ -3570,6 +3571,47 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     };
 
+    const replaceLiveStream = (id, userMediaStream, selectedMediaStream) => {
+        if (!id) return;
+        const peer = peerConn[id]?.peer;
+        let newStream = selectedMediaStream ? selectedMediaStream : userMediaStream;
+        if (peer) {
+            if (localStream && localStream.active) {
+                localStream.getTracks().forEach(track => {
+                    const submap = peer._senderMap.get(track);
+                    const sender = submap ? submap.get(userMediaStream) : null;
+                    if (sender) {
+                        peer.removeTrack(track, localStream);
+                    }
+                });
+            }
+            // peer.removeStream(localStream);
+            if (newStream) {
+                newStream.getTracks().forEach(track => {
+                    peer.addTrack(track, newStream);// 需要延迟否则视频轨道接收不到
+                });
+            }
+        }
+        setLocalStream(newStream);
+        if (myVideo.current) {
+            myVideo.current.srcObject = newStream;
+        }
+    };
+
+    // 更新直播轨道
+    useEffect(() => {
+        getUserMediaStream()
+            .then(stream => {
+                for (let id in peerConn) {
+                    if (id.startsWith('$')) continue;
+                    replaceLiveStream(id, stream, selectedMediaStream);
+                }
+            });
+        return () => {
+            stopMediaTracks(localStream);
+        };
+    }, [constraint, selectedAudioDevice, selectedVideoDevice, selectedMediaStream]);
+
     useEffect(() => {
         if (socket) {
             socket.on("viewerLeaveLiveRoom", (data) => {
@@ -3626,12 +3668,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 }
             });
 
-            socket.on("changeTrackAgreed", (signal) => {
-                if (!peer.destroyed) {
-                    peer.signal(signal);
-                }
-            });
-
             peer.on('connect', () => {
                 console.log('Connected with ' + newViewer);
             });
@@ -3641,7 +3677,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 const dataType = data.type;
                 if (dataType === 'answer') {
                     socket.emit("acceptStream", { signal: data, to: id, name: name, from: socket.id });
-                    // setCallAcceptedSignalSend(true);
                 }
             }
             peer.on("signal", handleAnswerSignal);
@@ -3657,6 +3692,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             });
             peer.on('connect', () => {
                 console.log('Connected with ' + id);
+                setIsConnected(true);
             });
         }
         peer.on('error', (err) => {
@@ -3672,6 +3708,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 };
             });
             showNotification(id + '离开了直播间', 2000, 'dark', 'bottom', 'right');
+            setIsConnected(false);
         });
 
         // There is process not defined bug
@@ -3718,26 +3755,23 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 receiveTransferFile(data);
             }
         });
-        return () => {
-            peer.removeAllListeners('data'); // Clear effect of chatPanelOpen
-        }
+        // return () => {
+        //     peer.removeAllListeners('data'); // Clear effect of chatPanelOpen
+        // }
     };
 
     useEffect(() => {
         if (peerConn['$isCloseConn']) return;
         if (socket && peerConn) {
             const handleStreamAccepted = (data) => {
-                const peer = peerConn[data.from].peer;
-                if (!peer.destroyed) {
+                const peer = peerConn[data.from]?.peer;
+                if (peer && !peer.destroyed) {
                     peer.signal(data.signal);
                 }
             };
 
             socket.off("streamAccepted", handleStreamAccepted);
             socket.on("streamAccepted", handleStreamAccepted);
-            return () => {
-                socket.off("streamAccepted", handleStreamAccepted);
-            };
         }
     }, [socket, peerConn]);
 
@@ -3750,9 +3784,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
             socket.off("liveStreamStopped", handleStopLiveStream);
             socket.on("liveStreamStopped", handleStopLiveStream);
-            return () => {
-                socket.off("liveStreamStopped", handleStopLiveStream);
-            };
         }
     }, [socket, peerConn, screenPeerConn]);
 
@@ -3765,17 +3796,22 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
             socket.off("liveScreenStreamStopped", handleStopLiveScreenStream);
             socket.on("liveScreenStreamStopped", handleStopLiveScreenStream);
-            return () => {
-                socket.off("liveScreenStreamStopped", handleStopLiveScreenStream);
-            };
         }
     }, [socket, screenPeerConn]);
 
     useEffect(() => {
         if (socket) {
             const handleGetLiveStream = (data) => {
-                getStream(data.signal, data.from);
-                setAnchorName(data.name);
+                if (isConnected) {
+                    const peer = peerConn[data.from]?.peer;
+                    if (peer && !peer.destroyed) {
+                        peer.signal(data.signal);
+                    }
+                }
+                else {
+                    getStream(data.signal, data.from);
+                    setAnchorName(data.name);
+                }
             };
 
             socket.off("getLiveStream", handleGetLiveStream);
@@ -3784,7 +3820,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 socket.off("getLiveStream", handleGetLiveStream);
             };
         }
-    }, [socket]);
+    }, [socket, isConnected]);
 
     useEffect(() => {
         if (socket) {
@@ -3807,17 +3843,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (screenPeerConn['$isCloseConn']) return;
         if (socket && screenPeerConn) {
             const handleLiveScreenStreamAccepted = (data) => {
-                const peer = screenPeerConn[data.from].peer;
-                if (!peer.destroyed) {
+                const peer = screenPeerConn[data.from]?.peer;
+                if (peer && !peer.destroyed) {
                     peer.signal(data.signal);
                 }
             };
 
             socket.off("liveScreenStreamAccepted", handleLiveScreenStreamAccepted);
             socket.on("liveScreenStreamAccepted", handleLiveScreenStreamAccepted);
-            return () => {
-                socket.off("liveScreenStreamAccepted", handleLiveScreenStreamAccepted);
-            };
         }
     }, [socket, screenPeerConn]);
 
