@@ -27,7 +27,7 @@ import {
     NoVideoIcon, SpeakerIcon, ShareIcon, MediaTrackSettingsIcon, SelectVideoIcon,
     ShareScreenIcon, StopShareScreenIcon, StatPanelIcon, SwitchCameraIcon,
     BGM1, BGM2, SmallSpeakerIcon, SmallSpeakerSilentIcon, MediaCtlMenuIcon,
-    DeviceType, CloseMediaCtlMenuIcon, DragIcon, FullScreenIcon,
+    DeviceType, CloseMediaCtlMenuIcon, DragIcon, FullScreenIcon, RefreshLiveStreamIcon,
     root, FileTransferIcon, Chunk_Max_Size,
     Piece_Type_White, LiveStreamRole, Live_Room_ID_Len,
     InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate, GlobalSignal,
@@ -3018,9 +3018,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             }
             setToCallIsBusy(true);
         }
-        socket.off("isBusy", handleToCallBusy);
         socket.on("isBusy", handleToCallBusy);
-
         return () => {
             socket.off("isBusy", handleToCallBusy);
         }
@@ -3336,10 +3334,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 }
             } // 处理初次连接
         }
-
-        socket.off("callUser", handleCallUser);
         socket.on("callUser", handleCallUser);
-
         return () => {
             socket.off("callUser", handleCallUser);
         };
@@ -3561,6 +3556,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             stopLiveStream(id);
             socket.emit("stopLiveStream", { to: id, from: socket.id });
         }
+        setVideoEnabled(false);
+        setAudioEnabled(false);
     };
 
     const leaveLiveRoom = () => {
@@ -3626,14 +3623,34 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     }
 
-    useEffect(() => {
-        if (newViewer) {
-            pushStream(newViewer);
-            if (isShareScreen) {
-                pushScreenStream(newViewer);
-            }
+    const connectViewer = (id) => {
+        pushStream(id);
+        if (isShareScreen) {
+            pushScreenStream(id);
         }
-    }, [newViewer]);
+    }
+
+    // useEffect(() => {
+    //     if (newViewer) {
+    //         pushStream(newViewer);
+    //         if (isShareScreen) {
+    //             pushScreenStream(newViewer);
+    //         }
+    //     }
+    // }, [newViewer]);
+
+    useEffect(() => {
+        if (socket) {
+            const handleEnterLiveRoomRequest = (data) => {
+                if (data) {
+                    setNewViewer(data);
+                }
+                connectViewer(data);
+            };
+            socket.on("enterLiveRoomRequest", handleEnterLiveRoomRequest);
+            return () => socket.off("enterLiveRoomRequest", handleEnterLiveRoomRequest);
+        }
+    }, [socket, isShareScreen, localStream, localScreenStream]);
 
     useEffect(() => {
         if (lid) {
@@ -3681,10 +3698,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             }
             peer.on("signal", handleAnswerSignal);
             peer.on("stream", (stream) => {
-                console.log('receiveStream--------');
-                stream.getTracks().forEach((track) => {
-                    console.log(track.kind);
-                });
+                // console.log('receiveStream--------');
+                // stream.getTracks().forEach((track) => {
+                //     console.log(track.kind);
+                // });
                 if (userVideo.current) {
                     userVideo.current.srcObject = stream;
                     setRemoteStream(stream);
@@ -3761,7 +3778,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     };
 
     useEffect(() => {
-        if (peerConn['$isCloseConn']) return;
+        // if (peerConn['$isCloseConn']) return;
         if (socket && peerConn) {
             const handleStreamAccepted = (data) => {
                 const peer = peerConn[data.from]?.peer;
@@ -3770,32 +3787,41 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 }
             };
 
-            socket.off("streamAccepted", handleStreamAccepted);
             socket.on("streamAccepted", handleStreamAccepted);
+            return () => {
+                // if (peerConn['$isCloseConn']) return;
+                socket.off("streamAccepted", handleStreamAccepted);
+            }
         }
     }, [socket, peerConn]);
 
     useEffect(() => {
-        if (peerConn['$isCloseConn'] || screenPeerConn['$isCloseConn']) return;
+        // if (peerConn['$isCloseConn'] || screenPeerConn['$isCloseConn']) return;
         if (socket && peerConn && screenPeerConn) {
             const handleStopLiveStream = (data) => {
                 stopLiveStream(data.from);
             };
 
-            socket.off("liveStreamStopped", handleStopLiveStream);
             socket.on("liveStreamStopped", handleStopLiveStream);
+            return () => {
+                // if (peerConn['$isCloseConn'] || screenPeerConn['$isCloseConn']) return;
+                socket.off("liveStreamStopped", handleStopLiveStream);
+            }
         }
     }, [socket, peerConn, screenPeerConn]);
 
     useEffect(() => {
-        if (screenPeerConn['$isCloseConn']) return;
+        // if (screenPeerConn['$isCloseConn']) return;
         if (socket && screenPeerConn) {
             const handleStopLiveScreenStream = (data) => {
                 stopLiveRemoteScreenStream(data.from);
             };
 
-            socket.off("liveScreenStreamStopped", handleStopLiveScreenStream);
             socket.on("liveScreenStreamStopped", handleStopLiveScreenStream);
+            return () => {
+                // if (screenPeerConn['$isCloseConn']) return;
+                socket.off("liveScreenStreamStopped", handleStopLiveScreenStream);
+            }
         }
     }, [socket, screenPeerConn]);
 
@@ -3814,7 +3840,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 }
             };
 
-            socket.off("getLiveStream", handleGetLiveStream);
             socket.on("getLiveStream", handleGetLiveStream);
             return () => {
                 socket.off("getLiveStream", handleGetLiveStream);
@@ -3829,7 +3854,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 getLiveScreenStream(data.signal, data.from);
             };
 
-            socket.off("getLiveScreenStream", handleGetLiveScreenStream);
             socket.on("getLiveScreenStream", handleGetLiveScreenStream);
 
             return () => {
@@ -3840,7 +3864,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
 
     useEffect(() => {
-        if (screenPeerConn['$isCloseConn']) return;
+        // if (screenPeerConn['$isCloseConn']) return;
         if (socket && screenPeerConn) {
             const handleLiveScreenStreamAccepted = (data) => {
                 const peer = screenPeerConn[data.from]?.peer;
@@ -3849,13 +3873,40 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 }
             };
 
-            socket.off("liveScreenStreamAccepted", handleLiveScreenStreamAccepted);
             socket.on("liveScreenStreamAccepted", handleLiveScreenStreamAccepted);
+            return () => {
+                // if (screenPeerConn['$isCloseConn']) return;
+                socket.off("liveScreenStreamAccepted", handleLiveScreenStreamAccepted);
+            }
         }
     }, [socket, screenPeerConn]);
 
+    useEffect(() => {
+        if (socket) {
+            const handleRefreshLiveStream = (data) => {
+                pushStream(data.from);
+            };
+            socket.on("refreshLiveStream", handleRefreshLiveStream);
+            return () => {
+                socket.off("refreshLiveStream", handleRefreshLiveStream);
+            }
+        }
+    }, [socket, localStream]);
+
+    useEffect(() => {
+        if (socket) {
+            const handleRefreshLiveScreenStream = (data) => {
+                pushScreenStream(data.from);
+            };
+            socket.on("refreshLiveScreenStream", handleRefreshLiveScreenStream);
+            return () => {
+                socket.off("refreshLiveScreenStream", handleRefreshLiveScreenStream);
+            }
+        }
+    }, [socket, localScreenStream]);
+
     const pushStream = (viewerId) => {
-        showNotification(newViewer + '进入直播间', 2000, 'dark', 'top', 'right');
+        showNotification(viewerId + '进入直播间', 2000, 'dark', 'top', 'right');
         const peer = createCallPeer(localStream);
         registPeerFunc(peer, viewerId, true);
         setPeerConn(prev => ({
@@ -3911,10 +3962,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             }
             peer.on("signal", handleAnswerSignal);
             peer.on("stream", (stream) => {
-                console.log('receiveLocalScreenStream--------');
-                stream.getTracks().forEach((track) => {
-                    console.log(track.kind);
-                });
+                // console.log('receiveLocalScreenStream--------');
+                // stream.getTracks().forEach((track) => {
+                //     console.log(track.kind);
+                // });
                 if (remoteShareScreenVideo.current) {
                     remoteShareScreenVideo.current.srcObject = stream;
                     setRemoteScreenStream(stream);
@@ -3971,6 +4022,33 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             }
         }));
     };
+
+    const refreshLiveStream = () => {
+        if (socket) {
+            stopMediaTracks(remoteStream);
+            if (peerConn) {
+                const peer = peerConn[anchorSocketId]?.peer;
+                if (peer && !peer.destroyed) {
+                    peer.destroy();
+                }
+            }
+            socket.emit("refreshLiveStream", { to: anchorSocketId, from: socket.id });
+        }
+    };
+
+    const refreshLiveScreenStream = () => {
+        if (socket) {
+            stopMediaTracks(remoteScreenStream);
+            if (screenPeerConn) {
+                const peer = screenPeerConn[anchorSocketId]?.peer;
+                if (peer && !peer.destroyed) {
+                    peer.destroy();
+                }
+            }
+            socket.emit("refreshLiveScreenStream", { to: anchorSocketId, from: socket.id });
+        }
+    };
+
     ///////////////////////////////////直播////////////////////////////////////////////////
 
     const checkVideoTrack = (stream) => {
@@ -4257,6 +4335,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         userVideoVolume={userVideoVolume}
                                         setUserVideoVolume={setUserVideoVolume}
                                         handleVolumeChange={handleVolumeChange}
+                                        refreshLiveStream={refreshLiveStream}
                                     />}
                                 <TextOverlay
                                     position="top-right"
@@ -4359,6 +4438,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         userVideoVolume={remoteShareScreenVolume}
                                         setUserVideoVolume={setRemoteShareScreenVolume}
                                         handleVolumeChange={handleVolumeChange}
+                                        refreshLiveStream={refreshLiveScreenStream}
                                     />}
                                 <TextOverlay
                                     position="top-right"
@@ -4895,18 +4975,16 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
 
     useEffect(() => {
         if (socket) {
-            socket.on("liveStreamRoomId", (data) => {
+            const handleLiveStreamRoomId = (data) => {
                 if (data) {
                     setLiveRoomId(data);
                     setLiveUrl(window.location.origin + '/live/' + data);
                 }
-            });
-
-            socket.on("enterLiveRoomRequest", (data) => {
-                if (data) {
-                    setNewViewer(data);
-                }
-            });
+            };
+            socket.on("liveStreamRoomId", handleLiveStreamRoomId);
+            return () => {
+                socket.off("liveStreamRoomId", handleLiveStreamRoomId);
+            };
         }
     }, [socket]);
 
@@ -5044,7 +5122,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     isShowLocalVideo, selectedVideoRef, parentRef, handleVideoClick,
     myVideoVolume, setMyVideoVolume, localVideoDisplayRenderKey, setFloatButtonVisible,
     floatButtonVisible, setTransferFileModalOpen, setTransferFileModalVisible,
-    isLiveStream, selectedRole, userVideoVolume, setUserVideoVolume,
+    isLiveStream, selectedRole, userVideoVolume, setUserVideoVolume, refreshLiveStream,
 }) {
 
     const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
@@ -5193,6 +5271,10 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
         }
     };
 
+    const onRefreshLiveStreamIconClick = () => {
+        refreshLiveStream();
+    };
+
     if (peerSocketId) {
         return null;
     }
@@ -5232,6 +5314,9 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                                 <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick}
                                                     title='扬声器' />
                                             </div>
+                                            <img src={RefreshLiveStreamIcon} alt="RefreshLiveStream" className="icon"
+                                                onClick={onRefreshLiveStreamIconClick}
+                                                title='刷新' />
                                         </> :
                                         <>
                                             <>
