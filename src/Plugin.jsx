@@ -40,3 +40,7 @@ export const formatFileSize = (sizeInBytes) => {
         return `${(sizeInBytes / (1024 * 1024 * 1024)).toFixed(2)} GB`;
     }
 };
+
+export const maskSocketId = (str) => {
+    return str ? (str.length <= 4 ? str : str.substring(0, 4) + '****') : '';
+};

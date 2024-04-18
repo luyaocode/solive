@@ -788,6 +788,7 @@
   align-items: center;
   flex-direction: column;
   animation: fadeIn 0.5s ease;
+  z-index: 20;
 }
 
 .loading-spinner {

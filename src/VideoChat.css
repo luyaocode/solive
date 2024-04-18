@@ -101,3 +101,16 @@
     flex-direction: row;
     justify-content: space-between;
 }
+
+#exit-live-btn {
+    width: 6rem;
+    max-width: 25%;
+    background-color: red;
+    color: white;
+}
+
+#exit-live-btn:disabled {
+    background-color: #dddddd;
+    color: #999999;
+    cursor: not-allowed;
+}

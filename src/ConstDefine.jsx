@@ -68,6 +68,8 @@ export const Message_Max_Len = 1000;   // 单条消息长度上限
 export const Text_Max_Len = 100; // 单条输入框限制
 export const Live_Room_ID_Len = 8;
 
+export const ExitLiveStreamBtnWaitTime = 3000; // 退出直播按钮需要在开启直播后等待3000ms才能被点击
+
 export const View = {
     Menu: 0,
     Table: 1,
@@ -200,6 +202,7 @@ export const mouseEvents = [
 
 export const Chunk_Max_Size = 50 * 1024;/**单次发送上限50KB */
 export const LiveStreamRole = {
+    Unknown: 0,
     Anchor: 1,
     Viewer: 2,
 }

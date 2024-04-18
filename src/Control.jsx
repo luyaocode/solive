@@ -29,7 +29,7 @@ import {
     BGM1, BGM2, SmallSpeakerIcon, SmallSpeakerSilentIcon, MediaCtlMenuIcon,
     DeviceType, CloseMediaCtlMenuIcon, DragIcon, FullScreenIcon, RefreshLiveStreamIcon,
     root, FileTransferIcon, Chunk_Max_Size,
-    Piece_Type_White, LiveStreamRole, Live_Room_ID_Len,
+    Piece_Type_White, LiveStreamRole, Live_Room_ID_Len, ExitLiveStreamBtnWaitTime,
     InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate, GlobalSignal,
 } from './ConstDefine.jsx';
 import { Howl } from 'howler';
@@ -39,7 +39,10 @@ import {
 } from './Item.ts';
 
 import _ from 'lodash';
-import { showNotification, formatFileSize } from './Plugin.jsx'
+import {
+    showNotification, formatFileSize,
+    maskSocketId,
+} from './Plugin.jsx'
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
     const [seconds, setSeconds] = useState(0);
@@ -410,6 +413,30 @@ function ItemManager({ pageLoaded, isRestart, timeDelay, items, setItems, itemsL
         }
     }, [items]);
     return null;
+}
+
+function LoadingModal({ setModalOpen, loadingText, noCancelBtn }) {
+    const onCancelButtonClick = () => {
+        setModalOpen(false);
+    };
+
+    const onRefreshPageButtonClick = () => {
+        window.location.reload();
+    };
+
+    return (
+        <>
+            <div className="loading-overlay">
+                <div className="loading-spinner"></div>
+                <p className="loading-text">{loadingText}</p>
+                {!noCancelBtn ?
+                    <button className="cancel-button" onClick={onCancelButtonClick}>取消</button>
+                    :
+                    <button className="cancel-button" onClick={onRefreshPageButtonClick}>刷新页面</button>
+                }
+            </div>
+        </>
+    );
 }
 
 function StartModal({ roomIsFullModalOpen, setRoomIsFullModalOpen, isRestart, setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket, matched,
@@ -2454,15 +2481,33 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [selectVideoModalOpen, setSelectVideoModalOpen] = useState(false);
     const [selectedLocalFile, setSelectedLocalFile] = useState();
     const [selectedMediaStream, setSelectedMediaStream] = useState();
+    const [prevConstraint, setPrevConstraint] = useState(constraint);
     const [audioSource, setAudioSource] = useState();
     const [audioCtx, setAudioCtx] = useState();
     const selectedVideoRef = useRef(null);
 
-    useEffect(() => {
-        if (selectedMediaStream && myVideo.current) {
-            myVideo.current.muted = false;
-            myVideo.current.volume = 1;
+    const onSelectedMediaStreamOn = () => {
+        setPrevConstraint(constraint);
+        setAudioEnabled(false);
+        setVideoEnabled(false);
+    }
 
+    const onSelectedMediaStreamOff = () => {
+        setConstraint(prevConstraint);
+        setAudioEnabled(prevConstraint?.audio);
+        setVideoEnabled(prevConstraint?.video);
+    }
+
+    useEffect(() => {
+        if (selectedMediaStream) {
+            if (myVideo?.current) {
+                myVideo.current.muted = false;
+                myVideo.current.volume = 1;
+            }
+            onSelectedMediaStreamOn();
+        }
+        else {
+            onSelectedMediaStreamOff();
         }
     }, [selectedMediaStream]);
 
@@ -2561,9 +2606,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [receiveFileAccepted, setReceiveFileAccepted] = useState(false);// Callee receive when true
     const [waitConfirmTransferFileModalOpen, setWaitConfirmTransferFileModalOpen] = useState(false);
 
-    // /////////////直播//////////////////////
+    // /////////////直播相关变量//////////////////////
     const [selectedRole, setSelectedRole] = useState();//扮演的角色
     const [liveRoomId, setLiveRoomId] = useState(); // 服务器分配给主播的房间号
+    const [liveUrl, setLiveUrl] = useState(); // 直播间链接
     const [liveRoomIdToEnter, setLiveRoomIdToEnter] = useState(); // 观众进入的直播间号
     const [anchorSocketId, setAnchorSocketId] = useState();// 主播socketId
     const [anchorName, setAnchorName] = useState();//主播名称
@@ -2573,6 +2619,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [prepareEnterLiveRoomModal, setPrepareEnterLiveRoomModal] = useState(false);
     const [peerConn, setPeerConn] = useState({});//对等连接信息
     const [screenPeerConn, setScreenPeerConn] = useState({});//共享屏幕对等连接信息
+    const [enteringLiveRoomModalOpen, setEnteringLiveRoomModalOpen] = useState(false);
+    const [liveBtnClicked, setLiveBtnClicked] = useState(false); // 我是主播按钮是否被点击
+    const [alertModalOpen, setAlertModalOpen] = useState(false);
+    const [alertModalInfo, setAlertModalInfo] = useState();
+    const [anchorStopLiveStream, setAnchorStopLiveStream] = useState(false);
+    // /////////////直播相关变量//////////////////////
 
     useEffect(() => {
         if (receivedBytes) {
@@ -3614,11 +3666,27 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             socket.on("viewerLeaveLiveRoom", (data) => {
                 // showNotification(data.from + '离开了直播间', 2000, 'dark', 'bottom', 'right');
             });
+
+            const handleEnterLiveRoomFailure = (res) => {
+                setEnteringLiveRoomModalOpen(false);
+                let alertInfo;
+                if (res === 'anchorOffline') {
+                    alertInfo = '主播暂时离开了直播间';
+                }
+                else if (res === "liveRoomNotExist") {
+                    alertInfo = '直播间不存在';
+                }
+                setAlertModalInfo(alertInfo);
+                setAlertModalOpen(true);
+            };
+            socket.on("anchorOffline", handleEnterLiveRoomFailure);
+            socket.on("liveRoomNotExist", handleEnterLiveRoomFailure);
         }
     }, [socket]);
 
     const enterLiveRoom = (liveRoomId) => {
         if (liveRoomId) {
+            setEnteringLiveRoomModalOpen(true);
             socket.emit("enterLiveRoom", liveRoomId);
         }
     }
@@ -3642,27 +3710,61 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     useEffect(() => {
         if (socket) {
             const handleEnterLiveRoomRequest = (data) => {
+                if (selectedRole !== LiveStreamRole.Anchor) {
+                    socket.emit('anchorOffline', data);
+                    return;
+                };
                 if (data) {
                     setNewViewer(data);
                 }
                 connectViewer(data);
             };
             socket.on("enterLiveRoomRequest", handleEnterLiveRoomRequest);
-            return () => socket.off("enterLiveRoomRequest", handleEnterLiveRoomRequest);
+
+            const handleQueryWaitingViewersResult = (res) => {
+                if (res) {
+                    res.forEach((viewerId) => {
+                        connectViewer(viewerId);
+                    });
+                }
+            }
+            socket.on("queryWaitingViewersResult", handleQueryWaitingViewersResult);
+
+            return () => {
+                socket.off("enterLiveRoomRequest", handleEnterLiveRoomRequest);
+                socket.off("queryWaitingViewersResult", handleQueryWaitingViewersResult);
+            };
         }
-    }, [socket, isShareScreen, localStream, localScreenStream]);
+    }, [socket, isShareScreen, localStream, localScreenStream, selectedRole]);
 
     useEffect(() => {
         if (lid) {
             setSelectedRole(LiveStreamRole.Viewer);
             setAudioEnabled(false);
             setVideoEnabled(false);
+            setLiveRoomIdToEnter(lid);
+            setName('观众' + maskSocketId(socket?.id));
+            setEnteringLiveRoomModalOpen(true);
             if (netConnected && userVideo.current) {
                 enterLiveRoom(lid);
             }
         }
-
     }, [lid, netConnected, userVideo.current]);
+
+    useEffect(() => {
+        if (selectedRole === LiveStreamRole.Viewer && (lid || liveRoomIdToEnter)) {
+            setEnteringLiveRoomModalOpen(!isConnected);
+        }
+    }, [isConnected, selectedRole, lid]);
+
+    useEffect(() => {
+        if (anchorStopLiveStream) {
+            setEnteringLiveRoomModalOpen(false);
+            setAlertModalInfo('主播离开了直播间');
+            setAlertModalOpen(true);
+            setAnchorStopLiveStream(false);
+        }
+    }, [anchorStopLiveStream]);
 
     const registPeerFunc = (peer, id, isAnchor) => {
         if (isAnchor) {
@@ -3724,7 +3826,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     $isCloseConn: true,
                 };
             });
-            showNotification(id + '离开了直播间', 2000, 'dark', 'bottom', 'right');
+            // showNotification(socket.id + '离开了直播间', 2000, 'dark', 'bottom', 'right');
             setIsConnected(false);
         });
 
@@ -3800,6 +3902,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (socket && peerConn && screenPeerConn) {
             const handleStopLiveStream = (data) => {
                 stopLiveStream(data.from);
+                setAnchorStopLiveStream(true);
             };
 
             socket.on("liveStreamStopped", handleStopLiveStream);
@@ -4049,6 +4152,35 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     };
 
+    const onLiveBtnClick = () => {
+        setAudioEnabled(true);
+        setVideoEnabled(true);
+        setName('主播' + maskSocketId(socket?.id));
+        socket.emit("createLiveRoom");
+        setLiveBtnClicked(true);
+        setSelectedRole(LiveStreamRole.Anchor);
+    };
+
+    useEffect(() => {
+        if (localStream && liveBtnClicked) {
+            socket.emit("queryWaitingViewers");
+        }
+    }, [localStream, liveBtnClicked]);
+
+    const onViewBtnClick = () => {
+        setName('观众' + maskSocketId(socket?.id));
+        setSelectedRole(LiveStreamRole.Viewer);
+    };
+
+    useEffect(() => {
+        if (liveBtnClicked) {
+            const liveBtnClickedTimer = setTimeout(() => {
+                setLiveBtnClicked(false);
+            }, ExitLiveStreamBtnWaitTime);
+            return () => clearTimeout(liveBtnClickedTimer);
+        }
+    }, [liveBtnClicked]);
+
     ///////////////////////////////////直播////////////////////////////////////////////////
 
     const checkVideoTrack = (stream) => {
@@ -4194,16 +4326,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     };
 
-    const onLiveBtnClick = () => {
-        setAudioEnabled(true);
-        setVideoEnabled(true);
-        socket.emit("createLiveRoom");
-    };
-
-    const onViewBtnClick = () => {
-
-    };
-
     return (
         <>
             <div className='video-chat-view'>
@@ -4325,7 +4447,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     content={selectedRole === LiveStreamRole.Viewer ? (anchorName ? anchorName + '的直播间' : '') : anotherName}
                                     audioEnabled={hasRemoteAudioTrack}
                                 />
-                                {selectedRole === LiveStreamRole.Viewer &&
+                                {selectedRole === LiveStreamRole.Viewer && isConnected &&
                                     <TextOverlay
                                         isMediaCtlMenu={true}
                                         isLiveStream={isLiveStream}
@@ -4428,7 +4550,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     position="top-left"
                                     content={(selectedRole === LiveStreamRole.Viewer ? anchorName : anotherName) + '的屏幕'}
                                 />
-                                {selectedRole === LiveStreamRole.Viewer &&
+                                {selectedRole === LiveStreamRole.Viewer && isConnected &&
                                     <TextOverlay
                                         isMediaCtlMenu={true}
                                         isLiveStream={isLiveStream}
@@ -4689,17 +4811,32 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 setSelectedRole={setSelectedRole}
                                 liveRoomId={liveRoomId}
                                 setLiveRoomId={setLiveRoomId}
+                                liveUrl={liveUrl}
+                                setLiveUrl={setLiveUrl}
                                 setNewViewer={setNewViewer}
                                 setModalOpen={setLiveStreamModalOpen}
                                 onLiveBtnClick={onLiveBtnClick}
                                 onViewBtnClick={onViewBtnClick}
                                 name={name} setName={setName}
+                                setAnchorName={setAnchorName}
                                 enterLiveRoom={enterLiveRoom}
                                 liveRoomIdToEnter={liveRoomIdToEnter}
                                 setLiveRoomIdToEnter={setLiveRoomIdToEnter}
                                 stopLive={stopLive}
                                 leaveLiveRoom={leaveLiveRoom}
+                                isConnected={isConnected}
+                                lid={lid}
+                                liveBtnClicked={liveBtnClicked}
                             />
+                        }
+                        {enteringLiveRoomModalOpen &&
+                            <LoadingModal setModalOpen={setEnteringLiveRoomModalOpen}
+                                loadingText={'正在进入直播间' + (lid ? lid : '')}
+                                noCancelBtn={lid} />
+                        }
+                        {
+                            alertModalOpen &&
+                            <InfoModal modalInfo={alertModalInfo} setModalOpen={setAlertModalOpen} />
                         }
                         {
                             transferFileModalOpen &&
@@ -4966,19 +5103,35 @@ function VideoCallModal({ props }) {
 }
 
 function LiveStreamModal({ socket, selectedRole, setSelectedRole,
-    liveRoomId, setLiveRoomId, setNewViewer,
+    liveRoomId, setLiveRoomId, liveUrl, setLiveUrl, setNewViewer,
     setModalOpen, onLiveBtnClick, onViewBtnClick, name, setName,
+    setAnchorName,
     enterLiveRoom, liveRoomIdToEnter, setLiveRoomIdToEnter,
-    stopLive, leaveLiveRoom,
+    stopLive, leaveLiveRoom, isConnected, lid, liveBtnClicked,
 }) {
-    const [liveUrl, setLiveUrl] = useState();
+    const [countdown, setCountdown] = useState(ExitLiveStreamBtnWaitTime / 1000);
+
+    useEffect(() => {
+        if (liveBtnClicked) {
+            const timer = setInterval(() => {
+                setCountdown(prevCountdown => prevCountdown - 1);
+            }, 1000);
+            return () => clearInterval(timer);
+        }
+        else {
+            setCountdown(ExitLiveStreamBtnWaitTime / 1000);
+        }
+    }, [liveBtnClicked]);
+
+    useEffect(() => {
+        setLiveUrl(window.location.origin + '/live/' + liveRoomId);
+    }, [liveRoomId]);
 
     useEffect(() => {
         if (socket) {
             const handleLiveStreamRoomId = (data) => {
                 if (data) {
                     setLiveRoomId(data);
-                    setLiveUrl(window.location.origin + '/live/' + data);
                 }
             };
             socket.on("liveStreamRoomId", handleLiveStreamRoomId);
@@ -4990,12 +5143,10 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
 
     const handleLiveBtnClick = () => {
         onLiveBtnClick();
-        setSelectedRole(LiveStreamRole.Anchor);
     };
 
     const handleViewBtnClick = () => {
         onViewBtnClick();
-        setSelectedRole(LiveStreamRole.Viewer);
     };
 
     const onNameTextAreaChange = (e) => {
@@ -5032,10 +5183,15 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
 
     const onExitBtnClick = () => {
         if (selectedRole === LiveStreamRole.Anchor) {
+            setName('');
             stopLive();
         }
-        else {
+        else if (selectedRole === LiveStreamRole.Viewer) {
             leaveLiveRoom();
+            setAnchorName('');
+        }
+        if (!lid) {
+            setSelectedRole(LiveStreamRole.Unknown);
         }
     };
 
@@ -5046,7 +5202,9 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
                 paddingLeft: '0rem',
                 paddingRight: '0rem',
             }}>
-                <XSign onClick={onXSignClick} />
+                {!lid &&
+                    <XSign onClick={onXSignClick} />
+                }
                 {!selectedRole ?
                     <ButtonBoxN props={{
                         infoArray: ['我是主播', '我是观众'],
@@ -5073,11 +5231,8 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
                                 复制直播间号
                             </Button>
                         </CopyToClipboard>
-                        <Button variant="contained" color="primary" onClick={onExitBtnClick} style={{
-                            backgroundColor: 'red',
-                            color: 'white'
-                        }}>
-                            退出直播
+                        <Button id='exit-live-btn' disabled={liveBtnClicked} variant="contained" color="primary" onClick={onExitBtnClick} >
+                            {liveBtnClicked ? countdown : '退出直播'}
                         </Button>
                     </>
                 }
@@ -5092,20 +5247,21 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
                         <div style={{
                             margin: '2rem 1rem'
                         }}>
-                            <TextArea placeholder='直播间号' label='LiveRoomId'
+                            <TextArea isReadyOnly={lid} placeholder='直播间号' label='LiveRoomId'
                                 value={liveRoomIdToEnter} onChange={onLiveRoomIdTextAreaChange} />
                         </div>
-
-                        <Button variant="contained" color="primary" style={{ marginRight: '10px' }}
-                            onClick={onEnterLiveRoomBtnClick}>
-                            进入直播间
-                        </Button>
-                        <Button variant="contained" color="primary" onClick={onExitBtnClick} style={{
-                            backgroundColor: 'red',
-                            color: 'white'
-                        }}>
-                            退出直播间
-                        </Button>
+                        {!isConnected ?
+                            <Button variant="contained" color="primary" style={{ marginRight: '10px' }}
+                                onClick={onEnterLiveRoomBtnClick}>
+                                进入直播间
+                            </Button> :
+                            <Button variant="contained" color="primary" onClick={onExitBtnClick} style={{
+                                backgroundColor: 'red',
+                                color: 'white'
+                            }}>
+                                退出直播间
+                            </Button>
+                        }
                     </>
                 }
             </div>
