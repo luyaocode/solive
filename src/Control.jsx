@@ -3788,7 +3788,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             });
 
             peer.on('connect', () => {
-                console.log('Connected with ' + newViewer);
+                console.log('Connected with ' + id);
             });
         }
         else {
@@ -4006,7 +4006,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 socket.off("refreshLiveScreenStream", handleRefreshLiveScreenStream);
             }
         }
-    }, [socket, localScreenStream]);
+    }, [socket, localScreenStream, screenPeerConn]);
 
     const pushStream = (viewerId) => {
         showNotification(viewerId + '进入直播间', 2000, 'dark', 'top', 'right');
@@ -4083,10 +4083,15 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             console.log('屏幕共享连接关闭：' + id);
             setScreenPeerConn(prev => {
                 const { [id]: idToRemoveValue, ...rest } = prev;
-                return {
-                    ...rest,
-                    $isCloseConn: true,
-                };
+                if (idToRemoveValue === peer) {
+                    return {
+                        ...rest,
+                        $isCloseConn: true,
+                    };
+                }
+                else {
+                    return prev;
+                }
             });
         });
     }
