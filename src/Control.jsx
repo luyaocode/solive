@@ -21,8 +21,8 @@ import {
     Piece_Type_Black,
     Table_Client_Ips, Table_Game_Info, Table_Step_Info,
     Messages_Max_Send, Message_Max_Len, Text_Max_Len,
-    View,
-    AudioIcon, AudioIconDisabled, MessageIcon,
+    View, Live_Messages_Max_Send, Live_Message_Max_Len,
+    AudioIcon, AudioIconDisabled, MessageIcon, LiveChatPanelIcon,
     VideoIcon, VideoIconDisabled,
     NoVideoIcon, SpeakerIcon, ShareIcon, MediaTrackSettingsIcon, SelectVideoIcon,
     ShareScreenIcon, StopShareScreenIcon, StatPanelIcon, SwitchCameraIcon,
@@ -41,7 +41,7 @@ import {
 import _ from 'lodash';
 import {
     showNotification, formatFileSize,
-    maskSocketId,
+    maskSocketId, formatTime,
 } from './Plugin.jsx'
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
@@ -1471,6 +1471,149 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
     );
 }
 
+function LiveRoomChatPanel({ messages, setMessages, socket, peerConn, anchorSocketId,
+    deviceType, liveRoomChatPanelDisplay, setLiveRoomChatPanelDisplay, selectedRole,
+    isConnected,
+}) {
+    const [inputText, setInputText] = useState('');
+    const textareaRef = useRef(null);
+    const messageContainerRef = useRef(null);
+    const handleSendMessageRef = useRef(null);
+    const [modalOpen, setModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (selectedRole === LiveStreamRole.Anchor) {
+            setLiveRoomChatPanelDisplay(true);
+        }
+        else if (selectedRole === LiveStreamRole.Unknown) {
+            setLiveRoomChatPanelDisplay(false);
+        }
+    }, [selectedRole]);
+
+    useEffect(() => {
+        if (selectedRole === LiveStreamRole.Viewer) {
+            setLiveRoomChatPanelDisplay(isConnected);
+        }
+    }, [isConnected, selectedRole]);
+
+    useEffect(() => {
+        const handleSendMessage = () => {
+            if (messages.length > Live_Messages_Max_Send) {
+                setModalOpen(true);
+                return;
+            }
+            if (inputText !== '') {
+                const textValid = inputText.substring(0, Live_Message_Max_Len);
+                const newMessage = {
+                    text: textValid,
+                    sender: socket?.id,
+                    timestamp: Date.now(),
+                };
+                const messageString = JSON.stringify(newMessage);
+                if (peerConn) {
+                    for (let id in peerConn) {
+                        if (id.startsWith('$')) continue;
+                        const peer = peerConn[id].peer;
+                        if (peer && !peer.destroyed && peer._pcReady) {
+                            peer.send(messageString);
+                        }
+                    }
+                }
+                setMessages(prev => [...prev, newMessage]);
+                setInputText('');
+                adjustTextareaHeight();
+            }
+        };
+        if (handleSendMessageRef) {
+            handleSendMessageRef.current = handleSendMessage;
+        }
+    }, [handleSendMessageRef, inputText, socket, peerConn]);
+    // 处理发送消息
+
+    function onClose() {
+        setLiveRoomChatPanelDisplay(false);
+    }
+
+    const handleChange = (e) => {
+        let inputValue = e.target.value;
+        let newValue = inputValue;
+        if (inputValue.length > Live_Message_Max_Len) {
+            showNotification('输入字符长度达到上限！');
+            newValue = inputValue.substring(0, Live_Message_Max_Len);
+        }
+        setInputText(newValue);
+        e.target.style.height = 'auto';
+        e.target.style.height = e.target.scrollHeight + 'px';
+    };
+
+    const adjustTextareaHeight = () => {
+        if (textareaRef.current) {
+            textareaRef.current.style.height = 'auto';
+        }
+    };
+
+    function onTextAreaClick() {
+        if (messageContainerRef.current) {
+            messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
+        }
+    }
+
+    useEffect(() => {
+        if (messageContainerRef.current) {
+            messageContainerRef.current.scrollTop = messageContainerRef.current.scrollHeight;
+        }
+    }, [messages]);
+
+    return (
+        <>
+            <div className={`live-chat-panel ${deviceType === DeviceType.MOBILE ? 'mobile' : ''} ${liveRoomChatPanelDisplay ? '' : 'display-none'}`}>
+                {/* <div className="live-chatpanel-close-button" onClick={onClose}>&times;</div> */}
+                <div ref={messageContainerRef} className="live-message-container">
+                    {messages?.map((message, index) => (
+                        <div key={index} className={`live-message ${selectedRole === LiveStreamRole.Anchor ?
+                            (message.sender === socket.id ? 'anchor' : 'other') :
+                            (selectedRole === LiveStreamRole.Viewer ?
+                                (message.sender === anchorSocketId ? 'anchor' : (message.sender === socket.id ? 'me' : 'other')) :
+                                '')}`}
+                        >
+                            <div className='msg-inline'>
+                                <div className='msg-container'>
+                                    <p className='msg-name'>{(message.sender === socket.id ? '[我]' : (message.sender === anchorSocketId ? '[主播]' : '')) + maskSocketId(message.sender)}</p>
+                                    <div className='msg-timestamp'>{formatTime(message.timestamp)}</div>
+                                </div>
+                                <p className='msg-info'>{message.text.replace(/ /g, '\u00a0')}</p>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+                <div className="live-input-container">
+                    <textarea
+                        ref={textareaRef}
+                        value={inputText}
+                        onChange={handleChange}
+                        placeholder="请输入..."
+                        onClick={onTextAreaClick}
+                        style={{
+                            width: '80%',
+                            height: '2rem',
+                            maxHeight: '54px', // 调整最大高度
+                            fontSize: '16px', // 调整字体大小
+                            resize: 'none',
+                            overflow: 'auto',
+                            lineHeight: '1.2', // 设置行高与字体大小相同
+                            padding: '10px', // 调整内边距
+                            scrollbarWidth: 'none',
+                        }}
+                    />
+                    <button onClick={() => handleSendMessageRef.current()}>发送</button>
+                </div>
+            </div >
+            {modalOpen && <Modal modalInfo='消息数量已达上限！' setModalOpen={setModalOpen} />
+            }
+        </>
+    );
+}
+
 function VideoStatsTool({ connectionRef, localStream, isShareScreen,
     setInboundBitrate, setInboundVideoDelay, setInboundFramesPerSecond,
     setInboundFrameWidth, setInboundFrameHeight,
@@ -2252,7 +2395,7 @@ function TransferModal({ setModalOpen, peer, fileTransferAccepted, setFileTransf
                         onClick={handleInputClick}
                         onChange={handleFileChange}
                     />
-                    <div className={`drag-drop-area ${dragging ? 'dragging' : ''}`}
+                    <div className={`drag - drop - area ${dragging ? 'dragging' : ''}`}
                         onDrop={onDrop}
                         onDragOver={onDragOver}
                         onDragLeave={onDragLeave}
@@ -2623,7 +2766,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [liveBtnClicked, setLiveBtnClicked] = useState(false); // 我是主播按钮是否被点击
     const [alertModalOpen, setAlertModalOpen] = useState(false);
     const [alertModalInfo, setAlertModalInfo] = useState();
-    const [anchorStopLiveStream, setAnchorStopLiveStream] = useState(false);
+    const [anchorStopLiveStream, setAnchorStopLiveStream] = useState(false); // 主播离开房间
+    const [viewerLeaveLiveRoom, setViewerLeaveLiveRoom] = useState(false); // 观众离开房间
+    const [liveRoomChatPanelDisplay, setLiveRoomChatPanelDisplay] = useState(false); // 显示/隐藏聊天板
+    const [liveMsgs, setLiveMsgs] = useState([]);
     // /////////////直播相关变量//////////////////////
 
     useEffect(() => {
@@ -3617,6 +3763,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             if (id.startsWith('$')) continue;
             stopLiveStream(id);
             socket.emit("leaveLiveRoom", { to: id, from: socket.id });
+            setViewerLeaveLiveRoom(true);
         }
     };
 
@@ -3635,7 +3782,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 });
             }
             // peer.removeStream(localStream);
-            if (newStream) {
+            if (newStream && !peer.destroyed) {
                 newStream.getTracks().forEach(track => {
                     peer.addTrack(track, newStream);// 需要延迟否则视频轨道接收不到
                 });
@@ -3763,8 +3910,17 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             setAlertModalInfo('主播离开了直播间');
             setAlertModalOpen(true);
             setAnchorStopLiveStream(false);
+            setLiveRoomChatPanelDisplay(true);
         }
     }, [anchorStopLiveStream]);
+
+    useEffect(() => {
+        if (viewerLeaveLiveRoom) {
+            setEnteringLiveRoomModalOpen(false);
+            setViewerLeaveLiveRoom(false);
+            setLiveRoomChatPanelDisplay(true);
+        }
+    }, [viewerLeaveLiveRoom]);
 
     const registPeerFunc = (peer, id, isAnchor) => {
         if (isAnchor) {
@@ -3821,63 +3977,64 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             console.log('连接关闭：' + id);
             setPeerConn(prev => {
                 const { [id]: idToRemoveValue, ...rest } = prev;
-                return {
-                    ...rest,
-                    $isCloseConn: true,
-                };
+                if (idToRemoveValue === peer) {
+                    return {
+                        ...rest,
+                        $isCloseConn: true,
+                    };
+                }
+                else {
+                    return prev;
+                }
             });
             // showNotification(socket.id + '离开了直播间', 2000, 'dark', 'bottom', 'right');
             setIsConnected(false);
         });
 
-        // There is process not defined bug
-        // Now it is solved by installing module 'process'.
-        peer.on('data', (data) => {
+        // peer.on('data', handleOnData);
+    };
+
+    const forwardData = (peerConn, data, from) => {
+        if (!peerConn) return;
+        for (let id in peerConn) {
+            if (id.startsWith('$') || id === from) continue;
+            const peer = peerConn[id].peer;
+            if (peer && !peer.destroyed) {
+                peer.send(data);
+            }
+        }
+    };
+
+    useEffect(() => {
+        const handleOnData = (data) => {
             if (isJSON(data)) {
                 const msg = JSON.parse(data);
-                if (msg.type === 'remoteAudioStatus') {
-                    setRemoteAudioEnabled(msg.status);
-                }
-                else if (msg.type === 'remoteVideoStatus') {
-                    setRemoteVideoEnabled(msg.status);
-                }
-                else if (msg.sender) { // 文本通信
-                    console.log('Received message from peer: ' + msg.text);
-                    if (!chatPanelOpen) {
-                        showNotification(msg.text);
+                if (msg.sender) {
+                    setLiveMsgs(prev => [...prev, msg]);
+                    // 转发
+                    if (selectedRole === LiveStreamRole.Anchor) {
+                        forwardData(peerConn, data, msg.sender);
                     }
-                    msg.sender = 'other';
-                    setMessages(prev => [...prev, msg]);
-                }
-                else if (msg.type === 'transferFileRequest') {
-                    setPreAcceptFileModalOpen(true);
-                    setPreAcceptFileName(msg.fileName);
-                    setPreAcceptFileSize(msg.fileSize);
-                }
-                else if (msg.type === 'transferFileCanceled') {
-                    setPreAcceptFileModalOpen(false);
-                    setPreAcceptFileName();
-                    setPreAcceptFileSize(0);
-                }
-                else if (msg.type === 'transferFileAccepted') {
-                    setFileTransferAccepted(msg.value);
-                    setWaitConfirmTransferFileModalOpen(false);
-                }
-                else if (msg.type === 'transferFileStopped') {
-                    initTransferRefs();
-                }
-                else if (msg.type === 'transferFile') {
-                    initTransferRefs(msg.fileName);
                 }
             }
-            else {
-                receiveTransferFile(data);
+        };
+        for (let id in peerConn) {
+            if (id.startsWith('$')) continue;
+            const peer = peerConn[id].peer;
+            if (peer && !peer.destroyed) {
+                peer.on('data', handleOnData);
             }
-        });
-        // return () => {
-        //     peer.removeAllListeners('data'); // Clear effect of chatPanelOpen
-        // }
-    };
+        }
+        return () => {
+            for (let id in peerConn) {
+                if (id.startsWith('$')) continue;
+                const peer = peerConn[id].peer;
+                if (peer && !peer.destroyed) {
+                    peer.removeAllListeners('data', handleOnData);
+                }
+            }
+        }
+    }, [peerConn, selectedRole]);
 
     useEffect(() => {
         // if (peerConn['$isCloseConn']) return;
@@ -4390,6 +4547,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     setTransferFileModalOpen={setTransferFileModalOpen}
                                     setTransferFileModalVisible={setTransferFileModalVisible}
                                     isLiveStream={isLiveStream}
+                                    selectedRole={selectedRole}
+                                    setLiveRoomChatPanelDisplay={setLiveRoomChatPanelDisplay}
                                 />
                                 <TextOverlay
                                     position="top-left-local-video"
@@ -4463,6 +4622,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         setUserVideoVolume={setUserVideoVolume}
                                         handleVolumeChange={handleVolumeChange}
                                         refreshLiveStream={refreshLiveStream}
+                                        setLiveRoomChatPanelDisplay={setLiveRoomChatPanelDisplay}
                                     />}
                                 <TextOverlay
                                     position="top-right"
@@ -4566,6 +4726,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         setUserVideoVolume={setRemoteShareScreenVolume}
                                         handleVolumeChange={handleVolumeChange}
                                         refreshLiveStream={refreshLiveScreenStream}
+                                        setLiveRoomChatPanelDisplay={setLiveRoomChatPanelDisplay}
                                     />}
                                 <TextOverlay
                                     position="top-right"
@@ -4662,10 +4823,23 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         setTransferFileModalOpen={setTransferFileModalOpen}
                                         setTransferFileModalVisible={setTransferFileModalVisible}
                                         isLiveStream={isLiveStream}
+                                        selectedRole={selectedRole}
+                                        setLiveRoomChatPanelDisplay={setLiveRoomChatPanelDisplay}
                                     />
                                 }
                             </div>
                         </div>
+                    }
+                    {
+                        <LiveRoomChatPanel
+                            messages={liveMsgs}
+                            setMessages={setLiveMsgs}
+                            deviceType={deviceType}
+                            liveRoomChatPanelDisplay={liveRoomChatPanelDisplay}
+                            setLiveRoomChatPanelDisplay={setLiveRoomChatPanelDisplay}
+                            selectedRole={selectedRole} isConnected={isConnected}
+                            socket={socket} peerConn={peerConn} anchorSocketId={anchorSocketId}
+                        />
                     }
                 </div>
                 <ToolBar backgroundColor='black' />
@@ -5167,7 +5341,7 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
         let newValue = e.target.value.replace(/\n/g, '');
         if (newValue.length > Live_Room_ID_Len) {
             showNotification('输入字符长度达到上限！');
-            newValue = newValue.substring(0, Text_Max_Len);
+            newValue = newValue.substring(0, Live_Room_ID_Len);
         }
         setLiveRoomIdToEnter(newValue);
     };
@@ -5177,10 +5351,11 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
     };
 
     const onEnterLiveRoomBtnClick = () => {
-        if (liveRoomIdToEnter && liveRoomIdToEnter.length < Live_Room_ID_Len) {
-            showNotification('输入直播间号无效！');
-        }
-        else {
+        if (liveRoomIdToEnter) {
+            if (liveRoomIdToEnter.length < Live_Room_ID_Len) {
+                showNotification('输入直播间号无效！');
+                return;
+            }
             enterLiveRoom(liveRoomIdToEnter);
             setModalOpen(false);
         }
@@ -5207,7 +5382,7 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
                 paddingLeft: '0rem',
                 paddingRight: '0rem',
             }}>
-                {!lid &&
+                {
                     <XSign onClick={onXSignClick} />
                 }
                 {!selectedRole ?
@@ -5257,6 +5432,7 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
                         </div>
                         {!isConnected ?
                             <Button variant="contained" color="primary" style={{ marginRight: '10px' }}
+                                disabled={!liveRoomIdToEnter}
                                 onClick={onEnterLiveRoomBtnClick}>
                                 进入直播间
                             </Button> :
@@ -5284,6 +5460,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     myVideoVolume, setMyVideoVolume, localVideoDisplayRenderKey, setFloatButtonVisible,
     floatButtonVisible, setTransferFileModalOpen, setTransferFileModalVisible,
     isLiveStream, selectedRole, userVideoVolume, setUserVideoVolume, refreshLiveStream,
+    setLiveRoomChatPanelDisplay
 }) {
 
     const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
@@ -5475,6 +5652,9 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                                 <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick}
                                                     title='扬声器' />
                                             </div>
+                                            <img src={LiveChatPanelIcon} alt="LiveChatPanel" className="icon" onClick={() => {
+                                                setLiveRoomChatPanelDisplay(prev => !prev);
+                                            }} title='公屏' />
                                             <img src={RefreshLiveStreamIcon} alt="RefreshLiveStream" className="icon"
                                                 onClick={onRefreshLiveStreamIconClick}
                                                 title='刷新' />
@@ -5498,9 +5678,14 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                             <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
                                                 setIsShareScreen(prev => !prev);
                                             }} title='分享屏幕' />
-                                            <img src={MessageIcon} alt="Message" className="icon" onClick={() => {
-                                                setChatPanelOpen(prev => !prev);
-                                            }} title='短信' />
+                                            {selectedRole === LiveStreamRole.Anchor ?
+                                                <img src={LiveChatPanelIcon} alt="LiveChatPanel" className="icon" onClick={() => {
+                                                    setLiveRoomChatPanelDisplay(prev => !prev);
+                                                }} title='公屏' /> :
+                                                <img src={MessageIcon} alt="Message" className="icon" onClick={() => {
+                                                    setChatPanelOpen(prev => !prev);
+                                                }} title='短信' />
+                                            }
                                             <img src={MediaTrackSettingsIcon} alt="MediaTrackSettings" className={`icon ${selectedMediaStream ? 'grayed-out' : ''}`} onClick={() => {
                                                 setMediaTrackSettingsModalOpen(prev => !prev);
                                             }} title='媒体轨道设置' />

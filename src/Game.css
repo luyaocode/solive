@@ -1669,7 +1669,7 @@
   width: 100%;
   height: var(--Window_Max_Height_Factor);
   max-height: var(--Window_Max_Height_Factor);
-  justify-content: center;
+  justify-content: flex-end;
   align-content: space-around;
   justify-items: center;
   align-items: center;

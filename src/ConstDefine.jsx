@@ -67,6 +67,8 @@ export const Messages_Max_Send = 1000;  // 消息数量上限
 export const Message_Max_Len = 1000;   // 单条消息长度上限
 export const Text_Max_Len = 100; // 单条输入框限制
 export const Live_Room_ID_Len = 8;
+export const Live_Messages_Max_Send = 10000;
+export const Live_Message_Max_Len = 50;
 
 export const ExitLiveStreamBtnWaitTime = 3000; // 退出直播按钮需要在开启直播后等待3000ms才能被点击
 
@@ -103,7 +105,7 @@ export const FloatButtonNotClickedIcon = '/picture/svg/FloatButtonNotClickedIcon
 export const RemoteDesktopIcon = '/picture/svg/RemoteDesktopIcon.svg';
 export const FileTransferIcon = '/picture/svg/FileTransferIcon.svg';
 export const RefreshLiveStreamIcon = '/picture/svg/RefreshLiveStreamIcon.svg';
-
+export const LiveChatPanelIcon = '/picture/svg/LiveChatPanelIcon.svg';
 
 export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
 export const BGM2 = '/audio/bgm/after_the_rain.mp3';
