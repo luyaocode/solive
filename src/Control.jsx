@@ -3810,9 +3810,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     useEffect(() => {
         if (socket) {
-            socket.on("viewerLeaveLiveRoom", (data) => {
-                // showNotification(data.from + '离开了直播间', 2000, 'dark', 'bottom', 'right');
-            });
+            // const handleViewerLeaveLiveRoom = (data) => {
+            //     const peer = peerConn[data.from]?.peer;
+            //     if (peer && !peer.destroyed) {
+            //         peer.destroy();
+            //     }
+            // };
+
+            // socket.on("viewerLeaveLiveRoom", handleViewerLeaveLiveRoom);
 
             const handleEnterLiveRoomFailure = (res) => {
                 setEnteringLiveRoomModalOpen(false);
@@ -3828,8 +3833,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             };
             socket.on("anchorOffline", handleEnterLiveRoomFailure);
             socket.on("liveRoomNotExist", handleEnterLiveRoomFailure);
+            // return () => {
+            // socket.off("viewerLeaveLiveRoom", handleViewerLeaveLiveRoom);
+            // }
         }
-    }, [socket]);
+    }, [socket, peerConn]);
 
     const enterLiveRoom = (liveRoomId) => {
         if (liveRoomId) {
@@ -3945,6 +3953,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
             peer.on('connect', () => {
                 console.log('Connected with ' + id);
+                showNotification(id + '进入了直播间', 2000, 'dark', 'top', 'right');
             });
         }
         else {
@@ -4166,7 +4175,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     }, [socket, localScreenStream, screenPeerConn]);
 
     const pushStream = (viewerId) => {
-        showNotification(viewerId + '进入直播间', 2000, 'dark', 'top', 'right');
         const peer = createCallPeer(localStream);
         registPeerFunc(peer, viewerId, true);
         setPeerConn(prev => ({
