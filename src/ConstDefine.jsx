@@ -188,9 +188,9 @@ export const GlobalSignal = {
 export const Window_Max_Height_Factor = 0.95;
 
 export const WebsiteTitle = {
-    Menu: '混乱五子棋',
-    Game: '混乱五子棋',
-    Table: '混乱五子棋',
+    Menu: '直播·会议·音视频通话',
+    Game: '直播·会议·音视频通话',
+    Table: '直播·会议·音视频通话',
     VideoChat: '直播·会议·音视频通话',
 }
 
