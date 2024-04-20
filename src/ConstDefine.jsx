@@ -177,6 +177,8 @@ export const GlobalSignal = {
     TranscodeBtnClick: 'transcode_btn_click',
     PreviewVideoBtnClick: 'preview_btn_click',
     TranscodeFinished: 'transcode_finished',
+    RecordVideoBtnClicked_OutAudioEnabled: 'record_video_btn_clicked_out_audio_enabled',
+    RecordVideoBtnClicked_OutAudioDisabled: 'record_video_btn_clicked_out_audio_disabled',
     StopTranscode: 'stop_transcode',
     SetFloatBallPosition: 'set_float_ball_position',
     StopLive: 'stop_live',

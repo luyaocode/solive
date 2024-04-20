@@ -137,6 +137,12 @@ function VideoRecorder({ setSaveVideoModalOpen, globalSignal,
                 // Will cause runtime error on browser.
                 ffmpeg.terminate();
             }
+            if (globalSignal[GlobalSignal.RecordVideoBtnClicked_OutAudioEnabled]) {
+                toggleRecord(true);
+            }
+            if (globalSignal[GlobalSignal.RecordVideoBtnClicked_OutAudioDisabled]) {
+                toggleRecord(false);
+            }
         }
     }, [globalSignal]);
 
@@ -147,10 +153,10 @@ function VideoRecorder({ setSaveVideoModalOpen, globalSignal,
         }
     }
 
-    const startRecording = async () => {
+    const startRecording = async (outAudioEnabled) => {
         const screenStream = await navigator.mediaDevices.getDisplayMedia({
             video: true,
-            audio: !audioEnabled
+            audio: outAudioEnabled !== undefined ? !outAudioEnabled : !audioEnabled
         });
         let stream = screenStream;
         if (audioEnabled) {
@@ -232,13 +238,13 @@ function VideoRecorder({ setSaveVideoModalOpen, globalSignal,
         }
     };
 
-    const toggleRecord = async () => {
+    const toggleRecord = async (outAudioEnabled) => {
         toggleExpand();
         if (recorder?.state === 'recording') {
             stopRecording();
         }
         else {
-            await startRecording();
+            await startRecording(outAudioEnabled);
             setIsRecording(true);
         }
     }

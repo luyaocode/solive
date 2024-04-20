@@ -754,12 +754,15 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
     headCount, historyPeekUsers, netConnected, generateSeeds,
     isLoginModalOpen, setLoginModalOpen, isLoginSuccess,
     selectedTable, setSelectedTable, setTableViewOpen, avatarIndex, setShowOverlayArrow,
-    gameInviteAccepted, locationData }) {
+    gameInviteAccepted, locationData, isGameMenu, setIsGameMenu,
+    onLiveStreamBtnClick, onVideoCallBtnClick, onRecordVideoBtnClick,
+}) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
     const [enterRoomModalOpen, setEnterRoomModalOpen] = useState(false);
     const [loginResultModalOpen, setLoginResultModalOpen] = useState(false);
     const [confirmEnterRoomModalOpen, setConfirmEnterRoomModalOpen] = useState(false);
+    const [outAudioEnabled, setOutAudioEnabled] = useState(false);
 
     useEffect(() => {
         if (gameInviteAccepted) {
@@ -861,26 +864,52 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
     return (
         <>
             <div className="menu-container">
-                <div>
-                    <FancyTitle text={title} />
-                    <FancyTitle2 text={cTitle} />
-                </div>
-                <div className="menu-items">
-                    <div className="menu-item">
-                        {/* <img src="item1.jpg" alt="Item 1" /> */}
-                        <h2>单机</h2>
-                        {/* <p>模式介绍：...</p> */}
-                        <button onClick={() => onButtonClick(GameMode.MODE_SIGNAL)}>好友对战</button>
-                        <button onClick={() => onButtonClick(GameMode.MODE_AI)}>人机对战</button>
+                {isGameMenu ?
+                    <>
+                        <div>
+                            <FancyTitle text={title} />
+                            <FancyTitle2 text={cTitle} />
+                        </div>
+                        <div className="menu-items">
+                            <div className="menu-item">
+                                <h2>单机</h2>
+                                <button onClick={() => onButtonClick(GameMode.MODE_SIGNAL)}>好友对战</button>
+                                <button onClick={() => onButtonClick(GameMode.MODE_AI)}>人机对战</button>
+                            </div>
+                            <div className="menu-item">
+                                <h2>联机</h2>
+                                <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_MATCH)}>匹配模式</button>
+                                <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_ROOM)}>进入房间</button>
+                            </div>
+                        </div>
+                    </> :
+                    <div className="home-menu-items">
+                        <div className="home-menu-item" onClick={onLiveStreamBtnClick}>
+                            <p>直播</p>
+                        </div>
+                        <div className="home-menu-item" onClick={onVideoCallBtnClick}>
+                            <p>视频通话</p>
+                        </div>
+                        <div style={{
+                            display: 'flex', flexDirection: 'row',
+                            justifyItems: 'center',
+                            alignItems: 'center',
+                        }}>
+                            <div className="home-menu-item" onClick={() => onRecordVideoBtnClick(outAudioEnabled)}
+                                style={{ marginRight: '2rem' }}>
+                                <p>在线录屏</p>
+                            </div>
+                            <div>
+                                <Switch isOn={outAudioEnabled} setIsOn={setOutAudioEnabled} onInfo='外部音频' offInfo='内部音频' />
+                            </div>
+                        </div>
+
+                        <div className="home-menu-item" onClick={() => setIsGameMenu(true)}>
+                            <p>五子棋游戏</p>
+                        </div>
                     </div>
-                    <div className="menu-item">
-                        {/* <img src="item2.jpg" alt="Item 2" /> */}
-                        <h2>联机</h2>
-                        {/* <p>模式介绍：...</p> */}
-                        <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_MATCH)}>匹配模式</button>
-                        <button disabled={!netConnected} onClick={() => onButtonClick(GameMode.MODE_ROOM)}>进入房间</button>
-                    </div>
-                </div>
+                }
+
                 <SystemInfo headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected} />
                 <LoginButton modalOpen={isLoginModalOpen} setModalOpen={setLoginModalOpen}
                     isLoginSuccess={isLoginSuccess} setTableViewOpen={setTableViewOpen} />
@@ -1168,8 +1197,7 @@ function Switch({ isOn, setIsOn, onInfo, offInfo }) {
     };
 
     return (
-        <div className={`switch ${isOn ? 'on' : 'off'}`} onClick={toggleSwitch}
-            onTouchStart={toggleSwitch}>
+        <div className={`switch ${isOn ? 'on' : 'off'}`} onClick={toggleSwitch}>
             <div className="switch-toggle"></div>
             <span className="switch-label">{isOn ? onInfo : offInfo}</span>
         </div>

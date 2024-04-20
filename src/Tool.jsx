@@ -46,16 +46,13 @@ function FloatBall({ setElementSize, props }) {
 
     const onVideoCallBtnClick = () => {
         if (props.videoCallBtnDisabled) return;
-        props?.enterVideoChatView();
-        props?.setVideoCallModalOpen(true);
+        props?.onVideoCallBtnClick();
         toggleExpand();
         props?.setPosition({ x: props?.bounds?.right, y: props?.bounds?.bottom / 2 });
     };
 
     const onLiveStreamBtnClick = () => {
-        props?.setIsLiveStream(true);
-        props?.enterVideoChatView();
-        props?.setLiveStreamModalOpen(true);
+        props?.onLiveStreamBtnClick();
         toggleExpand();
         props?.setPosition({ x: props?.bounds?.right, y: props?.bounds?.bottom / 2 });
     };
@@ -66,7 +63,12 @@ function FloatBall({ setElementSize, props }) {
     };
 
     const onReturnMenuBtnClick = () => {
-        props?.setGlobalSignal(prev => ({ ...prev, [GlobalSignal.Active]: true, [GlobalSignal.ReturnMenu]: true }));
+        if (props?.currentView === View.Menu) {
+            props?.returnMenu();
+        }
+        else {
+            props?.setGlobalSignal(prev => ({ ...prev, [GlobalSignal.Active]: true, [GlobalSignal.ReturnMenu]: true }));
+        }
         toggleExpand();
     };
 
@@ -294,7 +296,8 @@ function DraggableComponent({ Element, props }) {
 function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
     setVideoCallModalOpen, setIsLiveStream, setLiveStreamModalOpen, deviceType,
     setSaveVideoModalOpen, globalSignal, enterVideoChatView, floatButtonVisible,
-    setFloatButtonVisible, sid, subpage, lid, currentView
+    setFloatButtonVisible, sid, subpage, lid, currentView, returnMenu,
+    onLiveStreamBtnClick, onVideoCallBtnClick,
 }) {
     const [videoCallBtnDisabled, setVideoCallBtnDisabled] = useState(false);
     useEffect(() => {
@@ -321,6 +324,10 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
             setFloatButtonVisible,
             sid, subpage, lid,
             videoCallBtnDisabled,
+            currentView,
+            returnMenu,
+            onLiveStreamBtnClick,
+            onVideoCallBtnClick,
         }} />
     );
 }

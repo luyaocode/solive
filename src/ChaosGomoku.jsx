@@ -151,6 +151,7 @@ function ChaosGomoku() {
     const [currentView, setCurrentView] = useState(View.Menu);
     const [showOverlayArrow, setShowOverlayArrow] = useState(false);
     const [websiteTitle, setWebsiteTitle] = useState();
+    const [isGameMenu, setIsGameMenu] = useState(false);
 
     useEffect(() => {
         if (currentView === View.Menu && !isLoginModalOpen) {
@@ -288,6 +289,7 @@ function ChaosGomoku() {
     }
     const returnMenuView = () => {
         setCurrentView(View.Menu);
+        setIsGameMenu(false);
     }
 
     useEffect(() => {
@@ -436,6 +438,29 @@ function ChaosGomoku() {
         return seeds;
     }
 
+    const [videoChatRenderKey, setVideoChatRenderKey] = useState(0);
+    const onLiveStreamBtnClick = () => {
+        setIsLiveStream(true);
+        enterVideoChatView();
+        setLiveStreamModalOpen(true);
+        setVideoChatRenderKey(prev => prev - 1);
+    };
+
+    const onVideoCallBtnClick = () => {
+        setIsLiveStream(false);
+        enterVideoChatView();
+        setVideoCallModalOpen(true);
+        setVideoChatRenderKey(prev => prev + 1);
+    };
+
+    const onRecordVideoBtnClick = (outAudioEnabled) => {
+        setGlobalSignal(prev => ({
+            ...prev, [GlobalSignal.Active]: true,
+            [outAudioEnabled ? GlobalSignal.RecordVideoBtnClicked_OutAudioEnabled :
+                GlobalSignal.RecordVideoBtnClicked_OutAudioDisabled]: true
+        }));
+    };
+
     return (
         <React.StrictMode className='game-container'>
             <DraggableButton setShowLive2DRole={setShowLive2DRole}
@@ -451,7 +476,9 @@ function ChaosGomoku() {
                 floatButtonVisible={floatButtonVisible}
                 setFloatButtonVisible={setFloatButtonVisible}
                 sid={sid} subpage={subpage} lid={lid}
-                currentView={currentView}
+                currentView={currentView} returnMenu={returnMenuView}
+                onLiveStreamBtnClick={onLiveStreamBtnClick}
+                onVideoCallBtnClick={onVideoCallBtnClick}
             />
             {
                 receiveInviteModalOpen &&
@@ -510,10 +537,16 @@ function ChaosGomoku() {
                                     generateSeeds={generateSeeds} isLoginModalOpen={isLoginModalOpen} setLoginModalOpen={setLoginModalOpen}
                                     isLoginSuccess={isLoginSuccess} selectedTable={selectedTable} setSelectedTable={setSelectedTable}
                                     setTableViewOpen={setTableViewOpen} avatarIndex={avatarIndex} setShowOverlayArrow={setShowOverlayArrow}
-                                    gameInviteAccepted={gameInviteAccepted} locationData={locationData} />
+                                    gameInviteAccepted={gameInviteAccepted} locationData={locationData}
+                                    isGameMenu={isGameMenu} setIsGameMenu={setIsGameMenu}
+                                    onLiveStreamBtnClick={onLiveStreamBtnClick}
+                                    onVideoCallBtnClick={onVideoCallBtnClick}
+                                    onRecordVideoBtnClick={onRecordVideoBtnClick}
+                                />
                                 ) :
                                 (currentView === View.VideoChat ?
-                                    <VideoChat sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView}
+                                    <VideoChat key={videoChatRenderKey}
+                                        sid={sid} deviceType={deviceType} socket={socket} returnMenuView={returnMenuView}
                                         messages={messages} setMessages={setMessages} chatPanelOpen={chatPanelOpen} setChatPanelOpen={setChatPanelOpen}
                                         globalSignal={globalSignal} videoCallModalOpen={videoCallModalOpen}
                                         setVideoCallModalOpen={setVideoCallModalOpen} setFloatButtonVisible={setFloatButtonVisible}
