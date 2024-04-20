@@ -262,9 +262,9 @@ function ChaosGomoku() {
             else if (subpage === SubPage.LiveStream) {
                 setIsLiveStream(true);
                 enterVideoChatView();
-                if (netConnected) {
-                    setLiveStreamModalOpen(true);
-                }
+                // if (netConnected) {
+                //     setLiveStreamModalOpen(true);
+                // }
             }
         }
     }, [socket, netConnected]);

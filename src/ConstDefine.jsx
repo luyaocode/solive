@@ -106,6 +106,7 @@ export const RemoteDesktopIcon = '/picture/svg/RemoteDesktopIcon.svg';
 export const FileTransferIcon = '/picture/svg/FileTransferIcon.svg';
 export const RefreshLiveStreamIcon = '/picture/svg/RefreshLiveStreamIcon.svg';
 export const LiveChatPanelIcon = '/picture/svg/LiveChatPanelIcon.svg';
+export const EnterLiveRoomIcon = '/picture/svg/EnterLiveRoomIcon.svg';
 
 export const BGM1 = '/audio/bgm/cruising-down-8bit-lane.mp3';
 export const BGM2 = '/audio/bgm/after_the_rain.mp3';

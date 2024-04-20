@@ -23,7 +23,7 @@ import {
     Messages_Max_Send, Message_Max_Len, Text_Max_Len,
     View, Live_Messages_Max_Send, Live_Message_Max_Len,
     AudioIcon, AudioIconDisabled, MessageIcon, LiveChatPanelIcon,
-    VideoIcon, VideoIconDisabled,
+    VideoIcon, VideoIconDisabled, EnterLiveRoomIcon,
     NoVideoIcon, SpeakerIcon, ShareIcon, MediaTrackSettingsIcon, SelectVideoIcon,
     ShareScreenIcon, StopShareScreenIcon, StatPanelIcon, SwitchCameraIcon,
     BGM1, BGM2, SmallSpeakerIcon, SmallSpeakerSilentIcon, MediaCtlMenuIcon,
@@ -1595,7 +1595,7 @@ function LiveRoomChatPanel({ messages, setMessages, socket, peerConn, anchorSock
                         onClick={onTextAreaClick}
                         style={{
                             width: '80%',
-                            height: '2rem',
+                            height: '2.2rem',
                             maxHeight: '54px', // 调整最大高度
                             fontSize: '16px', // 调整字体大小
                             resize: 'none',
@@ -2538,6 +2538,122 @@ function WaitModal({ modalInfo, setModalOpen, onCancelBtnClick, peer }) {
                     <Button onClick={onCancelBtnClick}>取消</Button>
                 </div>
             </div>
+        </div>
+    );
+}
+
+function LiveRoom({ room, onClick }) {
+    const [imgSrc, setImgSrc] = useState();
+    const [imageLoaded, setImageLoaded] = useState(false);
+    useEffect(() => {
+        if (room?.rid) {
+            let serverUrl;
+            if (process.env.REACT_APP_ENV === 'dev') {
+                serverUrl = process.env.REACT_APP_BACKEND_HTTP_DEV;
+            }
+            else if (process.env.REACT_APP_ENV === 'prod') {
+                serverUrl = process.env.REACT_APP_BACKEND_HTTP;
+            }
+            const src = serverUrl + '/live-room/' + room.rid + '.jpg';
+            const img = new Image();
+            img.onload = () => {
+                setImageLoaded(true);
+            };
+            img.onerror = () => {
+                setImageLoaded(false);
+            };
+            img.src = `${serverUrl}/live-room/${room.rid}.jpg`;
+            setImgSrc(src);
+        }
+    }, [room]);
+    return (
+        <div className="live-room"
+            onClick={() => onClick(room.rid)}
+        >
+            <span>{'ID:' + room.rid}</span>
+            <img
+                src={(imgSrc && imageLoaded) ? imgSrc : NoVideoIcon}
+                alt="LiveRoom" className='room-thumbnail' />
+            <div className='enter-live-room-icon-overlay'>
+                <img src={EnterLiveRoomIcon} alt="EnterLiveRoom" className='enter-live-room-icon' />
+            </div>
+        </div>
+    );
+}
+
+function LiveRoomList({ liveRooms, onClick, }) {
+    return (
+        <div className="live-room-list">
+            {liveRooms &&
+                Object.keys(liveRooms).map(sid => (
+                    <LiveRoom key={sid} room={{
+                        sid: sid,
+                        rid: liveRooms[sid]
+                    }}
+                        onClick={onClick} />
+                ))
+            }
+        </div>
+    );
+}
+
+function LiveStreamHomePage({ netConnected, socket, onClick, }) {
+    const [liveRooms, setLiveRooms] = useState();
+
+    useEffect(() => {
+        if (netConnected) {
+            const handleGetLiveRooms = (data) => {
+                if (data) {
+                    setLiveRooms(data);
+                }
+            };
+
+            socket.on("getLiveRooms", handleGetLiveRooms);
+            socket.emit("queryLiveRooms");
+            return () => socket.off("getLiveRooms", handleGetLiveRooms);
+        }
+    }, [netConnected]);
+
+    return (
+        <div className='live-stream-home-page'>
+            <LiveRoomList liveRooms={liveRooms} onClick={onClick} />
+        </div>
+    );
+}
+
+function VideoFrameCapture({ socket, videoRef, localStream }) {
+    const canvasRef = useRef(null);
+
+    useEffect(() => {
+        if (socket && localStream && videoRef?.current) {
+            const video = videoRef.current;
+            const canvas = canvasRef.current;
+            if (video && canvas) {
+                video.onloadedmetadata = () => {
+                    video.onplay = () => {
+                        captureFrameAndSend();
+                    };
+                };
+            }
+        }
+    }, [localStream, socket]);
+
+    const captureFrameAndSend = () => {
+        const video = videoRef.current;
+        const canvas = canvasRef.current;
+        const ctx = canvas.getContext('2d');
+        canvas.width = video.videoWidth;
+        canvas.height = video.videoHeight;
+        ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+        const imageData = canvas.toDataURL('image/jpeg');
+        if (socket) {
+            socket.emit('liveRoomScreenShoot', imageData);
+        }
+    };
+
+    return (
+        <div>
+            <canvas ref={canvasRef} style={{ display: 'none' }} />
         </div>
     );
 }
@@ -4351,6 +4467,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     }, [liveBtnClicked]);
 
+    const onLiveRoomClick = (rid) => {
+        setSelectedRole(LiveStreamRole.Viewer);
+        setLiveRoomIdToEnter(rid);
+        enterLiveRoom(rid);
+    }
+
     ///////////////////////////////////直播////////////////////////////////////////////////
 
     const checkVideoTrack = (stream) => {
@@ -4498,6 +4620,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     return (
         <>
+            {
+                <VideoFrameCapture socket={socket} videoRef={myVideo} localStream={localStream} />
+            }
+            {isLiveStream && selectedRole !== LiveStreamRole.Anchor && !isConnected && !lid &&
+                < LiveStreamHomePage netConnected={netConnected} socket={socket}
+                    onClick={onLiveRoomClick}
+                />
+            }
             <div className='video-chat-view'>
                 <div className={`video-container-parent ${deviceType === DeviceType.MOBILE ? 'mobile' : ''}`}>
                     <div className="video-container">
@@ -4992,40 +5122,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             }} />
                         }
                         {
-                            liveStreamModalOpen &&
-                            <LiveStreamModal socket={socket}
-                                selectedRole={selectedRole}
-                                setSelectedRole={setSelectedRole}
-                                liveRoomId={liveRoomId}
-                                setLiveRoomId={setLiveRoomId}
-                                liveUrl={liveUrl}
-                                setLiveUrl={setLiveUrl}
-                                setNewViewer={setNewViewer}
-                                setModalOpen={setLiveStreamModalOpen}
-                                onLiveBtnClick={onLiveBtnClick}
-                                onViewBtnClick={onViewBtnClick}
-                                name={name} setName={setName}
-                                setAnchorName={setAnchorName}
-                                enterLiveRoom={enterLiveRoom}
-                                liveRoomIdToEnter={liveRoomIdToEnter}
-                                setLiveRoomIdToEnter={setLiveRoomIdToEnter}
-                                stopLive={stopLive}
-                                leaveLiveRoom={leaveLiveRoom}
-                                isConnected={isConnected}
-                                lid={lid}
-                                liveBtnClicked={liveBtnClicked}
-                            />
-                        }
-                        {enteringLiveRoomModalOpen &&
-                            <LoadingModal setModalOpen={setEnteringLiveRoomModalOpen}
-                                loadingText={'正在进入直播间' + (lid ? lid : '')}
-                                noCancelBtn={lid} />
-                        }
-                        {
-                            alertModalOpen &&
-                            <InfoModal modalInfo={alertModalInfo} setModalOpen={setAlertModalOpen} />
-                        }
-                        {
                             transferFileModalOpen &&
                             <TransferModal setModalOpen={setTransferFileModalOpen}
                                 peer={connectionRef?.current?.peer}
@@ -5057,6 +5153,40 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     </>
                 }
             </div >
+            {
+                liveStreamModalOpen &&
+                <LiveStreamModal socket={socket}
+                    selectedRole={selectedRole}
+                    setSelectedRole={setSelectedRole}
+                    liveRoomId={liveRoomId}
+                    setLiveRoomId={setLiveRoomId}
+                    liveUrl={liveUrl}
+                    setLiveUrl={setLiveUrl}
+                    setNewViewer={setNewViewer}
+                    setModalOpen={setLiveStreamModalOpen}
+                    onLiveBtnClick={onLiveBtnClick}
+                    onViewBtnClick={onViewBtnClick}
+                    name={name} setName={setName}
+                    setAnchorName={setAnchorName}
+                    enterLiveRoom={enterLiveRoom}
+                    liveRoomIdToEnter={liveRoomIdToEnter}
+                    setLiveRoomIdToEnter={setLiveRoomIdToEnter}
+                    stopLive={stopLive}
+                    leaveLiveRoom={leaveLiveRoom}
+                    isConnected={isConnected}
+                    lid={lid}
+                    liveBtnClicked={liveBtnClicked}
+                />
+            }
+            {enteringLiveRoomModalOpen &&
+                <LoadingModal setModalOpen={setEnteringLiveRoomModalOpen}
+                    loadingText={'正在进入直播间' + (lid ? lid : '')}
+                    noCancelBtn={lid} />
+            }
+            {
+                alertModalOpen &&
+                <InfoModal modalInfo={alertModalInfo} setModalOpen={setAlertModalOpen} />
+            }
         </>
     )
 }
@@ -5378,9 +5508,11 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
             leaveLiveRoom();
             setAnchorName('');
         }
-        if (!lid) {
-            setSelectedRole(LiveStreamRole.Unknown);
-        }
+        // if (!lid) {
+        //     setSelectedRole(LiveStreamRole.Unknown);
+        // }
+        setSelectedRole(LiveStreamRole.Unknown);
+        setModalOpen(false);
     };
 
     return (
@@ -5394,12 +5526,15 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
                     <XSign onClick={onXSignClick} />
                 }
                 {!selectedRole ?
-                    <ButtonBoxN props={{
-                        infoArray: ['我是主播', '我是观众'],
-                        onClickArray: [
-                            handleLiveBtnClick,
-                            handleViewBtnClick],
-                    }} /> : null
+                    <>
+                        <p>请选择你的身份</p>
+                        <ButtonBoxN props={{
+                            infoArray: ['我是主播', '我是观众'],
+                            onClickArray: [
+                                handleLiveBtnClick,
+                                handleViewBtnClick],
+                        }} />
+                    </> : null
                 }
                 {selectedRole === LiveStreamRole.Anchor &&
                     <>

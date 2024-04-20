@@ -259,3 +259,71 @@
 .live-message.anchor .msg-info {
     color: red;
 }
+
+/* 直播间主页 */
+.live-stream-home-page {
+    position: absolute;
+    left: 0;
+    top: 0;
+    overflow-x: hidden;
+    overflow-y: auto;
+    width: 100%;
+    height: 100%;
+    background-color: #111111;
+    z-index: 19;
+}
+
+.live-room-list {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(30%, 1fr));
+    gap: 20px;
+}
+
+.live-room {
+    background-color: #262626;
+    padding: 0;
+    border-radius: 8px;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    cursor: pointer;
+    position: relative;
+}
+
+.live-room span {
+    position: absolute;
+    bottom: 0;
+    right: 0;
+    color: rgba(255, 255, 255, 0.7);
+    z-index: 1;
+}
+
+.live-room:hover {}
+
+.room-thumbnail {
+    width: 100%;
+    border-radius: 8px;
+}
+
+.enter-live-room-icon-overlay {
+    position: absolute;
+    width: 100%;
+    height: 100%;
+    top: 0;
+    left: 0;
+    z-index: 1;
+    background-color: rgba(0, 0, 0, 0);
+    opacity: 0.5;
+}
+
+.enter-live-room-icon-overlay:hover {
+    background-color: rgba(0, 0, 0, 0.5);
+    opacity: 1;
+}
+
+.enter-live-room-icon {
+    position: absolute;
+    width: 20%;
+    height: 20%;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
