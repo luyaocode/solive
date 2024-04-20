@@ -2781,8 +2781,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     const onSelectedMediaStreamOff = () => {
         setConstraint(prevConstraint);
-        setAudioEnabled(prevConstraint?.audio);
-        setVideoEnabled(prevConstraint?.video);
+        setAudioEnabled((prevConstraint?.audio) ? true : false);
+        setVideoEnabled((prevConstraint?.video) ? true : false);
     }
 
     useEffect(() => {
@@ -2812,23 +2812,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 sampleRate: sampleRate,
             } : false,
         });
-    }, [facingMode]);
-
-    useEffect(() => {
-        setConstraint({
-            video: videoEnabled ? {
-                width: localVideoWidth,
-                height: localVideoHeight,
-                frameRate: localFrameRate,
-                facingMode: facingMode,
-            } : false,
-            audio: audioEnabled ? {
-                echoCancellation: echoCancellation,
-                noiseSuppression: noiseSuppression,
-                sampleRate: sampleRate,
-            } : false,
-        });
-    }, [audioEnabled, videoEnabled]);
+    }, [audioEnabled, videoEnabled, facingMode]);
 
     // 游戏语音模块
     const [haveCalledOnce, setHaveCalledOnce] = useState(false);
@@ -3273,7 +3257,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         myVideo.current.srcObject = selectedMediaStream;
                     }
                 }
-                else {
+                else if (stream) {
                     setLocalStream(stream);
                     if (myVideo.current) {
                         myVideo.current.srcObject = stream;
@@ -3290,17 +3274,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     }, [constraint, selectedAudioDevice, selectedVideoDevice, selectedMediaStream]);
 
     useEffect(() => {
-        if (socket && myVideo.current) {
-            getUserMediaStream()
-                .then(stream => {
-                    if (stream) {
-                        setLocalStream(stream);
-                        if (myVideo?.current) {
-                            myVideo.current.srcObject = stream;
-                        }
-                    }
-                });
-
+        if (socket) {
             socket.on("callRejected", () => {
                 setCallAccepted(false);
                 setCallRejected(true);
@@ -3351,7 +3325,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 acceptShareScreen(data.signal);
             });
         }
-    }, [socket, myVideo]);
+    }, [socket]);
 
     useEffect(() => {
         const handleToCallBusy = () => {
@@ -4631,10 +4605,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     const onInviteCallBtnClick = () => {
         setInviteVideoChatModalOpen(true);
+        setVideoCallModalOpen(false);
     };
 
     const onCallUserBtnClick = () => {
         callUser(idToCall);
+        setVideoCallModalOpen(false);
     };
 
     const onReturnMenuBtnClick = () => {
@@ -5045,11 +5021,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             {toCallIsBusy &&
                                 <Modal modalInfo='用户忙' setModalOpen={setToCallIsBusy} />}
 
-                            {inviteVideoChatModalOpen &&
-                                <InviteVideoChatModal closeModal={() => setInviteVideoChatModalOpen(false)}
-                                    me={me} name={name} socket={socket} inviteVideoChatModalOpen={inviteVideoChatModalOpen}
-                                    strNowDate={strNowDate} />
-                            }
                             {prepareCallModal &&
                                 <ConfirmModal modalInfo="将要发起视频通话，是否继续？" onOkBtnClick={() => {
                                     setPrepareCallModal(false);
@@ -5139,16 +5110,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             setOutboundFrameWidth={setOutboundFrameWidth_SC}
                             setOutboundFrameHeight={setOutboundFrameHeight_SC}
                         />
-                        {videoCallModalOpen &&
-                            <VideoCallModal props={{
-                                parent: 'ChaosGomoku',
-                                setVideoCallModalOpen,
-                                callAccepted, isNameReadOnly, name, onNameTextAreaChange,
-                                isIdToCallReadOnly, idToCall, onIdToCallTextAreaChange,
-                                callEnded, onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick,
-                                socket,
-                            }} />
-                        }
                         {
                             transferFileModalOpen &&
                             <TransferModal setModalOpen={setTransferFileModalOpen}
@@ -5181,6 +5142,21 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     </>
                 }
             </div >
+            {videoCallModalOpen &&
+                <VideoCallModal props={{
+                    parent: 'ChaosGomoku',
+                    setVideoCallModalOpen,
+                    callAccepted, isNameReadOnly, name, onNameTextAreaChange,
+                    isIdToCallReadOnly, idToCall, onIdToCallTextAreaChange,
+                    callEnded, onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick,
+                    socket,
+                }} />
+            }
+            {inviteVideoChatModalOpen &&
+                <InviteVideoChatModal closeModal={() => setInviteVideoChatModalOpen(false)}
+                    me={me} name={name} socket={socket} inviteVideoChatModalOpen={inviteVideoChatModalOpen}
+                    strNowDate={strNowDate} />
+            }
             {
                 liveStreamModalOpen &&
                 <LiveStreamModal socket={socket}
