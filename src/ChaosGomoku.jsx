@@ -440,17 +440,23 @@ function ChaosGomoku() {
 
     const [videoChatRenderKey, setVideoChatRenderKey] = useState(0);
     const onLiveStreamBtnClick = () => {
-        setIsLiveStream(true);
-        enterVideoChatView();
+        if (!isLiveStream) {
+            setIsLiveStream(true);
+            enterVideoChatView();
+            setVideoChatRenderKey(prev => prev - 1);
+        }
         setLiveStreamModalOpen(true);
-        setVideoChatRenderKey(prev => prev - 1);
     };
 
     const onVideoCallBtnClick = () => {
-        setIsLiveStream(false);
-        enterVideoChatView();
+        if (currentView !== View.VideoChat) {
+            enterVideoChatView();
+        }
+        if (isLiveStream) {
+            setIsLiveStream(false);
+            setVideoChatRenderKey(prev => prev + 1);
+        }
         setVideoCallModalOpen(true);
-        setVideoChatRenderKey(prev => prev + 1);
     };
 
     const onRecordVideoBtnClick = (outAudioEnabled) => {
