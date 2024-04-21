@@ -290,6 +290,7 @@ function ChaosGomoku() {
     const returnMenuView = () => {
         setCurrentView(View.Menu);
         setIsGameMenu(false);
+        setIsLiveStream(false);
     }
 
     useEffect(() => {
