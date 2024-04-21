@@ -84,7 +84,8 @@ function FloatBall({ setElementSize, props }) {
             {
                 <div className={`floating-button-options ${props.componentBoundPos} ${isExpanded ? 'expand' : ''}`}>
                     <button onClick={onLiveStreamBtnClick}
-                        onTouchStart={onLiveStreamBtnClick}>
+                        onTouchStart={onLiveStreamBtnClick}
+                        disabled={props.liveStreamBtnDisabled}>
                         直播
                     </button>
                     <button onClick={onVideoCallBtnClick}
@@ -300,12 +301,15 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
     onLiveStreamBtnClick, onVideoCallBtnClick,
 }) {
     const [videoCallBtnDisabled, setVideoCallBtnDisabled] = useState(false);
+    const [liveStreamBtnDisabled, setLiveStreamBtnDisabled] = useState(false);
     useEffect(() => {
         if (currentView === View.Game) {
             setVideoCallBtnDisabled(true);
+            setLiveStreamBtnDisabled(true);
         }
         else {
             setVideoCallBtnDisabled(false);
+            setLiveStreamBtnDisabled(false);
         }
     }, [currentView]);
     return (
@@ -324,6 +328,7 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
             setFloatButtonVisible,
             sid, subpage, lid,
             videoCallBtnDisabled,
+            liveStreamBtnDisabled,
             currentView,
             returnMenu,
             onLiveStreamBtnClick,
