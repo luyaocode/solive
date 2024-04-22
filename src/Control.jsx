@@ -1501,7 +1501,7 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
 
 function LiveRoomChatPanel({ messages, setMessages, socket, peerConn, anchorSocketId,
     deviceType, liveRoomChatPanelDisplay, setLiveRoomChatPanelDisplay, selectedRole,
-    isConnected, reconnect
+    isConnected, reconnect, rootAnchorSid,
 }) {
     const [inputText, setInputText] = useState('');
     const textareaRef = useRef(null);
@@ -1543,16 +1543,17 @@ function LiveRoomChatPanel({ messages, setMessages, socket, peerConn, anchorSock
                     sender: socket?.id,
                     timestamp: Date.now(),
                 };
-                const messageString = JSON.stringify(newMessage);
-                if (peerConn) {
-                    for (let id in peerConn) {
-                        if (id.startsWith('$')) continue;
-                        const peer = peerConn[id].peer;
-                        if (peer && !peer.destroyed && peer._pcReady) {
-                            peer.send(messageString);
-                        }
-                    }
-                }
+                // const messageString = JSON.stringify(newMessage);
+                // if (peerConn) {
+                //     for (let id in peerConn) {
+                //         if (id.startsWith('$')) continue;
+                //         const peer = peerConn[id].peer;
+                //         if (peer && !peer.destroyed && peer._pcReady) {
+                //             peer.send(messageString);
+                //         }
+                //     }
+                // }
+                socket.emit("pushLiveMsgs", newMessage);
                 setMessages(prev => [...prev, newMessage]);
                 setInputText('');
                 adjustTextareaHeight();
@@ -1561,7 +1562,7 @@ function LiveRoomChatPanel({ messages, setMessages, socket, peerConn, anchorSock
         if (handleSendMessageRef) {
             handleSendMessageRef.current = handleSendMessage;
         }
-    }, [handleSendMessageRef, inputText, socket, peerConn]);
+    }, [handleSendMessageRef, inputText, socket]);
     // 处理发送消息
 
     function onClose() {
@@ -1607,12 +1608,12 @@ function LiveRoomChatPanel({ messages, setMessages, socket, peerConn, anchorSock
                         <div key={index} className={`live-message ${selectedRole === LiveStreamRole.Anchor ?
                             (message.sender === socket.id ? 'anchor' : 'other') :
                             (selectedRole === LiveStreamRole.Viewer ?
-                                (message.sender === anchorSocketId ? 'anchor' : (message.sender === socket.id ? 'me' : 'other')) :
+                                (message.sender === rootAnchorSid ? 'anchor' : (message.sender === socket.id ? 'me' : 'other')) :
                                 '')}`}
                         >
                             <div className='msg-inline'>
                                 <div className='msg-container'>
-                                    <p className='msg-name'>{(message.sender === socket.id ? '[我]' : (message.sender === anchorSocketId ? '[主播]' : '')) + maskSocketId(message.sender)}</p>
+                                    <p className='msg-name'>{(message.sender === socket.id ? '[我]' : (message.sender === rootAnchorSid ? '[主播]' : '')) + maskSocketId(message.sender)}</p>
                                     <div className='msg-timestamp'>{formatTime(message.timestamp)}</div>
                                 </div>
                                 <p className='msg-info'>{message.text.replace(/ /g, '\u00a0')}</p>
@@ -2429,7 +2430,7 @@ function TransferModal({ setModalOpen, peer, fileTransferAccepted, setFileTransf
                         onClick={handleInputClick}
                         onChange={handleFileChange}
                     />
-                    <div className={`drag - drop - area ${dragging ? 'dragging' : ''}`}
+                    <div className={`drag-drop-area ${dragging ? 'dragging' : ''}`}
                         onDrop={onDrop}
                         onDragOver={onDragOver}
                         onDragLeave={onDragLeave}
@@ -2893,6 +2894,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [liveUrl, setLiveUrl] = useState(); // 直播间链接
     const [liveRoomIdToEnter, setLiveRoomIdToEnter] = useState(); // 观众进入的直播间号
     const [anchorSocketId, setAnchorSocketId] = useState();// 主播socketId
+    const [rootAnchorSid, setRootAnchorSid] = useState(); // 根主播socketId
     const [anchorName, setAnchorName] = useState();//主播名称
     const [newViewer, setNewViewer] = useState(); //新加入的观众socketId
     const [newViewerName, setNewViewerName] = useState();//新加入观众的名称unused
@@ -4062,7 +4064,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             };
         }
     }, [socket, isShareScreen, localStream, localScreenStream, selectedRole,
-        remoteStream, remoteScreenStream, isReceiveShareScreen
+        remoteStream, remoteScreenStream, isReceiveShareScreen, rootAnchorSid,
     ]);
 
     useEffect(() => {
@@ -4125,6 +4127,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         signalData: data,
                         from: socket.id,
                         name: name,
+                        rootAnchorSid: rootAnchorSid,
                     });
                 }
             });
@@ -4139,6 +4142,22 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             peer.on('connect', () => {
                 console.log('Connected with ' + id);
                 showNotification(id + '进入了直播间', 2000, 'dark', 'top', 'right');
+            });
+
+            peer.on('close', () => {
+                console.log('连接关闭：' + id);
+                setPeerConn(prev => {
+                    const { [id]: idToRemoveValue, ...rest } = prev;
+                    if (idToRemoveValue === peer) {
+                        return {
+                            ...rest,
+                            $isCloseConn: true,
+                        };
+                    }
+                    else {
+                        return prev;
+                    }
+                });
             });
         }
         else {
@@ -4163,72 +4182,84 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 console.log('Connected with ' + id);
                 setIsConnected(true);
             });
+
+            peer.on('close', () => {
+                console.log('连接关闭：' + id);
+                setPeerConn(prev => {
+                    const { [id]: idToRemoveValue, ...rest } = prev;
+                    if (idToRemoveValue === peer) {
+                        return {
+                            ...rest,
+                            $isCloseConn: true,
+                        };
+                    }
+                    else {
+                        return prev;
+                    }
+                });
+                setIsConnected(false);
+            });
         }
         peer.on('error', (err) => {
             console.error(err);
-        });
-        peer.on('close', () => {
-            console.log('连接关闭：' + id);
-            setPeerConn(prev => {
-                const { [id]: idToRemoveValue, ...rest } = prev;
-                if (idToRemoveValue === peer) {
-                    return {
-                        ...rest,
-                        $isCloseConn: true,
-                    };
-                }
-                else {
-                    return prev;
-                }
-            });
-            // showNotification(socket.id + '离开了直播间', 2000, 'dark', 'bottom', 'right');
-            setIsConnected(false);
         });
 
         // peer.on('data', handleOnData);
     };
 
-    const forwardData = (peerConn, data, from) => {
-        if (!peerConn) return;
-        for (let id in peerConn) {
-            if (id.startsWith('$') || id === from) continue;
-            const peer = peerConn[id].peer;
-            if (peer && !peer.destroyed) {
-                peer.send(data);
-            }
-        }
-    };
+    // const forwardData = (peerConn, data, from) => {
+    //     if (!peerConn) return;
+    //     for (let id in peerConn) {
+    //         if (id.startsWith('$') || id === from) continue;
+    //         const peer = peerConn[id].peer;
+    //         if (peer && !peer.destroyed) {
+    //             peer.send(data);
+    //         }
+    //     }
+    // };
+
+    // useEffect(() => {
+    //     const handleOnData = (data) => {
+    //         if (isJSON(data)) {
+    //             const msg = JSON.parse(data);
+    //             if (msg.sender) {
+    //                 setLiveMsgs(prev => [...prev, msg]);
+    //                 // 转发
+    //                 if (selectedRole === LiveStreamRole.Anchor) {
+    //                     forwardData(peerConn, data, msg.sender);
+    //                 }
+    //             }
+    //         }
+    //     };
+    //     for (let id in peerConn) {
+    //         if (id.startsWith('$')) continue;
+    //         const peer = peerConn[id].peer;
+    //         if (peer && !peer.destroyed) {
+    //             peer.on('data', handleOnData);
+    //         }
+    //     }
+    //     return () => {
+    //         for (let id in peerConn) {
+    //             if (id.startsWith('$')) continue;
+    //             const peer = peerConn[id].peer;
+    //             if (peer && !peer.destroyed) {
+    //                 peer.removeAllListeners('data', handleOnData);
+    //             }
+    //         }
+    //     }
+    // }, [peerConn, selectedRole]);
 
     useEffect(() => {
-        const handleOnData = (data) => {
-            if (isJSON(data)) {
-                const msg = JSON.parse(data);
+        if (socket) {
+            const handleGetLiveMsgs = (msg) => {
                 if (msg.sender) {
                     setLiveMsgs(prev => [...prev, msg]);
-                    // 转发
-                    if (selectedRole === LiveStreamRole.Anchor) {
-                        forwardData(peerConn, data, msg.sender);
-                    }
                 }
-            }
-        };
-        for (let id in peerConn) {
-            if (id.startsWith('$')) continue;
-            const peer = peerConn[id].peer;
-            if (peer && !peer.destroyed) {
-                peer.on('data', handleOnData);
-            }
+            };
+            socket.on("getLiveMsgs", handleGetLiveMsgs);
+            return () => socket.off("getLiveMsgs", handleGetLiveMsgs);
         }
-        return () => {
-            for (let id in peerConn) {
-                if (id.startsWith('$')) continue;
-                const peer = peerConn[id].peer;
-                if (peer && !peer.destroyed) {
-                    peer.removeAllListeners('data', handleOnData);
-                }
-            }
-        }
-    }, [peerConn, selectedRole]);
+    }, [socket]);
 
     useEffect(() => {
         // if (peerConn['$isCloseConn']) return;
@@ -4289,7 +4320,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     }
                 }
                 else {
-                    getStream(data.signal, data.from);
+                    getStream(data.signal, data.from, data.rootAnchorSid);
                     setAnchorName(data.name);
                 }
             };
@@ -4338,26 +4369,36 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     useEffect(() => {
         if (socket) {
             const handleRefreshLiveStream = (data) => {
-                pushStream(data.from);
+                if (data.isRelay) {
+                    relayStream(data.from);
+                }
+                else {
+                    pushStream(data.from);
+                }
             };
             socket.on("refreshLiveStream", handleRefreshLiveStream);
             return () => {
                 socket.off("refreshLiveStream", handleRefreshLiveStream);
             }
         }
-    }, [socket, localStream]);
+    }, [socket, localStream, remoteStream]);
 
     useEffect(() => {
         if (socket) {
             const handleRefreshLiveScreenStream = (data) => {
-                pushScreenStream(data.from);
+                if (data.isRelay) {
+                    relayScreenStream(data.from);
+                }
+                else {
+                    pushScreenStream(data.from);
+                }
             };
             socket.on("refreshLiveScreenStream", handleRefreshLiveScreenStream);
             return () => {
                 socket.off("refreshLiveScreenStream", handleRefreshLiveScreenStream);
             }
         }
-    }, [socket, localScreenStream, screenPeerConn]);
+    }, [socket, localScreenStream, screenPeerConn, remoteScreenStream]);
 
     const pushStream = (viewerId) => {
         const peer = createCallPeer(localStream);
@@ -4387,11 +4428,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }));
     }
 
-    const getStream = (signal, from) => {
+    const getStream = (signal, from, rootAnchorSid) => {
         const peer = createAnswerPeer(localStream);
         registPeerFunc(peer, from, false);
         peer.signal(signal);
         setAnchorSocketId(from);
+        setRootAnchorSid(rootAnchorSid);
         setPeerConn(prev => ({
             ...prev,
             $isCloseConn: false,
@@ -4526,6 +4568,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 }
             }
             socket.emit("refreshLiveStream", { to: anchorSocketId, from: socket.id });
+            setReconnect(true);
         }
     };
 
@@ -5105,6 +5148,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             setLiveRoomChatPanelDisplay={setLiveRoomChatPanelDisplay}
                             selectedRole={selectedRole} isConnected={isConnected} reconnect={reconnect}
                             socket={socket} peerConn={peerConn} anchorSocketId={anchorSocketId}
+                            rootAnchorSid={rootAnchorSid}
                         />
                     }
                 </div>
@@ -5304,6 +5348,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     isConnected={isConnected}
                     lid={lid}
                     liveBtnClicked={liveBtnClicked}
+                    setRootAnchorSid={setRootAnchorSid}
                 />
             }
             {enteringLiveRoomModalOpen &&
@@ -5553,6 +5598,7 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
     setAnchorName,
     enterLiveRoom, liveRoomIdToEnter, setLiveRoomIdToEnter,
     stopLive, leaveLiveRoom, isConnected, lid, liveBtnClicked,
+    setRootAnchorSid,
 }) {
     const [countdown, setCountdown] = useState(ExitLiveStreamBtnWaitTime / 1000);
 
@@ -5577,6 +5623,7 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
             const handleLiveStreamRoomId = (data) => {
                 if (data) {
                     setLiveRoomId(data);
+                    setRootAnchorSid(socket.id);
                 }
             };
             socket.on("liveStreamRoomId", handleLiveStreamRoomId);
@@ -5926,9 +5973,9 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                             <img src={LiveChatPanelIcon} alt="LiveChatPanel" className="icon" onClick={() => {
                                                 setLiveRoomChatPanelDisplay(prev => !prev);
                                             }} title='公屏' />
-                                            <img src={RefreshLiveStreamIcon} alt="RefreshLiveStream" className="icon"
-                                                onClick={onRefreshLiveStreamIconClick}
-                                                title='刷新' />
+                                            {/* <img src={RefreshLiveStreamIcon} alt="RefreshLiveStream" className="icon"
+                                            onClick={onRefreshLiveStreamIconClick}
+                                            title='刷新'/> */}{ /**直播时转播节点刷新导致其子节点连锁刷新 */}
                                         </> :
                                         <>
                                             <>
