@@ -1501,7 +1501,7 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
 
 function LiveRoomChatPanel({ messages, setMessages, socket, peerConn, anchorSocketId,
     deviceType, liveRoomChatPanelDisplay, setLiveRoomChatPanelDisplay, selectedRole,
-    isConnected,
+    isConnected, reconnect
 }) {
     const [inputText, setInputText] = useState('');
     const textareaRef = useRef(null);
@@ -1523,6 +1523,12 @@ function LiveRoomChatPanel({ messages, setMessages, socket, peerConn, anchorSock
             setLiveRoomChatPanelDisplay(isConnected);
         }
     }, [isConnected, selectedRole]);
+
+    useEffect(() => {
+        if (reconnect) {
+            setLiveRoomChatPanelDisplay(true);
+        }
+    }, [reconnect]);
 
     useEffect(() => {
         const handleSendMessage = () => {
@@ -2896,6 +2902,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [alertModalInfo, setAlertModalInfo] = useState();
     const [anchorStopLiveStream, setAnchorStopLiveStream] = useState(false); // 主播离开房间
     const [viewerLeaveLiveRoom, setViewerLeaveLiveRoom] = useState(false); // 观众离开房间
+    const [reconnect, setReconnect] = useState(false); // 观众重连
     const [liveRoomChatPanelDisplay, setLiveRoomChatPanelDisplay] = useState(false); // 显示/隐藏聊天板
     const [liveMsgs, setLiveMsgs] = useState([]);
     // /////////////直播相关变量//////////////////////
@@ -3957,18 +3964,54 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     }, [socket, peerConn]);
 
-    const enterLiveRoom = (liveRoomId) => {
+    const enterLiveRoom = (liveRoomId, isReconnect) => {
         if (liveRoomId) {
-            setEnteringLiveRoomModalOpen(true);
+            if (!isReconnect) {
+                setEnteringLiveRoomModalOpen(true);
+            }
             socket.emit("enterLiveRoom", liveRoomId);
         }
     }
 
-    const connectViewer = (id) => {
-        pushStream(id);
-        if (isShareScreen) {
-            pushScreenStream(id);
+    useEffect(() => {
+        if (socket) {
+            const handleReconnectLiveRoom = (lid) => {
+                for (let id in peerConn) {
+                    const peer = peerConn[id]?.peer;
+                    if (peer) {
+                        peer.destroy();
+                    }
+                    setPeerConn({});
+                }
+                for (let id in screenPeerConn) {
+                    const peer = screenPeerConn[id]?.peer;
+                    if (peer) {
+                        peer.destroy();
+                    }
+                    setScreenPeerConn({});
+                }
+                enterLiveRoom(lid, true);
+                setReconnect(true);
+            };
+            socket.on("reconnectLiveRoom", handleReconnectLiveRoom);
+            return () => socket.off("reconnectLiveRoom", handleReconnectLiveRoom);
         }
+    }, [socket, peerConn, screenPeerConn]);
+
+    const connectViewer = (id, isRelay) => {
+        if (isRelay) {
+            relayStream(id);
+            if (isReceiveShareScreen) {
+                relayScreenStream(id);
+            }
+        }
+        else {
+            pushStream(id);
+            if (isShareScreen) {
+                pushScreenStream(id);
+            }
+        }
+
     }
 
     // useEffect(() => {
@@ -3983,14 +4026,19 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     useEffect(() => {
         if (socket) {
             const handleEnterLiveRoomRequest = (data) => {
-                if (selectedRole !== LiveStreamRole.Anchor) {
-                    socket.emit('anchorOffline', data);
-                    return;
-                };
-                if (data) {
-                    setNewViewer(data);
+                if (data.isRelay) { // 转发
+                    connectViewer(data.vid, true);
                 }
-                connectViewer(data);
+                else {
+                    if (selectedRole !== LiveStreamRole.Anchor) {
+                        socket.emit('anchorOffline', data.vid);
+                        return;
+                    };
+                    if (data.vid) {
+                        setNewViewer(data.vid);
+                        connectViewer(data.vid);
+                    }
+                }
             };
             socket.on("enterLiveRoomRequest", handleEnterLiveRoomRequest);
 
@@ -4008,7 +4056,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 socket.off("queryWaitingViewersResult", handleQueryWaitingViewersResult);
             };
         }
-    }, [socket, isShareScreen, localStream, localScreenStream, selectedRole]);
+    }, [socket, isShareScreen, localStream, localScreenStream, selectedRole,
+        remoteStream, remoteScreenStream, isReceiveShareScreen
+    ]);
 
     useEffect(() => {
         if (lid) {
@@ -4029,6 +4079,18 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             setEnteringLiveRoomModalOpen(!isConnected);
         }
     }, [isConnected, selectedRole, lid]);
+
+    useEffect(() => {
+        if (reconnect) {
+            setEnteringLiveRoomModalOpen(false);
+        }
+    }, [reconnect]);
+
+    useEffect(() => {
+        if (isConnected) {
+            setReconnect(false);
+        }
+    }, [isConnected]);
 
     useEffect(() => {
         if (anchorStopLiveStream) {
@@ -4306,6 +4368,20 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }));
     }
 
+    const relayStream = (viewerId) => {
+        const peer = createCallPeer(remoteStream);
+        registPeerFunc(peer, viewerId, true);
+        setPeerConn(prev => ({
+            ...prev,
+            $isCloseConn: false,
+            [viewerId]: {
+                peer: peer,
+                isCaller: true,
+                idToCall: viewerId,
+            },
+        }));
+    }
+
     const getStream = (signal, from) => {
         const peer = createAnswerPeer(localStream);
         registPeerFunc(peer, from, false);
@@ -4386,6 +4462,27 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
      */
     const pushScreenStream = (viewerId, stream) => {
         const peer = createCallPeer(stream ? stream : localScreenStream);
+        registScreenPeerFunc(peer, viewerId, true);
+        setScreenPeerConn(prev => {
+            return {
+                ...prev,
+                $isCloseConn: false,
+                [viewerId]: {
+                    peer: peer,
+                    isSharer: true,
+                    idToShare: viewerId,
+                }
+            }
+        });
+    }
+
+    /**
+     * Share screen stream in live streaming
+     * @param {*} viewerId
+     * @param {*} stream
+     */
+    const relayScreenStream = (viewerId, stream) => {
+        const peer = createCallPeer(stream ? stream : remoteScreenStream);
         registScreenPeerFunc(peer, viewerId, true);
         setScreenPeerConn(prev => {
             return {
@@ -4627,7 +4724,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             {
                 <VideoFrameCapture socket={socket} videoRef={myVideo} localStream={localStream} />
             }
-            {isLiveStream && selectedRole !== LiveStreamRole.Anchor && !isConnected && !lid &&
+            {isLiveStream && selectedRole !== LiveStreamRole.Anchor && !isConnected && !lid && !reconnect &&
                 < LiveStreamHomePage netConnected={netConnected} socket={socket}
                     onClick={onLiveRoomClick}
                 />
@@ -4979,7 +5076,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             deviceType={deviceType}
                             liveRoomChatPanelDisplay={liveRoomChatPanelDisplay}
                             setLiveRoomChatPanelDisplay={setLiveRoomChatPanelDisplay}
-                            selectedRole={selectedRole} isConnected={isConnected}
+                            selectedRole={selectedRole} isConnected={isConnected} reconnect={reconnect}
                             socket={socket} peerConn={peerConn} anchorSocketId={anchorSocketId}
                         />
                     }
