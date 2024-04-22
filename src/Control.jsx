@@ -5156,20 +5156,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 {!peerSocketId && /*以下都不会在游戏语音通话模块中加载 */
                     <>
                         <div>
-                            {receivingCall && !callAccepted &&
-                                (selectedRole !== LiveStreamRole.Viewer) && /**直播时无需确认是否接受 */
-                                <div className='modal-overlay-receive-call'>
-                                    <div className="modal-receive-call">
-                                        <div className="caller">
-                                            <h1 >{anotherName === '' ? '未知号码' : anotherName} 邀请视频通话...</h1>
-                                            <ButtonBox onOkBtnClick={() => {
-                                                acceptCall();
-                                                setInviteVideoChatModalOpen(false);
-                                            }} OnCancelBtnClick={rejectCall}
-                                                okBtnInfo='接听' cancelBtnInfo='拒绝' />
-                                        </div>
-                                    </div>
-                                </div>}
                             {(calling && !peerSocketId) && (!newViewer) &&/**仅游戏语音时取消弹窗 */
                                 < CallingModal isDisabled={sid}
                                     modalInfo={"正在呼叫 " + idToCall}
@@ -5319,6 +5305,21 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     callEnded, onLeaveCallBtnClick, onInviteCallBtnClick, onCallUserBtnClick,
                     socket,
                 }} />
+            }
+            {receivingCall && !callAccepted &&
+                (selectedRole !== LiveStreamRole.Viewer) && /**直播时无需确认是否接受 */
+                <div className='modal-overlay-receive-call'>
+                    <div className="modal-receive-call">
+                        <div className="caller">
+                            <h1 >{anotherName === '' ? '未知号码' : anotherName} 邀请视频通话...</h1>
+                            <ButtonBox onOkBtnClick={() => {
+                                acceptCall();
+                                setInviteVideoChatModalOpen(false);
+                            }} OnCancelBtnClick={rejectCall}
+                                okBtnInfo='接听' cancelBtnInfo='拒绝' />
+                        </div>
+                    </div>
+                </div>
             }
             {inviteVideoChatModalOpen &&
                 <InviteVideoChatModal closeModal={() => setInviteVideoChatModalOpen(false)}

@@ -139,7 +139,9 @@ export const FacingMode = {
 }
 export const FrameRate = {
     Min: 30,
-    Default: 30,
+    Default: {
+        ideal: 60,
+    },
     Max: 120,
 }
 export const SampleRate = {
