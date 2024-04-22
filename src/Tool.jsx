@@ -6,7 +6,7 @@ import { VideoRecorder } from './VideoChat';
 
 import './VideoChat.css';
 import {
-    DeviceType, GlobalSignal, View, Window_Max_Height_Factor
+    DeviceType, GlobalSignal, SubPage, View, Window_Max_Height_Factor
 } from './ConstDefine';
 
 function FloatBall({ setElementSize, props }) {
@@ -308,8 +308,16 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
             setLiveStreamBtnDisabled(true);
         }
         else {
-            setVideoCallBtnDisabled(false);
-            setLiveStreamBtnDisabled(false);
+            if (lid || subpage === SubPage.LiveStream) {
+                setVideoCallBtnDisabled(true);
+            }
+            else if (sid || subpage === SubPage.VideoCall) {
+                setLiveStreamBtnDisabled(true);
+            }
+            else {
+                setVideoCallBtnDisabled(false);
+                setLiveStreamBtnDisabled(false);
+            }
         }
     }, [currentView]);
     return (

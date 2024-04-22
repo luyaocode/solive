@@ -1625,7 +1625,7 @@ function LiveRoomChatPanel({ messages, setMessages, socket, peerConn, anchorSock
                         ref={textareaRef}
                         value={inputText}
                         onChange={handleChange}
-                        placeholder="请输入..."
+                        placeholder={maskSocketId(socket.id) + ":请输入..."}
                         onClick={onTextAreaClick}
                         style={{
                             width: '80%',
@@ -2604,7 +2604,8 @@ function LiveRoom({ room, onClick }) {
         <div className="live-room"
             onClick={() => onClick(room.rid)}
         >
-            <span>{'ID:' + room.rid}</span>
+            <span id='rid'>{'ID:' + room.rid}</span>
+            <span id='nviewer'>{'观众：' + room.nViewer}</span>
             <img
                 src={(imgSrc && imageLoaded) ? imgSrc : NoVideoIcon}
                 alt="LiveRoom" className='room-thumbnail' />
@@ -2615,14 +2616,15 @@ function LiveRoom({ room, onClick }) {
     );
 }
 
-function LiveRoomList({ liveRooms, onClick, }) {
+function LiveRoomList({ liveRooms, viewers, onClick, }) {
     return (
         <div className="live-room-list">
             {liveRooms &&
                 Object.keys(liveRooms).map(sid => (
                     <LiveRoom key={sid} room={{
                         sid: sid,
-                        rid: liveRooms[sid]
+                        rid: liveRooms[sid],
+                        nViewer: viewers[liveRooms[sid]],
                     }}
                         onClick={onClick} />
                 ))
@@ -2631,14 +2633,16 @@ function LiveRoomList({ liveRooms, onClick, }) {
     );
 }
 
-function LiveStreamHomePage({ netConnected, socket, onClick, }) {
+function LiveStreamHomePage({ netConnected, socket, onClick }) {
     const [liveRooms, setLiveRooms] = useState();
+    const [viewers, setViewers] = useState();
 
     useEffect(() => {
         if (netConnected) {
-            const handleGetLiveRooms = (data) => {
-                if (data) {
-                    setLiveRooms(data);
+            const handleGetLiveRooms = ({ liveRooms, viewers }) => {
+                if (liveRooms && viewers) {
+                    setLiveRooms(liveRooms);
+                    setViewers(viewers);
                 }
             };
 
@@ -2650,7 +2654,7 @@ function LiveStreamHomePage({ netConnected, socket, onClick, }) {
 
     return (
         <div className='live-stream-home-page'>
-            <LiveRoomList liveRooms={liveRooms} onClick={onClick} />
+            <LiveRoomList liveRooms={liveRooms} viewers={viewers} onClick={onClick} />
         </div>
     );
 }
@@ -2904,7 +2908,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [viewerLeaveLiveRoom, setViewerLeaveLiveRoom] = useState(false); // 观众离开房间
     const [reconnect, setReconnect] = useState(false); // 观众重连
     const [liveRoomChatPanelDisplay, setLiveRoomChatPanelDisplay] = useState(false); // 显示/隐藏聊天板
-    const [liveMsgs, setLiveMsgs] = useState([]);
+    const [liveMsgs, setLiveMsgs] = useState([]); // 聊天室消息
+    const [nViewer, setNViewer] = useState(0); // 在线观众数量
     // /////////////直播相关变量//////////////////////
 
     useEffect(() => {
@@ -4719,6 +4724,18 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     };
 
+    useEffect(() => {
+        if (socket) {
+            const handleGetLiveViewers = (n) => {
+                if (n) {
+                    setNViewer(n);
+                }
+            }
+            socket.on("getViewerNumber", handleGetLiveViewers);
+            return () => socket.on("getViewerNumber", handleGetLiveViewers);
+        }
+    }, [socket]);
+
     return (
         <>
             {
@@ -4827,6 +4844,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         },
                                     ]}
                                 />
+                                {isLiveStream &&
+                                    <TextOverlay
+                                        position="bottom-left"
+                                        content={'当前在线：' + nViewer}
+                                    />}
                                 <TextOverlay
                                     position="bottom-right"
                                     iconSrc={FullScreenIcon}
@@ -4894,6 +4916,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         },
                                     ]}
                                 />
+                                {isLiveStream &&
+                                    <TextOverlay
+                                        position="bottom-left"
+                                        content={'当前在线：' + nViewer}
+                                    />}
                                 <TextOverlay
                                     position="bottom-right"
                                     iconSrc={FullScreenIcon}
