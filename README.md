@@ -34,8 +34,6 @@ Make sure you have installed **Node.js** and **npm**
 ```
 # download codes
 git clone https://github.com/luyaocode/chaos-gomoku.git
-or
-git clone https://gitee.com/luyaocoding/chaos-gomoku.git
 #install modules
 npm install
 # start to run
