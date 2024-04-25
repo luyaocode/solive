@@ -3102,7 +3102,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     useEffect(() => {
         if (sid) {
             setIdToCall(sid);
-            setName('大魔王');
+            setName(maskSocketId(socket.id));
             setIsIdToCallReadOnly(true);
             setIsNameReadOnly(true);
             setPrepareCallModal(true);
@@ -3478,9 +3478,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     }
                     else if (msg.sender) { // 文本通信
                         console.log('Received message from peer: ' + msg.text);
-                        if (!chatPanelOpen) {
-                            showNotification(msg.text);
-                        }
                         msg.sender = 'other';
                         setMessages(prev => [...prev, msg]);
                     }
@@ -3513,7 +3510,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 peer.removeAllListeners('data'); // Clear effect of chatPanelOpen
             }
         }
-    }, [connectionRef.current, chatPanelOpen]);
+    }, [connectionRef.current]);
 
     const isJSON = (str) => {
         try {
