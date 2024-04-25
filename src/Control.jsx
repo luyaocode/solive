@@ -919,7 +919,9 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
                     OnCancelBtnClick={() => setEnterRoomModalOpen(false)} />}
                 {isLoginModalOpen && <LoginModal modalInfo='请输入账号密码'
                     onOkBtnClick={login}
-                    OnCancelBtnClick={() => setLoginModalOpen(false)} />}
+                    OnCancelBtnClick={() => setLoginModalOpen(false)}
+                    socket={socket}
+                />}
                 {
                     loginResultModalOpen && <Modal modalInfo={isLoginSuccess === LoginStatus.OK ? '登录成功！' : '登录失败！'} setModalOpen={setLoginResultModalOpen} />
                 }
@@ -1071,7 +1073,11 @@ function SingleGameTable({ data, setSelectedTable }) {
 }
 
 
-function LoginModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
+function LoginModal({ modalInfo, onOkBtnClick, OnCancelBtnClick, socket }) {
+    const [signupModalOpen, setSignupModalOpen] = useState(false);
+    const [account, setAccount] = useState();
+    const [passwd, setPasswd] = useState();
+
     function closeModal() {
         OnCancelBtnClick();
     }
@@ -1080,48 +1086,178 @@ function LoginModal({ modalInfo, onOkBtnClick, OnCancelBtnClick }) {
         const { account, passwd } = values;
         onOkBtnClick(account, passwd);
     }
+
+    const handleAccountChange = (changedValues, allValues) => {
+        setAccount(changedValues['account']);
+        setPasswd(changedValues['passwd']);
+    };
+
+    function login() {
+        onOkBtnClick(account, passwd);
+    }
+
+    const signup = () => {
+        setSignupModalOpen(true);
+    };
+
     return (
         <div className="modal-overlay">
             <div className="modal">
-                <span className="close-button" onClick={closeModal}>
-                    &times;
-                </span>
-                <p>{modalInfo}</p>
-                <Form
-                    name="basic"
-                    onFinish={onFinish}
-                    labelCol={{ span: 6 }}
-                    wrapperCol={{ span: 18 }}
-                >
-                    <Form.Item
-                        label="账号"
-                        name="account"
-                        rules={[{ required: true, message: '请输入账号!' }]}
-                    >
-                        <Input placeholder="请输入账号" />
-                    </Form.Item>
+                {signupModalOpen ?
+                    <>
+                        <SignupDialog setModalOpen={setSignupModalOpen} socket={socket}
+                            login={onOkBtnClick} />
+                    </> :
+                    <>
+                        <span className="close-button" onClick={closeModal}>
+                            &times;
+                        </span>
+                        <p>{modalInfo}</p>
+                        <Form
+                            name="basic"
+                            onFinish={onFinish}
+                            labelCol={{ span: 4 }}
+                            wrapperCol={{ span: 18 }}
+                            onValuesChange={handleAccountChange}
+                        >
+                            <Form.Item
+                                label="账号"
+                                name="account"
+                                rules={[{ required: true, message: '请输入账号!' }]}
+                            >
+                                <Input placeholder="请输入账号" />
+                            </Form.Item>
 
-                    <Form.Item
-                        label="密码"
-                        name="passwd"
-                        rules={[{ required: true, message: '请输入密码!' }]}
-                    >
-                        <Input.Password placeholder="请输入密码" />
-                    </Form.Item>
+                            <Form.Item
+                                label="密码"
+                                name="passwd"
+                                rules={[{ required: true, message: '请输入密码!' }]}
+                            >
+                                <Input.Password placeholder="请输入密码" />
+                            </Form.Item>
 
-                    <Form.Item wrapperCol={{ span: 24 }} style={{ textAlign: 'right' }}>
-                        <Space size={10}>
-                            <Button type="primary" htmlType="submit">
-                                确定
-                            </Button>
-                            <Button type="primary" onClick={closeModal}>
-                                取消
-                            </Button>
-                        </Space>
-                    </Form.Item>
-                </Form>
+                            <Form.Item wrapperCol={{ span: 24 }} style={{ textAlign: 'right' }}>
+                                <Space size={20}>
+                                    <Button type="primary" htmlType="submit">
+                                        登录
+                                    </Button>
+                                    <Button type="primary" onClick={signup}>
+                                        注册
+                                    </Button>
+                                </Space>
+                            </Form.Item>
+                        </Form>
+                    </>
+                }
             </div>
         </div>
+    );
+}
+
+function SignupDialog({ setModalOpen, socket, login }) {
+    const [accountExisted, setAccountExisted] = useState(false);
+    const [infoModal, setInfoModal] = useState(false);
+    const formRef = useRef(null);
+    useEffect(() => {
+        if (socket) {
+            socket.on("account_existed", (data) => {
+                setAccountExisted(true);
+            });
+            socket.on("signup_ok", (data) => {
+                setInfoModal(true);
+                setTimeout(() => {
+                    setModalOpen(false);
+                    login(data.account, data.passwd);
+                }, 3000);
+            });
+            socket.on("signup_failed", (data) => {
+
+            });
+        }
+    }, [socket]);
+    useEffect(() => {
+        if (accountExisted) {
+            formRef.current.setFieldsValue({ account: undefined });
+        }
+    }, [accountExisted]);
+
+    function onFinish(values) {
+        socket.emit('signup', values);
+    }
+
+    const closeModal = () => {
+        setModalOpen(false);
+    };
+
+    const handleAccountChange = (changedValues, allValues) => {
+        if ('account' in changedValues) {
+            setAccountExisted(false);
+        }
+    };
+
+    return (
+        <>
+            <div className='modal-overlay'>
+                <div className='modal'>
+                    <span className="close-button" onClick={closeModal}>
+                        &times;
+                    </span>
+                    <p>请填写注册信息</p>
+                    {accountExisted && <p style={{ color: 'red' }}>账号已存在！</p>}
+                    <Form
+                        ref={formRef}
+                        name="basic"
+                        onFinish={onFinish}
+                        labelCol={{ span: 6 }}
+                        wrapperCol={{ span: 18 }}
+                        onValuesChange={handleAccountChange}
+                    >
+                        <Form.Item
+                            label="账号"
+                            name="account"
+                            rules={[{ required: true, message: '请输入账号!' }]}
+                        >
+                            <Input placeholder="请输入账号" />
+                        </Form.Item>
+
+                        <Form.Item
+                            label="密码"
+                            name="passwd"
+                            rules={[{ required: true, message: '请输入密码!' }]}
+                        >
+                            <Input.Password placeholder="请输入密码" />
+                        </Form.Item>
+
+                        <Form.Item
+                            label="验证密码"
+                            name="re_passwd"
+                            rules={[{ required: true, message: '请重新输入密码!' },
+                            ({ getFieldValue }) => ({
+                                validator(_, value) {
+                                    if (!value || getFieldValue('passwd') === value) {
+                                        return Promise.resolve();
+                                    }
+                                    return Promise.reject(new Error('验证密码与密码不匹配'));
+                                },
+                            }),]}
+                        >
+                            <Input.Password placeholder="请重新输入密码"
+                            />
+                        </Form.Item>
+
+                        <Form.Item wrapperCol={{ span: 24 }} style={{ textAlign: 'right' }}>
+                            <Space size={20}>
+                                <Button type="primary" htmlType="submit">
+                                    注册
+                                </Button>
+                            </Space>
+                        </Form.Item>
+                    </Form>
+                </div>
+            </div>
+            {infoModal &&
+                <Modal modalInfo='注册成功，正在自动登录' setModalOpen={setInfoModal} timeDelay={3000} />}
+        </>
     );
 }
 
