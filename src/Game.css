@@ -2825,3 +2825,14 @@
 .drag-drop-area.dragging {
   border-color: #007bff;
 }
+
+/* 用户信息 */
+.vertical-buttons>.ant-card-body {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.vertical-buttons>.ant-card-body .ant-btn {
+  margin-bottom: 10px;
+}

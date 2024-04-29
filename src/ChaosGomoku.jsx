@@ -7,7 +7,8 @@ import {
     TableViewer,
     ChatPanel,
     VideoChat,
-    OverlayArrow, NoticeBoard, AudioIconComponent
+    OverlayArrow, NoticeBoard, AudioIconComponent,
+    UserProfile,
 } from './Control.jsx'
 import Game from './Game.js'
 import {
@@ -17,7 +18,8 @@ import {
     Avatar_Number_X,
     Avatar_Number_Y,
     View, PublicMsg_Max_Length, Notice_Max_Length, TitleNotice,
-    GlobalSignal, Window_Max_Height_Factor, WebsiteTitle, SubPage
+    GlobalSignal, Window_Max_Height_Factor, WebsiteTitle, SubPage,
+    _
 } from './ConstDefine.jsx';
 import Client from './Client.jsx';
 import { DraggableButton, Live2DRole } from './Tool.jsx';
@@ -86,6 +88,8 @@ function ChaosGomoku() {
     const [stepInfoData, setStepInfoData] = useState([]);
     const [selectedTable, setSelectedTable] = useState(null);
     const [tableViewOpen, setTableViewOpen] = useState(false);
+    const [userName, setUserName] = useState(localStorage.getItem('userName')); // 用户名称
+    const [userProfileOpen, setUserProfileOpen] = useState(false); // 用户详细信息
 
     // 头像
     const [avatarIndex, setAvatarIndex] = useState(
@@ -468,6 +472,15 @@ function ChaosGomoku() {
         }));
     };
 
+    const logout = () => {
+        setLoginSuccess(LoginStatus.LOGOUT);
+        setLogoutModalOpen(false);
+        setTableViewOpen(false);
+        setUserProfileOpen(false);
+        localStorage.removeItem('token');
+        localStorage.removeItem('userName');
+    }
+
     return (
         <React.StrictMode className='game-container'>
             <DraggableButton setShowLive2DRole={setShowLive2DRole}
@@ -526,6 +539,7 @@ function ChaosGomoku() {
                 setMessages={setMessages} setReceiveInviteModalOpen={setReceiveInviteModalOpen}
                 setPublicMsgs={setPublicMsgs} setNotices={setNotices} setPeerSocketId={setPeerSocketId}
                 setCompletelyReady={setCompletelyReady} currentView={currentView} chatPanelOpen={chatPanelOpen}
+                setUserName={setUserName}
             />
             {
                 gameMode === GameMode.MODE_NONE && (
@@ -549,6 +563,7 @@ function ChaosGomoku() {
                                     onLiveStreamBtnClick={onLiveStreamBtnClick}
                                     onVideoCallBtnClick={onVideoCallBtnClick}
                                     onRecordVideoBtnClick={onRecordVideoBtnClick}
+                                    userName={userName} setUserProfileOpen={setUserProfileOpen}
                                 />
                                 ) :
                                 (currentView === View.VideoChat ?
@@ -655,6 +670,15 @@ function ChaosGomoku() {
                     setGlobalSignal={setGlobalSignal}
                     setSaveVideoModalOpen={setSaveVideoModalOpen}
                 />
+            }
+            {logoutModalOpen && <ConfirmModal modalInfo='确定退出登录吗？' onOkBtnClick={logout}
+                OnCancelBtnClick={() => setLogoutModalOpen(false)} />}
+            {
+                userProfileOpen &&
+                <UserProfile userName={userName} setTableViewOpen={setTableViewOpen}
+                    setLogoutModalOpen={setLogoutModalOpen}
+                    setUserProfileOpen={setUserProfileOpen}
+                    setModalOpen={setUserProfileOpen} />
             }
 
         </React.StrictMode >

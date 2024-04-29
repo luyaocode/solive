@@ -1,5 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { Button, Input, Form, Space, Radio, Table } from 'antd';
+import {
+    Button, Input, Form, Space, Radio, Table,
+    Card,
+} from 'antd';
 import { CopyToClipboard } from "react-copy-to-clipboard"
 import Draggable from 'react-draggable';
 import Peer from "simple-peer"
@@ -756,6 +759,7 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
     selectedTable, setSelectedTable, setTableViewOpen, avatarIndex, setShowOverlayArrow,
     gameInviteAccepted, locationData, isGameMenu, setIsGameMenu,
     onLiveStreamBtnClick, onVideoCallBtnClick, onRecordVideoBtnClick,
+    userName, setUserProfileOpen,
 }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
@@ -911,8 +915,11 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
                 }
 
                 <SystemInfo headCount={headCount} historyPeekUsers={historyPeekUsers} netConnected={netConnected} />
-                <LoginButton modalOpen={isLoginModalOpen} setModalOpen={setLoginModalOpen}
-                    isLoginSuccess={isLoginSuccess} setTableViewOpen={setTableViewOpen} />
+                {netConnected &&
+                    <LoginButton modalOpen={isLoginModalOpen} setModalOpen={setLoginModalOpen}
+                        isLoginSuccess={isLoginSuccess} setTableViewOpen={setTableViewOpen}
+                        userName={userName} setUserProfileOpen={setUserProfileOpen}
+                    />}
                 <Footer />
                 {enterRoomModalOpen && <EnterRoomModal modalInfo='请输入信息'
                     onOkBtnClick={enterRoom}
@@ -982,14 +989,6 @@ function TableViewer({ socket, selectedTable, setSelectedTable, clientIpsData, g
         setSelectedTable(e.target.value);
     }
 
-    function logout() {
-        setLoginSuccess(LoginStatus.LOGOUT);
-        setLogoutModalOpen(false);
-        setTableViewOpen(false);
-        localStorage.removeItem('token');
-        // socket.emit('logout');
-    }
-
     return (
         <>
             <div className='table-menu'>
@@ -1008,19 +1007,19 @@ function TableViewer({ socket, selectedTable, setSelectedTable, clientIpsData, g
             {selectedTable === Table_Client_Ips && <IpLoginTable data={clientIpsData} setSelectedTable={setSelectedTable} />}
             {selectedTable === Table_Game_Info && <AllGamesTable data={gameInfoData} setSelectedTable={setSelectedTable} />}
             {selectedTable === Table_Step_Info && <SingleGameTable data={stepInfoData} setSelectedTable={setSelectedTable} />}
-            {logoutModalOpen && <ConfirmModal modalInfo='确定退出登录吗？' onOkBtnClick={logout}
-                OnCancelBtnClick={() => setLogoutModalOpen(false)} />}
         </>
     );
 }
 
-function LoginButton({ modalOpen, setModalOpen, isLoginSuccess, setTableViewOpen }) {
+function LoginButton({ modalOpen, setModalOpen, isLoginSuccess, setTableViewOpen,
+    userName, setUserProfileOpen,
+}) {
     function onClick() {
         if (isLoginSuccess === LoginStatus.LOGOUT) {
             setModalOpen(!modalOpen);
         }
         else if (isLoginSuccess === LoginStatus.OK) {
-            setTableViewOpen(true);
+            setUserProfileOpen(true);
         }
     }
 
@@ -1125,7 +1124,7 @@ function LoginModal({ modalInfo, onOkBtnClick, OnCancelBtnClick, socket }) {
                                 name="account"
                                 rules={[{ required: true, message: '请输入账号!' }]}
                             >
-                                <Input placeholder="请输入账号" />
+                                <Input placeholder="请输入账号" autoComplete="username" />
                             </Form.Item>
 
                             <Form.Item
@@ -1133,7 +1132,7 @@ function LoginModal({ modalInfo, onOkBtnClick, OnCancelBtnClick, socket }) {
                                 name="passwd"
                                 rules={[{ required: true, message: '请输入密码!' }]}
                             >
-                                <Input.Password placeholder="请输入密码" />
+                                <Input.Password placeholder="请输入密码" autoComplete="current-password" />
                             </Form.Item>
 
                             <Form.Item wrapperCol={{ span: 24 }} style={{ textAlign: 'right' }}>
@@ -1217,7 +1216,7 @@ function SignupDialog({ setModalOpen, socket, login }) {
                             name="account"
                             rules={[{ required: true, message: '请输入账号!' }]}
                         >
-                            <Input placeholder="请输入账号" />
+                            <Input placeholder="请输入账号" autoComplete="username" />
                         </Form.Item>
 
                         <Form.Item
@@ -1225,7 +1224,7 @@ function SignupDialog({ setModalOpen, socket, login }) {
                             name="passwd"
                             rules={[{ required: true, message: '请输入密码!' }]}
                         >
-                            <Input.Password placeholder="请输入密码" />
+                            <Input.Password placeholder="请输入密码" autoComplete="new-password" />
                         </Form.Item>
 
                         <Form.Item
@@ -1241,7 +1240,7 @@ function SignupDialog({ setModalOpen, socket, login }) {
                                 },
                             }),]}
                         >
-                            <Input.Password placeholder="请重新输入密码"
+                            <Input.Password placeholder="请重新输入密码" autoComplete="new-password"
                             />
                         </Form.Item>
 
@@ -6764,10 +6763,42 @@ function AudioIconComponent({ audioEnabled, setAudioEnabled, isAnother }) {
     );
 }
 
+function UserProfile({ userName, setTableViewOpen, setLogoutModalOpen
+    , setUserProfileOpen, setModalOpen }) {
+
+    const onLogout = () => {
+        setLogoutModalOpen(true);
+    };
+
+    const onDeleteAccount = () => {
+
+    };
+    const openTableView = () => {
+        setTableViewOpen(true);
+        setModalOpen(false);
+    };
+
+    return (
+        <div className='modal-overlay' style={{ zIndex: 1000 }}>
+            <div className='modal'>
+                <XSign onClick={() => setUserProfileOpen(false)} />
+                <Card title={userName} className="vertical-buttons">
+                    {userName === 'admin' &&
+                        <Button type="primary" onClick={openTableView}>查看后台记录</Button>}
+                    <Button type="primary" onClick={onLogout}>登出</Button>
+                    <Button danger={true} onClick={onDeleteAccount}
+
+                    >注销账号</Button>
+                </Card>
+            </div>
+        </div>
+    );
+}
+
 export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
     Menu, ConfirmModal, InfoModal, Modal, SettingsButton, LoginButton, LoginModal,
     TableViewer, PlayerAvatar, ChatPanel, VideoChat, OverlayArrow, NoticeBoard,
     AudioIconComponent, ReturnMenuButton, VideoCallModal, ButtonBox, ButtonBoxN, XSign,
-    Switch,
+    Switch, UserProfile
 };

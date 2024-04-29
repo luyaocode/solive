@@ -20,7 +20,8 @@ function Client({ socket, setSocket, setPieceType, setLastStep, setSeeds, gameMo
     setLoginSuccess,
     setClientIpsData, setGameInfoData, setStepInfoData, setAvatarIndex, setAvatarIndexPB,
     setMessages, setReceiveInviteModalOpen, setPublicMsgs, setNotices,
-    setPeerSocketId, setCompletelyReady, currentView, chatPanelOpen }) {
+    setPeerSocketId, setCompletelyReady, currentView, chatPanelOpen,
+    setUserName }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -181,6 +182,8 @@ function Client({ socket, setSocket, setPieceType, setLastStep, setSeeds, gameMo
             socket.on('login_resp', (resp) => {
                 if (resp) {
                     setLoginSuccess(LoginStatus.OK);
+                    setUserName(resp);
+                    localStorage.setItem('userName', resp);
                 }
                 else {
                     setLoginSuccess(LoginStatus.Failed);
