@@ -139,7 +139,7 @@ export const FacingMode = {
 }
 export const FrameRate = {
     Min: 30,
-    Default: 60,
+    Default: 60,//max=min=60
     Max: 120,
 }
 export const SampleRate = {
@@ -165,8 +165,11 @@ export const InitMediaTrackSettings = {
     localVideoHeight: FrameHeight.Default,
     localFrameRate: FrameRate.Default,
     facingMode: FacingMode.Front,
+
+    autoGainControl: true,
     echoCancellation: true,
     noiseSuppression: true,
+    voiceIsolation: true,
     sampleRate: SampleRate.Default
 }
 

@@ -1943,13 +1943,16 @@ function VideoStatsTool({ connectionRef, localStream, isShareScreen,
 function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVideoHeight,
     setLocalVideoHeight, localFrameRate, setLocalFrameRate, echoCancellation, setEchoCancellation,
     noiseSuppression, setNoiseSuppression, sampleRate, setSampleRate, setModalOpen, setConstraint,
-    videoEnabled, audioEnabled, facingMode
+    videoEnabled, audioEnabled, facingMode, autoGainControl, voiceIsolation, setAutoGainControl, setVoiceIsolation
 }) {
     const [localVideoWidth_Temp, setLocalVideoWidth_Temp] = useState(localVideoWidth);
     const [localVideoHeight_Temp, setLocalVideoHeight_Temp] = useState(localVideoHeight);
     const [localFrameRate_Temp, setLocalFrameRate_Temp] = useState(localFrameRate);
+
+    const [autoGainControl_Temp, setAutoGainControl_Temp] = useState(autoGainControl);
     const [echoCancellation_Temp, setEchoCancellation_Temp] = useState(echoCancellation);
     const [noiseSuppression_Temp, setNoiseSuppression_Temp] = useState(noiseSuppression);
+    const [voiceIsolation_Temp, setVoiceIsolation_Temp] = useState(voiceIsolation);
     const [sampleRate_Temp, setSampleRate_Temp] = useState(sampleRate);
 
     const handleWidthChange = (event) => {
@@ -1989,12 +1992,20 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
         }
     };
 
+    const handleAutoGainControlChange = (e) => {
+        setAutoGainControl_Temp((prevValue) => !prevValue);
+    };
+
     const handleEchoCancellationChange = (e) => {
         setEchoCancellation_Temp((prevValue) => !prevValue);
     };
 
     const handleNoiseSuppressionChange = () => {
         setNoiseSuppression_Temp((prevValue) => !prevValue);
+    };
+
+    const handleVoiceIsolationChange = (e) => {
+        setVoiceIsolation_Temp((prevValue) => !prevValue);
     };
 
     const handleSampleRateChange = (event) => {
@@ -2016,8 +2027,11 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
         setLocalVideoWidth_Temp(InitMediaTrackSettings.localVideoWidth);
         setLocalVideoHeight_Temp(InitMediaTrackSettings.localVideoHeight);
         setLocalFrameRate_Temp(InitMediaTrackSettings.localFrameRate);
+
+        setAutoGainControl_Temp(InitMediaTrackSettings.autoGainControl);
         setEchoCancellation_Temp(InitMediaTrackSettings.echoCancellation);
         setNoiseSuppression_Temp(InitMediaTrackSettings.noiseSuppression);
+        setVoiceIsolation_Temp(InitMediaTrackSettings.voiceIsolation);
         setSampleRate_Temp(InitMediaTrackSettings.sampleRate);
     }
 
@@ -2025,8 +2039,12 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
         setLocalVideoWidth(localVideoWidth_Temp);
         setLocalVideoHeight(localVideoHeight_Temp);
         setLocalFrameRate(localFrameRate_Temp);
+
+        setAutoGainControl(autoGainControl_Temp);
         setEchoCancellation(echoCancellation_Temp);
         setNoiseSuppression(noiseSuppression_Temp);
+        setVoiceIsolation(voiceIsolation_Temp);
+
         setSampleRate(sampleRate_Temp);
         setModalOpen(false);
 
@@ -2038,8 +2056,10 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
                 facingMode: facingMode,
             } : false,
             audio: audioEnabled ? {
+                autoGainControl: autoGainControl_Temp,
                 echoCancellation: echoCancellation_Temp,
                 noiseSuppression: noiseSuppression_Temp,
+                voiceIsolation: voiceIsolation_Temp,
                 sampleRate: sampleRate_Temp,
             } : false,
         });
@@ -2070,12 +2090,15 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
                             min={FrameHeight.Min} max={FrameHeight.Max} />
                     </label>
                     <label>
-                        帧率:
+                        帧率: {localFrameRate_Temp}
                         <input type="range" min="30" max="120" value={localFrameRate_Temp} onChange={handleFrameRateChange} />
-                        {localFrameRate_Temp}
                     </label>
                 </div>
                 <div className='audio-settings'>
+                    <label style={{ width: 'fit-content' }}>
+                        自动增益:
+                        <button onClick={handleAutoGainControlChange}>{autoGainControl_Temp ? '开启' : '关闭'}</button>
+                    </label>
                     <label style={{ width: 'fit-content' }}>
                         回声消除:
                         <button onClick={handleEchoCancellationChange}>{echoCancellation_Temp ? '开启' : '关闭'}</button>
@@ -2083,6 +2106,10 @@ function MediaTrackSettingsModal({ localVideoWidth, setLocalVideoWidth, localVid
                     <label style={{ width: 'fit-content' }}>
                         噪声抑制:
                         <button onClick={handleNoiseSuppressionChange}>{noiseSuppression_Temp ? '开启' : '关闭'}</button>
+                    </label>
+                    <label style={{ width: 'fit-content' }}>
+                        语音隔离:
+                        <button onClick={handleVoiceIsolationChange}>{voiceIsolation_Temp ? '开启' : '关闭'}</button>
                     </label>
                     <label>
                         采样率:
@@ -2894,8 +2921,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [localVideoHeight, setLocalVideoHeight] = useState(InitMediaTrackSettings.localVideoHeight);
     const [localFrameRate, setLocalFrameRate] = useState(InitMediaTrackSettings.localFrameRate);
     const [facingMode, setFacingMode] = useState(InitMediaTrackSettings.facingMode);
+
+    const [autoGainControl, setAutoGainControl] = useState(InitMediaTrackSettings.autoGainControl);
     const [echoCancellation, setEchoCancellation] = useState(InitMediaTrackSettings.echoCancellation);
     const [noiseSuppression, setNoiseSuppression] = useState(InitMediaTrackSettings.noiseSuppression);
+    const [voiceIsolation, setVoiceIsolation] = useState(InitMediaTrackSettings.voiceIsolation);
+
     const [sampleRate, setSampleRate] = useState(InitMediaTrackSettings.sampleRate);
     const [constraint, setConstraint] = useState({
         video: videoEnabled ? {
@@ -2905,8 +2936,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             facingMode: facingMode,
         } : false,
         audio: audioEnabled ? {
+            autoGainControl: autoGainControl,
             echoCancellation: echoCancellation,
             noiseSuppression: noiseSuppression,
+            voiceIsolation: voiceIsolation,
             sampleRate: sampleRate,
         } : false,
     });
@@ -2953,8 +2986,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 facingMode: facingMode,
             } : false,
             audio: audioEnabled ? {
+                autoGainControl: autoGainControl,
                 echoCancellation: echoCancellation,
                 noiseSuppression: noiseSuppression,
+                voiceIsolation: voiceIsolation,
                 sampleRate: sampleRate,
             } : false,
         });
@@ -3364,6 +3399,24 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
         getUserMediaStream()
             .then(stream => {
+                if (stream) {
+                    // 检查可约束属性
+                    stream.getTracks().forEach(track => {
+                        if (track.kind === 'video') {
+                            console.log('video capabilities: ' + JSON.stringify(track.getCapabilities()));
+                        }
+                        if (track.kind === 'audio') {
+                            console.log('audio capabilities: ' + JSON.stringify(track.getCapabilities()));
+                        }
+                    });
+                    // 获取音频轨道的约束
+                    const audioConstraints = stream.getAudioTracks()[0].getSettings();
+                    console.log("音频约束:", audioConstraints);
+
+                    // 获取视频轨道的约束
+                    const videoConstraints = stream.getVideoTracks()[0].getSettings();
+                    console.log("视频约束:", videoConstraints);
+                }
                 // 已连接
                 if (connectionRef.current && connectionRef.current.peer && !connectionRef.current.peer.destroyed) {
                     if (selectedMediaStream) {
@@ -5348,6 +5401,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     setModalOpen={setMediaTrackSettingsModalOpen}
                                     setConstraint={setConstraint} videoEnabled={videoEnabled} audioEnabled={audioEnabled}
                                     facingMode={facingMode}
+                                    autoGainControl={autoGainControl} setAutoGainControl={setAutoGainControl}
+                                    voiceIsolation={voiceIsolation} setVoiceIsolation={setVoiceIsolation}
                                 />
                             }
                             {selectVideoModalOpen &&

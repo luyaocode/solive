@@ -2505,14 +2505,11 @@
 
 .media-track-settings-modal {
   background: #fff;
-  padding: 20px;
   border-radius: 8px;
   max-width: 400px;
   width: 100%;
   text-align: left;
   position: relative;
-  margin-left: 10px;
-  margin-right: 10px;
   display: flex;
   flex-direction: column;
 }
@@ -2583,10 +2580,13 @@
 
 .media-track-settings-button-confirm-container {
   display: flex;
+  padding-left: 20px;
+  padding-right: 20px;
+  padding-bottom: 10px;
   justify-content: space-between;
   z-index: 999;
   width: 100%;
-  margin-top: 2rem;
+  margin-top: 10px;
 }
 
 /* SelectVideoModal */

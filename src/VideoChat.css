@@ -304,8 +304,6 @@
     z-index: 1;
 }
 
-.live-room:hover {}
-
 .room-thumbnail {
     width: 100%;
     border-radius: 8px;
@@ -334,4 +332,19 @@
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
+}
+
+/*  MediaTrackSettings*/
+.video-settings {
+    padding: 0.5rem;
+    border-top: 1px solid gray;
+}
+
+.audio-settings {
+    padding: 0.5rem;
+    border-top: 1px solid gray;
+    border-bottom: 1px solid gray;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
 }
