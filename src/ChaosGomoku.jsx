@@ -73,6 +73,7 @@ function ChaosGomoku() {
     const [commonModalText, setCommonModalText] = useState('');
     const [commonModalOpen, setCommonModalOpen] = useState(false);
     const [logoutModalOpen, setLogoutModalOpen] = useState(false);
+    const [deleteAccountModalOpen, setDeleteAccountModalOpen] = useState(false);
 
     const [isSkipRound, setSkipRound] = useState(false);
     const [restartInSameRoom, setRestartInSameRoom] = useState(false); // 是否在同一房间重开
@@ -479,7 +480,16 @@ function ChaosGomoku() {
         setUserProfileOpen(false);
         localStorage.removeItem('token');
         localStorage.removeItem('userName');
-    }
+    };
+
+    const deleteAccount = () => {
+        setDeleteAccountModalOpen(false);
+        if (userName === 'admin') {
+            return;
+        }
+        socket.emit('deleteAccount', userName);
+        logout();
+    };
 
     return (
         <React.StrictMode className='game-container'>
@@ -673,12 +683,15 @@ function ChaosGomoku() {
             }
             {logoutModalOpen && <ConfirmModal modalInfo='确定退出登录吗？' onOkBtnClick={logout}
                 OnCancelBtnClick={() => setLogoutModalOpen(false)} />}
+            {deleteAccountModalOpen && <ConfirmModal modalInfo='账号注销后不可恢复，是否仍要注销？' onOkBtnClick={deleteAccount}
+                OnCancelBtnClick={() => setDeleteAccountModalOpen(false)} />}
             {
                 userProfileOpen &&
                 <UserProfile userName={userName} setTableViewOpen={setTableViewOpen}
                     setLogoutModalOpen={setLogoutModalOpen}
                     setUserProfileOpen={setUserProfileOpen}
-                    setModalOpen={setUserProfileOpen} />
+                    setModalOpen={setUserProfileOpen}
+                    setDeleteAccountModalOpen={setDeleteAccountModalOpen} />
             }
 
         </React.StrictMode >

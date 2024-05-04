@@ -995,9 +995,6 @@ function TableViewer({ socket, selectedTable, setSelectedTable, clientIpsData, g
                 <button className="button-normal" type="primary" onClick={() => setTableViewOpen(false)}>
                     &times; 返回主页
                 </button>
-                <button className="button-normal" type="primary" onClick={() => setLogoutModalOpen(true)}>
-                    &times; 退出登录
-                </button>
                 <Radio.Group onChange={handleTableSelect} value={selectedTable} >
                     <Radio.Button value={Table_Client_Ips}>IP登录表</Radio.Button>
                     <Radio.Button value={Table_Game_Info}>所有对局表</Radio.Button>
@@ -3390,6 +3387,26 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
     };
 
+    const getMediaStreamCapabilities = (stream) => {
+        if (stream) {
+            // 检查可约束属性
+            stream.getTracks().forEach(track => {
+                if (track.kind === 'video') {
+                    console.log('视频能力: ' + JSON.stringify(track.getCapabilities()));
+                }
+                if (track.kind === 'audio') {
+                    console.log('音频能力: ' + JSON.stringify(track.getCapabilities()));
+                }
+            });
+            // 获取音频轨道的约束
+            const audioConstraints = stream.getAudioTracks()[0].getSettings();
+            console.log("音频约束:", audioConstraints);
+            // 获取视频轨道的约束
+            const videoConstraints = stream.getVideoTracks()[0].getSettings();
+            console.log("视频约束:", videoConstraints);
+        }
+    };
+
     // 更新轨道
     useEffect(() => {
         if (!peerSocketId) {
@@ -3399,24 +3416,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
         getUserMediaStream()
             .then(stream => {
-                if (stream) {
-                    // 检查可约束属性
-                    stream.getTracks().forEach(track => {
-                        if (track.kind === 'video') {
-                            console.log('video capabilities: ' + JSON.stringify(track.getCapabilities()));
-                        }
-                        if (track.kind === 'audio') {
-                            console.log('audio capabilities: ' + JSON.stringify(track.getCapabilities()));
-                        }
-                    });
-                    // 获取音频轨道的约束
-                    const audioConstraints = stream.getAudioTracks()[0].getSettings();
-                    console.log("音频约束:", audioConstraints);
-
-                    // 获取视频轨道的约束
-                    const videoConstraints = stream.getVideoTracks()[0].getSettings();
-                    console.log("视频约束:", videoConstraints);
-                }
+                getMediaStreamCapabilities(stream);
                 // 已连接
                 if (connectionRef.current && connectionRef.current.peer && !connectionRef.current.peer.destroyed) {
                     if (selectedMediaStream) {
@@ -6220,18 +6220,23 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                 }
                 {
                     iconSrc &&
-                    <img src={iconSrc} alt="Icon" className="icon" onClick={() => {
-                        switch (iconSrc) {
-                            case StatPanelIcon:
-                                toggleStatPanel();
-                                break;
-                            case FullScreenIcon:
-                                toggleFullScreen();
-                                break;
-                            default:
-                                break;
-                        }
-                    }}
+                    <img src={iconSrc} alt="Icon" className="icon"
+                        onClick={() => {
+                            switch (iconSrc) {
+                                case StatPanelIcon:
+                                    toggleStatPanel();
+                                    break;
+                                case FullScreenIcon:
+                                    toggleFullScreen();
+                                    break;
+                                default:
+                                    break;
+                            }
+                        }}
+                        style={{
+                            left: '100%',
+                            transform: 'translateX(-100%)',
+                        }}
                     />
                 }
                 {content && (isMediaCtlMenu ? !showMediaCtlMenu : true) && content}
@@ -6819,14 +6824,14 @@ function AudioIconComponent({ audioEnabled, setAudioEnabled, isAnother }) {
 }
 
 function UserProfile({ userName, setTableViewOpen, setLogoutModalOpen
-    , setUserProfileOpen, setModalOpen }) {
+    , setUserProfileOpen, setModalOpen, setDeleteAccountModalOpen }) {
 
     const onLogout = () => {
         setLogoutModalOpen(true);
     };
 
     const onDeleteAccount = () => {
-
+        setDeleteAccountModalOpen(true);
     };
     const openTableView = () => {
         setTableViewOpen(true);
@@ -6842,7 +6847,7 @@ function UserProfile({ userName, setTableViewOpen, setLogoutModalOpen
                         <Button type="primary" onClick={openTableView}>查看后台记录</Button>}
                     <Button type="primary" onClick={onLogout}>登出</Button>
                     <Button danger={true} onClick={onDeleteAccount}
-
+                        disabled={userName === 'admin'}
                     >注销账号</Button>
                 </Card>
             </div>
