@@ -24,6 +24,7 @@ import {
 import Client from './Client.jsx';
 import { DraggableButton, Live2DRole } from './Tool.jsx';
 import { SaveVideoModal } from './VideoChat.jsx';
+import { LoginDialog } from './Excitation.tsx';
 
 function ChaosGomoku() {
     const [boardWidth, setBoardWidth] = useState(0);
@@ -91,6 +92,8 @@ function ChaosGomoku() {
     const [tableViewOpen, setTableViewOpen] = useState(false);
     const [userName, setUserName] = useState(localStorage.getItem('userName')); // 用户名称
     const [userProfileOpen, setUserProfileOpen] = useState(false); // 用户详细信息
+    const [address, setAddress] = useState();// 以太坊钱包地址
+    const [showLoginDialog, setShowLoginDialog] = useState(false);// 用户区块链钱包
 
     // 头像
     const [avatarIndex, setAvatarIndex] = useState(
@@ -691,7 +694,13 @@ function ChaosGomoku() {
                     setLogoutModalOpen={setLogoutModalOpen}
                     setUserProfileOpen={setUserProfileOpen}
                     setModalOpen={setUserProfileOpen}
-                    setDeleteAccountModalOpen={setDeleteAccountModalOpen} />
+                    setDeleteAccountModalOpen={setDeleteAccountModalOpen}
+                    setShowLoginDialog={setShowLoginDialog}
+                />
+            }
+            {
+                showLoginDialog &&
+                <LoginDialog setModalOpen={setShowLoginDialog} address={address} setAddress={setAddress} />
             }
 
         </React.StrictMode >

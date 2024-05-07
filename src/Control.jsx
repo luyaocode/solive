@@ -6824,7 +6824,9 @@ function AudioIconComponent({ audioEnabled, setAudioEnabled, isAnother }) {
 }
 
 function UserProfile({ userName, setTableViewOpen, setLogoutModalOpen
-    , setUserProfileOpen, setModalOpen, setDeleteAccountModalOpen }) {
+    , setUserProfileOpen, setModalOpen, setDeleteAccountModalOpen,
+    setShowLoginDialog,
+}) {
 
     const onLogout = () => {
         setLogoutModalOpen(true);
@@ -6845,10 +6847,13 @@ function UserProfile({ userName, setTableViewOpen, setLogoutModalOpen
                 <Card title={userName} className="vertical-buttons">
                     {userName === 'admin' &&
                         <Button type="primary" onClick={openTableView}>查看后台记录</Button>}
+                    {/* <Button onClick={() => setShowLoginDialog(true)}>
+                        钱包
+                    </Button> */}
                     <Button type="primary" onClick={onLogout}>登出</Button>
                     <Button danger={true} onClick={onDeleteAccount}
                         disabled={userName === 'admin'}
-                    >注销账号</Button>
+                    >注销</Button>
                 </Card>
             </div>
         </div>

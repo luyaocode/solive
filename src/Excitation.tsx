@@ -3,7 +3,7 @@ import { Web3 } from 'web3';
 import { XSign } from './Control';
 import './Excitation.css';
 
-function LoginDialog({ setModalOpen, address, setAddress, logined, setLogined }) {
+function LoginDialog({ setModalOpen, address, setAddress }) {
     const [web3, setWeb3] = useState(new Web3('https://eth.llamarpc.com'));
     const [nBlock, setNBlock] = useState(0);
     const [privateKey, setPrivateKey] = useState('');
@@ -46,7 +46,6 @@ function LoginDialog({ setModalOpen, address, setAddress, logined, setLogined })
             const res = await web3.eth.accounts.privateKeyToAccount(privateKeyToEnter);
             if (res) {
                 setAddress(res.address);
-                setLogined(true);
                 localStorage.setItem('ethAddress', res.address);
             }
         } catch (e) {
@@ -57,7 +56,6 @@ function LoginDialog({ setModalOpen, address, setAddress, logined, setLogined })
 
     const logout = () => {
         setAddress('');
-        setLogined(false);
     };
 
     const signup = () => {
@@ -67,26 +65,24 @@ function LoginDialog({ setModalOpen, address, setAddress, logined, setLogined })
 
     return (
         <>
-            <div className='modal-overlay'>
-                <div className='modal'>
+            <div className='modal-overlay-x'>
+                <div className='modal-x'>
                     <MetaMaskIntegration />
                     <XSign onClick={() => setModalOpen(false)} />
-                    {logined ?
-                        <>
-                            <span>{'当前账号：' + address}</span>
-                            <span>{'余额：' + balance}</span>
-                            <button onClick={logout}>登出</button>
-                        </> :
-                        <>
-                            <textarea
-                                placeholder='输入密钥'
-                                value={privateKeyToEnter}
-                                onChange={onChange}
-                            />
-                            <button onClick={login}>登录</button>
-                            <button onClick={signup}>注册</button>
-                        </>
-                    }
+                    <>
+                        <span>{'当前账号：' + address}</span>
+                        <span>{'余额：' + balance}</span>
+                        {/* <button onClick={logout}>登出</button> */}
+                    </> :
+                    <>
+                        <textarea
+                            placeholder='输入密钥'
+                            value={privateKeyToEnter}
+                            onChange={onChange}
+                        />
+                        <button onClick={login}>登录</button>
+                        <button onClick={signup}>注册</button>
+                    </>
                     {
                         signupModalOpen &&
                         <SignupDialog setModalOpen={setSignupModalOpen}
@@ -126,8 +122,8 @@ function SignupDialog({ setModalOpen, web3, address, setAddress, privateKey, set
 
     return (
         <>
-            <div className='modal-overlay' style={{ zIndex: '1' }}>
-                <div className='modal'>
+            <div className='modal-overlay-x' style={{ zIndex: '1' }}>
+                <div className='modal-x'>
                     <span>{'账户：' + address}</span>
                     <span>{'私钥：' + privateKey}</span>
                     <button onClick={save}>保存密钥</button>

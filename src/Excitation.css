@@ -1,5 +1,5 @@
 /* Modal */
-.modal-overlay {
+.modal-overlay-x {
     position: fixed;
     top: 0;
     left: 0;
@@ -12,7 +12,7 @@
     z-index: 2000;
 }
 
-.modal {
+.modal-x {
     background: #fff;
     padding: 1.5rem 1.5rem;
     border-radius: 0;
@@ -27,6 +27,6 @@
     align-items: center;
 }
 
-.modal button {
+.modal-x button {
     width: 200px;
 }
