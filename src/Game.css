@@ -1757,6 +1757,13 @@
   order: 1;
 }
 
+.video-container.meet {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(30%, 1fr));
+  align-items: center;
+  align-content: center;
+}
+
 .video-container::-webkit-scrollbar {
   display: none;
 }

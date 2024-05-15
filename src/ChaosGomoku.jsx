@@ -199,6 +199,10 @@ function ChaosGomoku() {
         }
     }, [lid, socket]);
 
+    // 会议
+    const [isMeet, setIsMeet] = useState(false);
+    const [meetModalOpen, setMeetModalOpen] = useState(false);
+
     // 信号
     const [globalSignal, setGlobalSignal] = useState({});
 
@@ -299,6 +303,7 @@ function ChaosGomoku() {
         setCurrentView(View.Menu);
         setIsGameMenu(false);
         setIsLiveStream(false);
+        setIsMeet(false);
     }
 
     useEffect(() => {
@@ -452,9 +457,24 @@ function ChaosGomoku() {
         if (!isLiveStream) {
             setIsLiveStream(true);
             enterVideoChatView();
-            setVideoChatRenderKey(prev => prev - 1);
+            setVideoChatRenderKey(prev => prev + 1);
+        }
+        if (isMeet) {
+            setIsMeet(false);
         }
         setLiveStreamModalOpen(true);
+    };
+
+    const onMeetBtnClick = () => {
+        if (!isMeet) {
+            setIsMeet(true);
+            enterVideoChatView();
+            setVideoChatRenderKey(prev => prev + 1);
+        }
+        if (isLiveStream) {
+            setIsLiveStream(false);
+        }
+        setMeetModalOpen(true);
     };
 
     const onVideoCallBtnClick = () => {
@@ -463,6 +483,10 @@ function ChaosGomoku() {
         }
         if (isLiveStream) {
             setIsLiveStream(false);
+            setVideoChatRenderKey(prev => prev + 1);
+        }
+        else if (isMeet) {
+            setIsMeet(false);
             setVideoChatRenderKey(prev => prev + 1);
         }
         setVideoCallModalOpen(true);
@@ -512,6 +536,7 @@ function ChaosGomoku() {
                 currentView={currentView} returnMenu={returnMenuView}
                 onLiveStreamBtnClick={onLiveStreamBtnClick}
                 onVideoCallBtnClick={onVideoCallBtnClick}
+                onMeetBtnClick={onMeetBtnClick}
             />
             {
                 receiveInviteModalOpen &&
@@ -577,6 +602,7 @@ function ChaosGomoku() {
                                     onVideoCallBtnClick={onVideoCallBtnClick}
                                     onRecordVideoBtnClick={onRecordVideoBtnClick}
                                     userName={userName} setUserProfileOpen={setUserProfileOpen}
+                                    onMeetBtnClick={onMeetBtnClick}
                                 />
                                 ) :
                                 (currentView === View.VideoChat ?
@@ -586,7 +612,8 @@ function ChaosGomoku() {
                                         globalSignal={globalSignal} videoCallModalOpen={videoCallModalOpen}
                                         setVideoCallModalOpen={setVideoCallModalOpen} setFloatButtonVisible={setFloatButtonVisible}
                                         floatButtonVisible={floatButtonVisible} liveStreamModalOpen={liveStreamModalOpen}
-                                        setLiveStreamModalOpen={setLiveStreamModalOpen} isLiveStream={isLiveStream} lid={lid} netConnected={netConnected} />
+                                        setLiveStreamModalOpen={setLiveStreamModalOpen} isLiveStream={isLiveStream} lid={lid} netConnected={netConnected}
+                                        isMeet={isMeet} meetModalOpen={meetModalOpen} setMeetModalOpen={setMeetModalOpen} />
                                     : null
                                 )
                             )

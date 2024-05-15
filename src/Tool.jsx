@@ -57,6 +57,12 @@ function FloatBall({ setElementSize, props }) {
         props?.setPosition({ x: props?.bounds?.right, y: props?.bounds?.bottom / 2 });
     };
 
+    const onMeetBtnClick = () => {
+        props?.onMeetBtnClick();
+        toggleExpand();
+        props?.setPosition({ x: props?.bounds?.right, y: props?.bounds?.bottom / 2 });
+    };
+
     const onLive2DBtnClick = () => {
         props?.setShowLive2DRole(prev => !prev);
         toggleExpand();
@@ -87,6 +93,11 @@ function FloatBall({ setElementSize, props }) {
                         onTouchStart={onLiveStreamBtnClick}
                         disabled={props.liveStreamBtnDisabled}>
                         直播
+                    </button>
+                    <button onClick={onMeetBtnClick}
+                        onTouchStart={onMeetBtnClick}
+                        disabled={props.meetBtnDisabled}>
+                        会议
                     </button>
                     <button onClick={onVideoCallBtnClick}
                         onTouchStart={onVideoCallBtnClick}
@@ -298,7 +309,7 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
     setVideoCallModalOpen, setIsLiveStream, setLiveStreamModalOpen, deviceType,
     setSaveVideoModalOpen, globalSignal, enterVideoChatView, floatButtonVisible,
     setFloatButtonVisible, sid, subpage, lid, currentView, returnMenu,
-    onLiveStreamBtnClick, onVideoCallBtnClick,
+    onLiveStreamBtnClick, onVideoCallBtnClick, onMeetBtnClick,
 }) {
     const [videoCallBtnDisabled, setVideoCallBtnDisabled] = useState(false);
     const [liveStreamBtnDisabled, setLiveStreamBtnDisabled] = useState(false);
@@ -341,6 +352,7 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
             returnMenu,
             onLiveStreamBtnClick,
             onVideoCallBtnClick,
+            onMeetBtnClick,
         }} />
     );
 }

@@ -11,6 +11,7 @@ import QRCode from 'qrcode.react';
 import * as THREE from 'three';
 import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
 import ProgressBar from 'react-progressbar';
+import * as mediasoup from 'mediasoup-client';
 
 import './Game.css';
 import './VideoChat.css';
@@ -34,6 +35,7 @@ import {
     root, FileTransferIcon, Chunk_Max_Size,
     Piece_Type_White, LiveStreamRole, Live_Room_ID_Len, ExitLiveStreamBtnWaitTime,
     InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate, GlobalSignal,
+    Meet_Room_ID_Len,
 } from './ConstDefine.jsx';
 import { Howl } from 'howler';
 import {
@@ -759,7 +761,7 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
     selectedTable, setSelectedTable, setTableViewOpen, avatarIndex, setShowOverlayArrow,
     gameInviteAccepted, locationData, isGameMenu, setIsGameMenu,
     onLiveStreamBtnClick, onVideoCallBtnClick, onRecordVideoBtnClick,
-    userName, setUserProfileOpen,
+    userName, setUserProfileOpen, onMeetBtnClick,
 }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
@@ -890,6 +892,9 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
                     <div className="home-menu-items">
                         <div className="home-menu-item" onClick={onLiveStreamBtnClick}>
                             <p>直播</p>
+                        </div>
+                        <div className="home-menu-item" onClick={onMeetBtnClick}>
+                            <p>会议</p>
                         </div>
                         <div className="home-menu-item" onClick={onVideoCallBtnClick}>
                             <p>视频通话</p>
@@ -2330,6 +2335,33 @@ function CallButton({ callAccepted, callEnded, idToCall,
     );
 }
 
+function MeetButton({ inMeetRoom, meetRoomIdToEnter,
+    onLeaveMeetRoomBtnClick, onInviteMeetBtnClick, onEnterMeetRoomBtnClick,
+    socket }) {
+    return (
+        <div className="call-button">
+            {inMeetRoom ? (
+                <Button variant="contained" color="secondary" onClick={onLeaveMeetRoomBtnClick}
+                    style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
+                    离开会议
+                </Button>
+            ) : (
+                <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'center' }}>
+                    <Button variant="contained" color="primary" onClick={onInviteMeetBtnClick}
+                        className='invite-call-button' disabled={!(socket?.connected)}>
+                        邀请入会
+                    </Button>
+                    <Button disabled={meetRoomIdToEnter?.length === 0 || !(socket?.connected)} color="primary" aria-label="call"
+                        onClick={onEnterMeetRoomBtnClick}
+                        className='call-user-button'>
+                        进入会议
+                    </Button>
+                </div>
+            )}
+        </div>
+    );
+}
+
 function ReturnMenuButton({ sid, onBtnClick }) {
     return (
         <>
@@ -2856,6 +2888,55 @@ function VideoFrameCapture({ socket, videoRef, localStream }) {
     );
 }
 
+function VideoComponent({ otherVideos }) {
+    // 创建用于存储 video 元素引用的数组
+    const videoRefs = useRef([]);
+    // 定义一个状态来控制是否更新 srcObject
+    const [shouldUpdateSrcObject, setShouldUpdateSrcObject] = useState(false);
+
+    useEffect(() => {
+        // 确保 videoRefs 中有足够的引用
+        while (videoRefs.current.length < otherVideos.length) {
+            videoRefs.current.push(React.createRef());
+        }
+    }, [otherVideos]);
+
+    useEffect(() => {
+        if (shouldUpdateSrcObject) {
+            // 更新每个 video 元素的 srcObject 属性
+            otherVideos.forEach((stream, index) => {
+                if (videoRefs.current[index] && videoRefs.current[index].current) {
+                    videoRefs.current[index].current.srcObject = stream;
+                }
+            });
+            setShouldUpdateSrcObject(false);
+        }
+
+    }, [shouldUpdateSrcObject, otherVideos]);
+
+    // 将 shouldUpdateSrcObject 设置为 true，以触发更新
+    useEffect(() => {
+        setShouldUpdateSrcObject(true);
+    }, [otherVideos]);
+
+    return (
+        <>
+            {
+                otherVideos.length > 0 &&
+                otherVideos.map((stream, index) => (
+                    <div key={index} className='video'>
+                        {/* <video key={index} ref={videoRefs.current[index]} controls autoPlay /> */}
+                        <video ref={videoRefs.current[index]}
+                            playsInline loop={true} muted controls={true} autoPlay
+                            style={{ position: 'relative', zIndex: 0, width: '100%' }}
+                        />
+                    </div>
+                ))
+            }
+        </>
+    );
+}
+
 function VideoChat({ sid, deviceType, socket, returnMenuView,
     messages, setMessages, chatPanelOpen, setChatPanelOpen,
     peerSocketId/* 游戏中对方的socke id*/,
@@ -2865,6 +2946,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     videoCallModalOpen, setVideoCallModalOpen, setFloatButtonVisible,
     floatButtonVisible,
     isLiveStream, liveStreamModalOpen, setLiveStreamModalOpen, lid, netConnected,/**直播 */
+    isMeet, meetModalOpen, setMeetModalOpen,/**会议 */
 }) {
     // 通话
     const [me, setMe] = useState("");               // 本地socketId
@@ -3038,6 +3120,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const shareScreenConnRef = useRef();
     const timerRef = useRef();
     const videoPlayerRef = useRef(null);
+    const testVideo = useRef();
 
     // 文件传输
     const expectedChunkIndexRef = useRef(0);
@@ -3081,6 +3164,217 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [nViewer, setNViewer] = useState(0); // 在线观众数量
     // /////////////直播相关变量//////////////////////
 
+    // 会议相关
+    const [device, setDevice] = useState();
+    const [producer, setProducer] = useState();
+    const [producerConnectionState, setProducerConnectionState] = useState();
+    const [consumerConnectionState, setConsumerConnectionState] = useState();
+    const [otherVideos, setOtherVideos] = useState([]);
+
+    const [meetRoomId, setMeetRoomId] = useState(); // 服务器分配给用户的会议房间号
+    const [inMeetRoom, setInMeetRoom] = useState(false);// 是否在会议室内
+    const [meetRoomIdReadOnly, setMeetRoomIdReadOnly] = useState(false);
+    const [meetRoomIdToEnter, setMeetRoomIdToEnter] = useState('');
+    const [inviteMeetModalOpen, setInviteMeetModalOpen] = useState(false);
+
+    const onMeetRoomIdTextAreaChange = (e) => {
+        let newValue = e.target.value.replace(/\n/g, '');
+        if (newValue.length > Meet_Room_ID_Len) {
+            showNotification('输入字符长度达到上限！');
+            newValue = newValue.substring(0, Meet_Room_ID_Len);
+        }
+        setMeetRoomIdToEnter(newValue);
+    };
+
+    const onLeaveMeetRoomBtnClick = () => {
+
+    };
+
+    const onInviteMeetBtnClick = () => {
+        setInviteMeetModalOpen(true);
+    };
+
+    const onEnterMeetRoomBtnClick = () => {
+        socket.emit("enterMeetRoom", meetRoomIdToEnter);
+    };
+
+    useEffect(() => {
+        if (socket) {
+            const handleMeetRoomCreated = (data) => {
+                if (data) {
+                    setMeetRoomId(data);
+                }
+            };
+            socket.emit("createMeetRoom");
+            socket.on("meetRoomCreated", handleMeetRoomCreated);
+            return () => {
+                socket.off("meetRoomId", handleMeetRoomCreated);
+            };
+        }
+    }, [socket]);
+
+    useEffect(() => {
+        if (socket && isMeet) {
+            socket.emit('getRouterRtpCapabilities');
+            const handleRouterRtpCapabilities = (data) => {
+                loadDevice(data);
+                console.log(data);
+            };
+
+            socket.on("routerRtpCapabilities", handleRouterRtpCapabilities);
+            return () => {
+                socket.off("routerRtpCapabilities", handleRouterRtpCapabilities);
+            }
+        }
+    }, [socket, isMeet]);
+
+    useEffect(() => {
+        if (device) {
+            // publish();
+            // publish
+            const handleProducerTransportCreated = async (data) => {
+                const transport = device.createSendTransport(data);
+                transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+                    socket.emit("connectProducerTransport", dtlsParameters);
+                    socket.off("producerConnected");
+                    socket.on("producerConnected", (event) => {
+                        callback();
+                    });
+                });
+
+                // begin transport on producer
+                transport.on("produce", async ({ kind, rtpParameters }, callback, errback) => {
+                    socket.emit("produce", {
+                        transportId: transport.id,
+                        kind,
+                        rtpParameters,
+                    });
+                    socket.off("produced");
+                    socket.on("produced", (data) => {
+                        callback(data);
+                    });
+                });
+
+                transport.on("connectionstatechange", (state) => {
+                    switch (state) {
+                        case 'connecting':
+                            break;
+                        case 'connected':
+                            break;
+                        case 'failed':
+                            transport.close();
+                            break;
+                        default:
+                            break;
+                    }
+                    setProducerConnectionState(state);
+                });
+
+                let stream = await getUserMediaStream();
+                const track = stream.getVideoTracks()[0];
+                const params = { track };
+                const prod = await transport.produce(params);
+                setProducer(prod);
+            };
+            socket.on("producerTransportCreated", handleProducerTransportCreated);
+
+            // subscribe();
+            // consumer
+            const handleConsumerTransportCreated = async (data) => {
+                const transport = device.createRecvTransport(data);
+                transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+                    socket.emit("connectConsumerTransport", {
+                        transportId: transport.id,
+                        dtlsParameters
+                    });
+                    socket.off("consumerConnected");
+                    socket.on("consumerConnected", (event) => {
+                        callback();
+                    });
+                });
+
+                transport.on("connectionstatechange", (state) => {
+                    switch (state) {
+                        case 'connecting':
+                            break;
+                        case 'connected':
+                            socket.emit("resume");
+                            break;
+                        case 'failed':
+                            transport.close();
+                            break;
+                        default:
+                            break;
+                    }
+                    setConsumerConnectionState(state);
+                });
+
+                const rStream = consume(transport);
+                const handleSubscribed = async (datas) => {
+                    let vs = [];
+                    for (const data of datas) {
+                        const {
+                            producerId,
+                            id,
+                            kind,
+                            rtpParameters,
+                        } = data;
+                        let codecOption = {};
+                        const consumer = await transport.consume({
+                            producerId,
+                            id,
+                            kind,
+                            rtpParameters,
+                            codecOption,
+                        });
+                        const stream = new MediaStream();
+                        stream.addTrack(consumer.track);
+                        vs.push(stream);
+                        // testVideo.current.srcObject = stream;
+                    };
+                    setOtherVideos(vs);
+                };
+                socket.off("subscribed");
+                socket.on("subscribed", handleSubscribed);
+            };
+            socket.on("consumerTransportCreated", handleConsumerTransportCreated);
+            return () => {
+                socket.off("producerTransportCreated", handleProducerTransportCreated);
+                socket.off("consumerTransportCreated", handleConsumerTransportCreated);
+            }
+        }
+    }, [device]);
+
+    const loadDevice = async (routerRtpCapabilities) => {
+        try {
+            let dev = new mediasoup.Device();
+            await dev.load({ routerRtpCapabilities });
+            setDevice(dev);
+        } catch (error) {
+            console.error(error);
+        }
+    }
+
+    const publish = () => {
+        const msg = {
+            forceTcp: false,
+            rtpCapabilities: device.rtpCapabilities,
+        }
+        socket.emit("createProducerTransport", msg);
+    };
+
+    const subscribe = () => {
+        const msg = {
+            forceTcp: false,
+        }
+        socket.emit("createConsumerTransport", msg);
+    };
+
+    const consume = async (transport) => {
+        const { rtpCapabilities } = device;
+        socket.emit("consume", rtpCapabilities);
+    };
+    // 会议相关 end
     useEffect(() => {
         if (receivedBytes) {
             setReceiveFileProgress(Number((receivedBytes / preAcceptFileSize * 100).toFixed(2)));
@@ -3416,7 +3710,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         }
         getUserMediaStream()
             .then(stream => {
-                getMediaStreamCapabilities(stream);
+                // getMediaStreamCapabilities(stream);
                 // 已连接
                 if (connectionRef.current && connectionRef.current.peer && !connectionRef.current.peer.destroyed) {
                     if (selectedMediaStream) {
@@ -4947,6 +5241,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         if (callAccepted) {
             setConfirmLeave(true);
         }
+        // TODO:同理需增加退出会议/直播的二次确认
         else {
             returnMenuView();
         }
@@ -4967,6 +5262,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     return (
         <>
             {
+                <>
+                    <Button onClick={publish}>发布</Button>
+                    <Button onClick={subscribe}>订阅</Button>
+                </>
+            }
+            {
                 <VideoFrameCapture socket={socket} videoRef={myVideo} localStream={localStream} />
             }
             {isLiveStream && selectedRole !== LiveStreamRole.Anchor && !isConnected && !lid && !reconnect &&
@@ -4976,7 +5277,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             }
             <div className='video-chat-view'>
                 <div className={`video-container-parent ${deviceType === DeviceType.MOBILE ? 'mobile' : ''}`}>
-                    <div className="video-container">
+                    <div className={`video-container ${isMeet ? 'meet' : ''}`}>
                         {selectedRole !== LiveStreamRole.Viewer &&
                             <div className='video'>
                                 <video ref={myVideo} playsInline loop={true} muted controls={false} autoPlay
@@ -5260,6 +5561,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 />
                             </div>
                         }
+                        {/* <div className='video'>
+                            <video ref={testVideo} playsInline loop={true} muted controls={true} autoPlay
+                                style={{ position: 'relative', zIndex: 0, width: '100%' }}
+                                onClick={handleVideoClick}
+                            />
+                        </div> */}
+                        <VideoComponent otherVideos={otherVideos} />
                     </div>
                     {showVideoPlayer &&
                         <div className={
@@ -5548,6 +5856,24 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 alertModalOpen &&
                 <InfoModal modalInfo={alertModalInfo} setModalOpen={setAlertModalOpen} />
             }
+            {/* 会议 */}
+            {meetModalOpen &&
+                <MeetModal props={{
+                    parent: 'ChaosGomoku',
+                    setMeetModalOpen,
+                    inMeetRoom,
+                    name, isNameReadOnly, onNameTextAreaChange,
+                    meetRoomIdToEnter, meetRoomIdReadOnly, onMeetRoomIdTextAreaChange,
+                    onLeaveMeetRoomBtnClick, onInviteMeetBtnClick, onEnterMeetRoomBtnClick,
+                    socket,
+                }} />
+            }
+            {inviteMeetModalOpen &&
+                <InviteMeetModal closeModal={() => setInviteMeetModalOpen(false)}
+                    me={me} name={name} socket={socket} inviteMeetModalOpen={inviteMeetModalOpen}
+                    strNowDate={strNowDate}
+                    meetRoomId={meetRoomId} />
+            }
         </>
     )
 }
@@ -5605,6 +5931,63 @@ function InviteVideoChatModal({ closeModal, me, name, socket, inviteVideoChatMod
                     </CopyToClipboard>
                 </div>
 
+            </div>
+        </div >
+    );
+}
+
+function InviteMeetModal({ closeModal, name, socket, inviteMeetModalOpen, strNowDate,
+    meetRoomId,
+}) {
+    const [url, setUrl] = useState(window.location.origin + '/meet/' + meetRoomId);
+    const text = '，点击链接直接进入会议：';
+    const inviteInfo = name + ' 邀请您参加视频会议，时间：' + strNowDate;
+    useEffect(() => {
+        if (inviteMeetModalOpen) {
+            socket.emit("getFormatDate");
+        }
+    }, [inviteMeetModalOpen]);
+
+    return (
+        <div className="modal-overlay">
+            <div className="invite-video-chat-modal">
+                <span className="close-button" onClick={closeModal}>
+                    &times;
+                </span>
+                <p>{inviteInfo}</p>
+                <p>{text}</p><p style={{
+                    color: 'blue',
+                }}>{url}</p>
+                <div className='button-confirm-container'>
+                    <CopyToClipboard text={url} style={{ marginRight: '10px' }}>
+                        <Button variant="contained" color="primary" onClick={() => {
+                            showNotification('链接已复制到剪切板', 2000, 'white');
+                        }
+                        }>
+                            复制链接
+                        </Button>
+                    </CopyToClipboard>
+                    <CopyToClipboard text={inviteInfo + text + url} style={{
+                        marginRight: '10px',
+                        fontWeight: 'bold',
+                        backgroundColor: '#3b5eec',
+                        color: 'white'
+                    }}>
+                        <Button variant="contained" onClick={() => {
+                            showNotification('全部信息已复制到剪切板', 2000, 'white');
+                        }}>
+                            复制完整信息
+                        </Button>
+                    </CopyToClipboard>
+                    <CopyToClipboard text={meetRoomId} style={{ marginRight: '10px' }}>
+                        <Button variant="contained" color="primary" onClick={() => {
+                            showNotification('会议号已复制到剪切板', 2000, 'white');
+                        }
+                        }>
+                            复制会议号
+                        </Button>
+                    </CopyToClipboard>
+                </div>
             </div>
         </div >
     );
@@ -5774,6 +6157,35 @@ function VideoCallModal({ props }) {
                         idToCall={props?.idToCall} onLeaveCallBtnClick={props?.onLeaveCallBtnClick}
                         onInviteCallBtnClick={props?.onInviteCallBtnClick}
                         onCallUserBtnClick={props?.onCallUserBtnClick} socket={props?.socket} />
+                </div>
+            </div >
+        </>
+    );
+}
+
+function MeetModal({ props }) {
+    return (
+        <>
+            <div className={`myId-parent ${props.parent ? props.parent : ''}`}>
+                <div className={`myId ${props.parent ? props.parent : ''}`}>
+                    {props?.parent &&
+                        <XSign onClick={() => props?.setMeetModalOpen(false)} />
+                    }
+                    {!props?.inMeetRoom &&
+                        <>
+                            <TextArea isReadyOnly={props?.isNameReadOnly} placeholder='我的昵称'
+                                label='Name' value={props?.name} onChange={props?.onNameTextAreaChange} />
+                            <TextArea isReadyOnly={props?.meetRoomIdReadOnly} placeholder='会议房间号'
+                                label='ID to enter' value={props?.meetRoomIdToEnter} onChange={props?.onMeetRoomIdTextAreaChange} />
+                        </>
+                    }
+                    <MeetButton
+                        inMeetRoom={props?.inMeetRoom}
+                        meetRoomIdToEnter={props?.meetRoomIdToEnter}
+                        onLeaveMeetRoomBtnClick={props?.onLeaveMeetRoomBtnClick}
+                        onInviteMeetBtnClick={props?.onInviteMeetBtnClick}
+                        onEnterMeetRoomBtnClick={props?.onEnterMeetRoomBtnClick}
+                        socket={props?.socket} />
                 </div>
             </div >
         </>

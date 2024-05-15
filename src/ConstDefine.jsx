@@ -69,6 +69,7 @@ export const Text_Max_Len = 100; // 单条输入框限制
 export const Live_Room_ID_Len = 8;
 export const Live_Messages_Max_Send = 10000;
 export const Live_Message_Max_Len = 50;
+export const Meet_Room_ID_Len = 12;
 
 export const ExitLiveStreamBtnWaitTime = 3000; // 退出直播按钮需要在开启直播后等待3000ms才能被点击
 
@@ -191,15 +192,16 @@ export const GlobalSignal = {
 export const Window_Max_Height_Factor = 0.95;
 
 export const WebsiteTitle = {
-    Menu: '直播·会议·音视频通话',
-    Game: '直播·会议·音视频通话',
-    Table: '直播·会议·音视频通话',
-    VideoChat: '直播·会议·音视频通话',
+    Menu: '直播·会议·视频通话',
+    Game: '直播·会议·视频通话',
+    Table: '直播·会议·视频通话',
+    VideoChat: '直播·会议·视频通话',
 }
 
 export const SubPage = {
     VideoCall: 'video-call',
-    LiveStream: 'live-stream'
+    LiveStream: 'live-stream',
+    Meet: 'meet',
 }
 
 export const mouseEvents = [

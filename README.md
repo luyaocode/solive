@@ -84,11 +84,11 @@ npm run start
 
 ------
 
-# 基于WebRTC的会议、直播和音视频通话系统
+# 基于WebRTC的会议、直播和视频通话系统
 
 ### 项目介绍
 
-除游戏外，本项目还包含音视频通话模块，已完成或正在开发的功能有：
+除游戏外，本项目还包含视频通话模块，已完成或正在开发的功能有：
 
 - 视频通话
 - 短信聊天
@@ -115,13 +115,13 @@ npm run start
    # 开发环境
    REACT_APP_BACKEND_URL_DEV=[3]
    REACT_APP_BACKEND_HTTP_DEV=[4]
-   
+
    # STUN服务器用户名和密码
    REACT_APP_STUN_URL=[5]
    REACT_APP_TURN_URL=[6]
    REACT_APP_TURN_USERNAME=[7]
    REACT_APP_TURN_CREDENTIAL=[8]
-   
+
    #备注
    #[1]生产环境后端服务器地址，格式：wss://abc.com:5000
    #[2]生产环境后端服务器地址，格式：https://abc.com:5000
@@ -159,7 +159,7 @@ npm run start
    #用于使用者身份识别
    user=[4]
    syslog
-   
+
    #备注
    #本文件是Coturn服务器的简易版配置文件模板
    #[1][3]处填写Coturn服务器公网ip地址
