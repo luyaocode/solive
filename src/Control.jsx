@@ -2893,21 +2893,60 @@ function VideoComponent({ otherVideos }) {
     const videoRefs = useRef([]);
     // 定义一个状态来控制是否更新 srcObject
     const [shouldUpdateSrcObject, setShouldUpdateSrcObject] = useState(false);
+    const [filteredPeers, setFilteredPeers] = useState([]);
+
+    const filterPeers = (peers) => {
+        let uniquePeers = [];
+        const peerMap = new Map();
+        peers.forEach((peer) => {
+            const keys = Object.keys(peer);
+            const peerId = keys[0];
+            const stream = peer[peerId];
+            if (!peerMap.has(peerId)) {
+                peerMap.set(peerId, stream);
+            } else {
+                let existingStream = peerMap.get(peerId);
+                if (!existingStream) {
+                    existingStream = new MediaStream();
+                }
+                stream.getTracks().forEach((track) => {
+                    existingStream.addTrack(track);
+                });
+            }
+        });
+        uniquePeers = Array.from(peerMap, ([key, value]) => ({ peerId: key, stream: value }));
+        return uniquePeers;
+    }
+
+    useEffect(() => {
+        const res = filterPeers(otherVideos);
+        setFilteredPeers(res);
+    }, [otherVideos]);
 
     useEffect(() => {
         // 确保 videoRefs 中有足够的引用
-        while (videoRefs.current.length < otherVideos.length) {
+        while (videoRefs.current.length < filteredPeers.length) {
             videoRefs.current.push(React.createRef());
         }
-    }, [otherVideos]);
+    }, [filteredPeers]);
 
     useEffect(() => {
         if (shouldUpdateSrcObject) {
             // 更新每个 video 元素的 srcObject 属性
-            otherVideos.forEach((stream, index) => {
+            filteredPeers.forEach((resp, index) => {
+                console.log('-------------');
                 if (videoRefs.current[index] && videoRefs.current[index].current) {
-                    videoRefs.current[index].current.srcObject = stream;
+                    if (!(videoRefs.current[index].current.srcObject) ||
+                        videoRefs.current[index].current.srcObject.id !== resp.stream.id) {
+                        videoRefs.current[index].current.srcObject = resp.stream;
+                        console.log('----peerID: ' + resp.peerId);
+                        console.log('----streamID: ' + resp.stream.id);
+                        resp.stream.getTracks().forEach((track) => {
+                            console.log("track:" + track.kind + ",id:" + track.id);
+                        });
+                    }
                 }
+                console.log('-------------');
             });
             setShouldUpdateSrcObject(false);
         }
@@ -2915,18 +2954,18 @@ function VideoComponent({ otherVideos }) {
 
     // 将 shouldUpdateSrcObject 设置为 true，以触发更新
     useEffect(() => {
-        setShouldUpdateSrcObject(true);
-    }, [otherVideos]);
+        setTimeout(() => setShouldUpdateSrcObject(true), 500);
+    }, [filteredPeers]);
 
     return (
         <>
             {
-                otherVideos.length > 0 &&
-                otherVideos.map((stream, index) => (
+                filteredPeers.length > 0 &&
+                filteredPeers.map((resp, index) => (
                     <div key={index} className='video'>
                         {/* <video key={index} ref={videoRefs.current[index]} controls autoPlay /> */}
                         <video ref={videoRefs.current[index]}
-                            playsInline loop={true} muted controls={true} autoPlay
+                            playsInline loop={true} muted={false} controls={true} autoPlay
                             style={{ position: 'relative', zIndex: 0, width: '100%' }}
                         />
                     </div>
@@ -3166,6 +3205,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     // 会议相关
     const [device, setDevice] = useState();
     const [producer, setProducer] = useState();
+    const [producerTransport, setProducerTransport] = useState();
+    const [consumerTransport, setConsumerTransport] = useState();
     const [producerConnectionState, setProducerConnectionState] = useState();
     const [consumerConnectionState, setConsumerConnectionState] = useState();
     const [otherVideos, setOtherVideos] = useState([]);
@@ -3177,10 +3218,10 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [inviteMeetModalOpen, setInviteMeetModalOpen] = useState(false);
 
     useEffect(() => {
-        if (socket && mid) {
+        if (netConnected && mid) {
             onEnterMeetRoomBtnClick(mid);
         }
-    }, [socket, mid]);
+    }, [netConnected, mid]);
 
     const onMeetRoomIdTextAreaChange = (e) => {
         let newValue = e.target.value.replace(/\n/g, '');
@@ -3204,6 +3245,13 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     };
 
     useEffect(() => {
+        if (inMeetRoom) {
+            subscribe();
+            publish();
+        }
+    }, [inMeetRoom]);
+
+    useEffect(() => {
         if (socket) {
             const handleMeetRoomCreated = (data) => {
                 if (data) {
@@ -3217,7 +3265,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
             const handleMeetRoomEntered = () => {
                 if (mid) {
-                    subscribe();
+                    setInMeetRoom(true);
                 }
             };
             socket.on("meetRoomEntered", handleMeetRoomEntered);
@@ -3243,6 +3291,66 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             }
         }
     }, [socket, isMeet]);
+
+    const constructStreams = async (datas, consumerTransport) => {
+        let vs = [];
+        for (const data of datas) {/**data：隶属于同一个peer的所有consumer */
+            let resp = {};
+            let pid;
+            let stream;
+            for (const item of data) {
+                const {
+                    peerId,
+                    producerId,
+                    id,
+                    kind,
+                    rtpParameters,
+                } = item;
+                pid = peerId;
+                let codecOption = {};
+                const consumer = await consumerTransport.consume({
+                    producerId,
+                    id,
+                    kind,
+                    rtpParameters,
+                    codecOption,
+                });
+                if (!stream) {
+                    stream = new MediaStream();
+                }
+                stream.addTrack(consumer.track);
+            }
+            resp[pid] = stream;
+            vs.push(resp);
+            // testVideo.current.srcObject = stream;
+        };
+        return vs;
+    }
+
+    useEffect(() => {
+        if (socket && consumerTransport) {
+            const handleSubscribed = async (datas) => {
+                const vs = await constructStreams(datas, consumerTransport);
+                if (vs.length > 0) {
+                    setOtherVideos(prev => [...prev, ...vs]);
+                }
+            };
+            socket.on("subscribed", handleSubscribed);
+
+            const handleNewProducerConsumed = async (datas) => {
+                const vs = await constructStreams(datas, consumerTransport);
+                if (vs.length > 0) {
+                    setOtherVideos(prev => [...prev, ...vs]);
+                }
+            };
+            socket.on("newProducerConsumed", handleNewProducerConsumed);
+
+            return () => {
+                socket.off("subscribed", handleSubscribed);
+                socket.off("newProducerConsumed", handleNewProducerConsumed);
+            }
+        }
+    }, [socket, consumerTransport]);
 
     useEffect(() => {
         if (device) {
@@ -3286,6 +3394,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     setProducerConnectionState(state);
                 });
 
+                setProducerTransport(transport);
+
                 let stream = await getUserMediaStream();
                 await produce(transport, stream);
             };
@@ -3322,40 +3432,23 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     setConsumerConnectionState(state);
                 });
 
-                const rStream = consume(transport);
-                const handleSubscribed = async (datas) => {
-                    let vs = [];
-                    for (const data of datas) {
-                        const stream = new MediaStream();
-                        for (const item of data) {
-                            const {
-                                producerId,
-                                id,
-                                kind,
-                                rtpParameters,
-                            } = item;
-                            let codecOption = {};
-                            const consumer = await transport.consume({
-                                producerId,
-                                id,
-                                kind,
-                                rtpParameters,
-                                codecOption,
-                            });
-                            stream.addTrack(consumer.track);
-                        }
-                        vs.push(stream);
-                        // testVideo.current.srcObject = stream;
-                    };
-                    setOtherVideos(vs);
-                };
-                socket.off("subscribed");
-                socket.on("subscribed", handleSubscribed);
+                setConsumerTransport(transport);
+                // 消费
+                consume(transport);
             };
             socket.on("consumerTransportCreated", handleConsumerTransportCreated);
+
+            // new producer
+            const handleNewProducer = () => {
+                // consume();
+                consumeNewProducer();
+            };
+            socket.on("newProducer", handleNewProducer);
+
             return () => {
                 socket.off("producerTransportCreated", handleProducerTransportCreated);
                 socket.off("consumerTransportCreated", handleConsumerTransportCreated);
+                socket.off("newProducer", handleNewProducer);
             }
         }
     }, [device]);
@@ -3397,6 +3490,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         const { rtpCapabilities } = device;
         socket.emit("consume", rtpCapabilities);
     };
+
+    const consumeNewProducer = async () => {
+        const { rtpCapabilities } = device;
+        socket.emit("consumeNewProducer", rtpCapabilities);
+    }
+
     // 会议相关 end
     useEffect(() => {
         if (receivedBytes) {
@@ -5285,12 +5384,6 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     return (
         <>
             {
-                <>
-                    <Button onClick={publish}>发布</Button>
-                    <Button onClick={subscribe}>订阅</Button>
-                </>
-            }
-            {
                 <VideoFrameCapture socket={socket} videoRef={myVideo} localStream={localStream} />
             }
             {isLiveStream && selectedRole !== LiveStreamRole.Anchor && !isConnected && !lid && !reconnect &&
@@ -5299,6 +5392,52 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 />
             }
             <div className='video-chat-view'>
+                {isMeet &&
+                    <TextOverlay
+                        isMediaCtlMenu={true}
+                        position="bottom-center"
+                        audioEnabled={audioEnabled}
+                        setAudioEnabled={setAudioEnabled}
+                        videoEnabled={videoEnabled}
+                        setVideoEnabled={setVideoEnabled}
+                        handleVolumeChange={handleVolumeChange}
+                        videoRef={myVideo}
+                        setSelectedAudioDevice={setSelectedAudioDevice}
+                        setSelectedVideoDevice={setSelectedVideoDevice}
+                        callAccepted={callAccepted}
+                        isNameReadOnly={isNameReadOnly}
+                        name={name}
+                        onNameTextAreaChange={onNameTextAreaChange}
+                        isIdToCallReadOnly={isIdToCallReadOnly}
+                        idToCall={idToCall}
+                        onIdToCallTextAreaChange={onIdToCallTextAreaChange}
+                        isShareScreen={isShareScreen}
+                        setIsShareScreen={setIsShareScreen}
+                        setChatPanelOpen={setChatPanelOpen}
+                        selectedMediaStream={selectedMediaStream}
+                        setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
+                        setFacingMode={setFacingMode}
+                        setSelectVideoModalOpen={setSelectVideoModalOpen}
+                        callEnded={callEnded}
+                        onLeaveCallBtnClick={onLeaveCallBtnClick}
+                        onInviteCallBtnClick={onInviteCallBtnClick}
+                        onCallUserBtnClick={onCallUserBtnClick}
+                        sid={sid}
+                        onReturnMenuBtnClick={onReturnMenuBtnClick}
+                        myVideoVolume={myVideoVolume}
+                        setMyVideoVolume={setMyVideoVolume}
+                        setFloatButtonVisible={setFloatButtonVisible}
+                        floatButtonVisible={floatButtonVisible}
+                        setTransferFileModalOpen={setTransferFileModalOpen}
+                        setTransferFileModalVisible={setTransferFileModalVisible}
+                        isLiveStream={isLiveStream}
+                        selectedRole={selectedRole}
+                        setLiveRoomChatPanelDisplay={setLiveRoomChatPanelDisplay}
+                        isMeet={isMeet}
+                        publish={publish}
+                        subscribe={subscribe}
+                    />
+                }
                 <div className={`video-container-parent ${deviceType === DeviceType.MOBILE ? 'mobile' : ''}`}>
                     <div className={`video-container ${isMeet ? 'meet' : ''}`}>
                         {selectedRole !== LiveStreamRole.Viewer &&
@@ -5317,47 +5456,50 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     position="top-left"
                                     content={name}
                                 />
-                                <TextOverlay
-                                    isMediaCtlMenu={true}
-                                    position="top-center"
-                                    audioEnabled={audioEnabled}
-                                    setAudioEnabled={setAudioEnabled}
-                                    videoEnabled={videoEnabled}
-                                    setVideoEnabled={setVideoEnabled}
-                                    handleVolumeChange={handleVolumeChange}
-                                    videoRef={myVideo}
-                                    setSelectedAudioDevice={setSelectedAudioDevice}
-                                    setSelectedVideoDevice={setSelectedVideoDevice}
-                                    callAccepted={callAccepted}
-                                    isNameReadOnly={isNameReadOnly}
-                                    name={name}
-                                    onNameTextAreaChange={onNameTextAreaChange}
-                                    isIdToCallReadOnly={isIdToCallReadOnly}
-                                    idToCall={idToCall}
-                                    onIdToCallTextAreaChange={onIdToCallTextAreaChange}
-                                    isShareScreen={isShareScreen}
-                                    setIsShareScreen={setIsShareScreen}
-                                    setChatPanelOpen={setChatPanelOpen}
-                                    selectedMediaStream={selectedMediaStream}
-                                    setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
-                                    setFacingMode={setFacingMode}
-                                    setSelectVideoModalOpen={setSelectVideoModalOpen}
-                                    callEnded={callEnded}
-                                    onLeaveCallBtnClick={onLeaveCallBtnClick}
-                                    onInviteCallBtnClick={onInviteCallBtnClick}
-                                    onCallUserBtnClick={onCallUserBtnClick}
-                                    sid={sid}
-                                    onReturnMenuBtnClick={onReturnMenuBtnClick}
-                                    myVideoVolume={myVideoVolume}
-                                    setMyVideoVolume={setMyVideoVolume}
-                                    setFloatButtonVisible={setFloatButtonVisible}
-                                    floatButtonVisible={floatButtonVisible}
-                                    setTransferFileModalOpen={setTransferFileModalOpen}
-                                    setTransferFileModalVisible={setTransferFileModalVisible}
-                                    isLiveStream={isLiveStream}
-                                    selectedRole={selectedRole}
-                                    setLiveRoomChatPanelDisplay={setLiveRoomChatPanelDisplay}
-                                />
+                                {!isMeet &&
+                                    <TextOverlay
+                                        isMediaCtlMenu={true}
+                                        position="top-center"
+                                        audioEnabled={audioEnabled}
+                                        setAudioEnabled={setAudioEnabled}
+                                        videoEnabled={videoEnabled}
+                                        setVideoEnabled={setVideoEnabled}
+                                        handleVolumeChange={handleVolumeChange}
+                                        videoRef={myVideo}
+                                        setSelectedAudioDevice={setSelectedAudioDevice}
+                                        setSelectedVideoDevice={setSelectedVideoDevice}
+                                        callAccepted={callAccepted}
+                                        isNameReadOnly={isNameReadOnly}
+                                        name={name}
+                                        onNameTextAreaChange={onNameTextAreaChange}
+                                        isIdToCallReadOnly={isIdToCallReadOnly}
+                                        idToCall={idToCall}
+                                        onIdToCallTextAreaChange={onIdToCallTextAreaChange}
+                                        isShareScreen={isShareScreen}
+                                        setIsShareScreen={setIsShareScreen}
+                                        setChatPanelOpen={setChatPanelOpen}
+                                        selectedMediaStream={selectedMediaStream}
+                                        setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
+                                        setFacingMode={setFacingMode}
+                                        setSelectVideoModalOpen={setSelectVideoModalOpen}
+                                        callEnded={callEnded}
+                                        onLeaveCallBtnClick={onLeaveCallBtnClick}
+                                        onInviteCallBtnClick={onInviteCallBtnClick}
+                                        onCallUserBtnClick={onCallUserBtnClick}
+                                        sid={sid}
+                                        onReturnMenuBtnClick={onReturnMenuBtnClick}
+                                        myVideoVolume={myVideoVolume}
+                                        setMyVideoVolume={setMyVideoVolume}
+                                        setFloatButtonVisible={setFloatButtonVisible}
+                                        floatButtonVisible={floatButtonVisible}
+                                        setTransferFileModalOpen={setTransferFileModalOpen}
+                                        setTransferFileModalVisible={setTransferFileModalVisible}
+                                        isLiveStream={isLiveStream}
+                                        selectedRole={selectedRole}
+                                        setLiveRoomChatPanelDisplay={setLiveRoomChatPanelDisplay}
+                                        isMeet={isMeet}
+                                    />
+                                }
                                 <TextOverlay
                                     position="top-left-local-video"
                                     selectedFileName={selectedLocalFile?.name}
@@ -5370,32 +5512,34 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                     handleVideoClick={handleVideoClick}
                                     localVideoDisplayRenderKey={localVideoDisplayRenderKey}
                                 />
-                                <TextOverlay
-                                    position="top-right"
-                                    iconSrc={StatPanelIcon}
-                                    contents={[
-                                        {
-                                            name: 'Video Bitrate',
-                                            data: outboundVideoBitrate.toFixed(4),
-                                            unit: 'Mbps'
-                                        },
-                                        {
-                                            name: 'Video Frame Rate',
-                                            data: outboundFramesPerSecond.toFixed(2),
-                                            unit: ''
-                                        },
-                                        {
-                                            name: 'Video Frame Width',
-                                            data: outboundFrameWidth.toFixed(0),
-                                            unit: ''
-                                        },
-                                        {
-                                            name: 'Video Frame Width',
-                                            data: outboundFrameHeight.toFixed(0),
-                                            unit: ''
-                                        },
-                                    ]}
-                                />
+                                {!isMeet &&
+                                    <TextOverlay
+                                        position="top-right"
+                                        iconSrc={StatPanelIcon}
+                                        contents={[
+                                            {
+                                                name: 'Video Bitrate',
+                                                data: outboundVideoBitrate.toFixed(4),
+                                                unit: 'Mbps'
+                                            },
+                                            {
+                                                name: 'Video Frame Rate',
+                                                data: outboundFramesPerSecond.toFixed(2),
+                                                unit: ''
+                                            },
+                                            {
+                                                name: 'Video Frame Width',
+                                                data: outboundFrameWidth.toFixed(0),
+                                                unit: ''
+                                            },
+                                            {
+                                                name: 'Video Frame Width',
+                                                data: outboundFrameHeight.toFixed(0),
+                                                unit: ''
+                                            },
+                                        ]}
+                                    />
+                                }
                                 {isLiveStream &&
                                     <TextOverlay
                                         position="bottom-left"
@@ -5982,12 +6126,12 @@ function InviteMeetModal({ closeModal, name, socket, inviteMeetModalOpen, strNow
                     color: 'blue',
                 }}>{url}</p>
                 <div className='button-confirm-container'>
-                    <CopyToClipboard text={url} style={{ marginRight: '10px' }}>
+                    <CopyToClipboard text={meetRoomId} style={{ marginRight: '10px' }}>
                         <Button variant="contained" color="primary" onClick={() => {
-                            showNotification('链接已复制到剪切板', 2000, 'white');
+                            showNotification('会议号已复制到剪切板', 2000, 'white');
                         }
                         }>
-                            复制链接
+                            复制会议号
                         </Button>
                     </CopyToClipboard>
                     <CopyToClipboard text={inviteInfo + text + url} style={{
@@ -6002,12 +6146,12 @@ function InviteMeetModal({ closeModal, name, socket, inviteMeetModalOpen, strNow
                             复制完整信息
                         </Button>
                     </CopyToClipboard>
-                    <CopyToClipboard text={meetRoomId} style={{ marginRight: '10px' }}>
+                    <CopyToClipboard text={url} style={{ marginRight: '10px' }}>
                         <Button variant="contained" color="primary" onClick={() => {
-                            showNotification('会议号已复制到剪切板', 2000, 'white');
+                            showNotification('链接已复制到剪切板', 2000, 'white');
                         }
                         }>
-                            复制会议号
+                            复制链接
                         </Button>
                     </CopyToClipboard>
                 </div>
@@ -6401,7 +6545,8 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     myVideoVolume, setMyVideoVolume, localVideoDisplayRenderKey, setFloatButtonVisible,
     floatButtonVisible, setTransferFileModalOpen, setTransferFileModalVisible,
     isLiveStream, selectedRole, userVideoVolume, setUserVideoVolume, refreshLiveStream,
-    setLiveRoomChatPanelDisplay
+    setLiveRoomChatPanelDisplay,
+    isMeet, publish, subscribe,
 }) {
 
     const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
@@ -6489,6 +6634,13 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                 return { bottom: '1rem', left: '1rem' };
             case 'bottom-right':
                 return { bottom: 0, right: 0 };
+            case 'bottom-center':
+                return {
+                    bottom: 0,
+                    left: '50%',
+                    transform: 'translateX(-50%)',
+                    zIndex: 40,
+                };
             default:
                 return { top: 0, left: 0 };
         }
@@ -6582,7 +6734,9 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                         }
                         {showMediaCtlMenu &&
                             <>
-                                <img src={CloseMediaCtlMenuIcon} alt="CloseMediaCtlMenu" className="icon close-menu-icon" onClick={toggleCtlMenu} />
+                                {!(position === 'bottom-center') &&
+                                    <img src={CloseMediaCtlMenuIcon} alt="CloseMediaCtlMenu" className="icon close-menu-icon" onClick={toggleCtlMenu} />
+                                }
                                 <div className='func-icon-container'>
                                     {selectedRole === LiveStreamRole.Viewer ?
                                         <>
@@ -6604,10 +6758,12 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                             <>
                                                 <AudioDeviceSelector audioEnabled={audioEnabled} setAudioEnabled={setAudioEnabled}
                                                     setSelectedDevice={setSelectedAudioDevice} callAccepted={callAccepted}
-                                                    selectedMediaStream={selectedMediaStream} />
+                                                    selectedMediaStream={selectedMediaStream}
+                                                    isMeet={isMeet} />
                                                 <VideoDeviceSelector videoEnabled={videoEnabled} setVideoEnabled={setVideoEnabled}
                                                     setSelectedDevice={setSelectedVideoDevice} callAccepted={callAccepted}
-                                                    selectedMediaStream={selectedMediaStream} />
+                                                    selectedMediaStream={selectedMediaStream}
+                                                    isMeet={isMeet} />
                                             </>
                                             <div ref={volumeSliderContainerRef} className="slider-container"
                                                 onMouseEnter={handleMouseEnter} onMouseLeave={handleMouseLeave}>
@@ -6646,9 +6802,18 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                                     () => setFloatButtonVisible(prev => !prev)
                                                 } title='其他'>
                                             </div>
+                                            {isMeet &&
+                                                <>
+                                                    <Button onClick={publish}>发布</Button>
+                                                    <Button onClick={subscribe}>订阅</Button>
+                                                </>
+                                            }
                                         </>
                                     }
                                 </div>
+                                {position === 'bottom-center' &&
+                                    <img src={CloseMediaCtlMenuIcon} alt="CloseMediaCtlMenu" className="icon close-menu-icon" onClick={toggleCtlMenu} />
+                                }
                             </>
                         }
                     </div>
@@ -6700,7 +6865,8 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
 }
 
 function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice, callAccepted,
-    selectedMediaStream }) {
+    selectedMediaStream,
+    isMeet, }) {
     const [audioDevices, setAudioDevices] = useState([]);
     const [audioIcon, setAudioIcon] = useState(AudioIcon);
     const [canToggleAudio, setCanToggleAudio] = useState(true);
@@ -6738,13 +6904,18 @@ function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice,
         if (!canToggleAudio) {
             return;
         }
-        if (audioEnabled) {
-            if (callAccepted) {
-                setAudioEnabled((prev) => !prev);
-            }
+        if (isMeet) {
+            setAudioEnabled((prev) => !prev);
         }
         else {
-            setAudioEnabled((prev) => !prev);
+            if (audioEnabled) {
+                if (callAccepted) {
+                    setAudioEnabled((prev) => !prev);
+                }
+            }
+            else {
+                setAudioEnabled((prev) => !prev);
+            }
         }
     };
 
@@ -6761,7 +6932,8 @@ function AudioDeviceSelector({ audioEnabled, setAudioEnabled, setSelectedDevice,
 }
 
 function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice, callAccepted,
-    selectedMediaStream }) {
+    selectedMediaStream,
+    isMeet }) {
     const [videoDevices, setVideoDevices] = useState([]);
     const [videoIcon, setVideoIcon] = useState(VideoIcon);
     const [canToggleVideo, setCanToggleVideo] = useState(true);
@@ -6799,13 +6971,18 @@ function VideoDeviceSelector({ videoEnabled, setVideoEnabled, setSelectedDevice,
         if (!canToggleVideo) {
             return;
         }
-        if (videoEnabled) {
-            if (callAccepted) {
-                setVideoEnabled((prev) => !prev);
-            }
+        if (isMeet) {
+            setVideoEnabled((prev) => !prev);
         }
         else {
-            setVideoEnabled((prev) => !prev);
+            if (videoEnabled) {
+                if (callAccepted) {
+                    setVideoEnabled((prev) => !prev);
+                }
+            }
+            else {
+                setVideoEnabled((prev) => !prev);
+            }
         }
     };
 

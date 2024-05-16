@@ -1759,7 +1759,7 @@
 
 .video-container.meet {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(30%, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(auto, 50%));
   align-items: center;
   align-content: center;
 }
