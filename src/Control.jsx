@@ -2352,7 +2352,7 @@ function MeetButton({ inMeetRoom, meetRoomIdToEnter,
                         邀请入会
                     </Button>
                     <Button disabled={meetRoomIdToEnter?.length === 0 || !(socket?.connected)} color="primary" aria-label="call"
-                        onClick={onEnterMeetRoomBtnClick}
+                        onClick={() => onEnterMeetRoomBtnClick(meetRoomIdToEnter)}
                         className='call-user-button'>
                         进入会议
                     </Button>
@@ -2911,8 +2911,7 @@ function VideoComponent({ otherVideos }) {
             });
             setShouldUpdateSrcObject(false);
         }
-
-    }, [shouldUpdateSrcObject, otherVideos]);
+    }, [shouldUpdateSrcObject]);
 
     // 将 shouldUpdateSrcObject 设置为 true，以触发更新
     useEffect(() => {
@@ -2946,7 +2945,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     videoCallModalOpen, setVideoCallModalOpen, setFloatButtonVisible,
     floatButtonVisible,
     isLiveStream, liveStreamModalOpen, setLiveStreamModalOpen, lid, netConnected,/**直播 */
-    isMeet, meetModalOpen, setMeetModalOpen,/**会议 */
+    isMeet, meetModalOpen, setMeetModalOpen, mid,/**会议 */
 }) {
     // 通话
     const [me, setMe] = useState("");               // 本地socketId
@@ -3177,6 +3176,12 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [meetRoomIdToEnter, setMeetRoomIdToEnter] = useState('');
     const [inviteMeetModalOpen, setInviteMeetModalOpen] = useState(false);
 
+    useEffect(() => {
+        if (socket && mid) {
+            onEnterMeetRoomBtnClick(mid);
+        }
+    }, [socket, mid]);
+
     const onMeetRoomIdTextAreaChange = (e) => {
         let newValue = e.target.value.replace(/\n/g, '');
         if (newValue.length > Meet_Room_ID_Len) {
@@ -3194,8 +3199,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         setInviteMeetModalOpen(true);
     };
 
-    const onEnterMeetRoomBtnClick = () => {
-        socket.emit("enterMeetRoom", meetRoomIdToEnter);
+    const onEnterMeetRoomBtnClick = (mid) => {
+        socket.emit("enterMeetRoom", mid);
     };
 
     useEffect(() => {
@@ -3205,10 +3210,21 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     setMeetRoomId(data);
                 }
             };
-            socket.emit("createMeetRoom");
+            if (!mid) {
+                socket.emit("createMeetRoom");
+            }
             socket.on("meetRoomCreated", handleMeetRoomCreated);
+
+            const handleMeetRoomEntered = () => {
+                if (mid) {
+                    subscribe();
+                }
+            };
+            socket.on("meetRoomEntered", handleMeetRoomEntered);
+
             return () => {
                 socket.off("meetRoomId", handleMeetRoomCreated);
+                socket.off("meetRoomEntered", handleMeetRoomEntered);
             };
         }
     }, [socket]);
@@ -3271,10 +3287,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 });
 
                 let stream = await getUserMediaStream();
-                const track = stream.getVideoTracks()[0];
-                const params = { track };
-                const prod = await transport.produce(params);
-                setProducer(prod);
+                await produce(transport, stream);
             };
             socket.on("producerTransportCreated", handleProducerTransportCreated);
 
@@ -3313,22 +3326,24 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 const handleSubscribed = async (datas) => {
                     let vs = [];
                     for (const data of datas) {
-                        const {
-                            producerId,
-                            id,
-                            kind,
-                            rtpParameters,
-                        } = data;
-                        let codecOption = {};
-                        const consumer = await transport.consume({
-                            producerId,
-                            id,
-                            kind,
-                            rtpParameters,
-                            codecOption,
-                        });
                         const stream = new MediaStream();
-                        stream.addTrack(consumer.track);
+                        for (const item of data) {
+                            const {
+                                producerId,
+                                id,
+                                kind,
+                                rtpParameters,
+                            } = item;
+                            let codecOption = {};
+                            const consumer = await transport.consume({
+                                producerId,
+                                id,
+                                kind,
+                                rtpParameters,
+                                codecOption,
+                            });
+                            stream.addTrack(consumer.track);
+                        }
                         vs.push(stream);
                         // testVideo.current.srcObject = stream;
                     };
@@ -3353,6 +3368,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
         } catch (error) {
             console.error(error);
         }
+    };
+
+    const produce = async (transport, stream) => {
+        const videoTrack = stream.getVideoTracks()[0];
+        const audioTrack = stream.getAudioTracks()[0];
+        const videoProducer = await transport.produce({ track: videoTrack });
+        const audioProducer = await transport.produce({ track: audioTrack });
+        setProducer({ videoProducer, audioProducer });
     }
 
     const publish = () => {

@@ -202,6 +202,13 @@ function ChaosGomoku() {
     // 会议
     const [isMeet, setIsMeet] = useState(false);
     const [meetModalOpen, setMeetModalOpen] = useState(false);
+    const { mid } = useParams(); // liveId in url
+    useEffect(() => {
+        if (mid && socket) {
+            setIsMeet(true);
+            enterVideoChatView();
+        }
+    }, [mid, socket]);
 
     // 信号
     const [globalSignal, setGlobalSignal] = useState({});
@@ -613,7 +620,8 @@ function ChaosGomoku() {
                                         setVideoCallModalOpen={setVideoCallModalOpen} setFloatButtonVisible={setFloatButtonVisible}
                                         floatButtonVisible={floatButtonVisible} liveStreamModalOpen={liveStreamModalOpen}
                                         setLiveStreamModalOpen={setLiveStreamModalOpen} isLiveStream={isLiveStream} lid={lid} netConnected={netConnected}
-                                        isMeet={isMeet} meetModalOpen={meetModalOpen} setMeetModalOpen={setMeetModalOpen} />
+                                        isMeet={isMeet} meetModalOpen={meetModalOpen} setMeetModalOpen={setMeetModalOpen}
+                                        mid={mid} />
                                     : null
                                 )
                             )
@@ -694,7 +702,7 @@ function ChaosGomoku() {
                         )}
                     </>)
             }
-            {deviceType === DeviceType.PC && (!rid && !sid && !lid) &&
+            {deviceType === DeviceType.PC && (!rid && !sid && !lid && !mid) &&
                 < div style={{
                     display: (showLive2DRole ? 'block' : 'none'),
                     zIndex: 19,
