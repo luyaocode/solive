@@ -286,6 +286,9 @@ function ChaosGomoku() {
                 //     setLiveStreamModalOpen(true);
                 // }
             }
+            else if (subpage === SubPage.Meet) {
+                onMeetBtnClick();
+            }
         }
     }, [socket, netConnected]);
 
@@ -544,6 +547,7 @@ function ChaosGomoku() {
                 onLiveStreamBtnClick={onLiveStreamBtnClick}
                 onVideoCallBtnClick={onVideoCallBtnClick}
                 onMeetBtnClick={onMeetBtnClick}
+                mid={mid}
             />
             {
                 receiveInviteModalOpen &&

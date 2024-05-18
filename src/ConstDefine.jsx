@@ -201,7 +201,7 @@ export const WebsiteTitle = {
 export const SubPage = {
     VideoCall: 'video-call',
     LiveStream: 'live-stream',
-    Meet: 'meet',
+    Meet: 'meet-room',
 }
 
 export const mouseEvents = [

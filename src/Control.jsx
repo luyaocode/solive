@@ -3219,7 +3219,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     // 会议相关
     const [device, setDevice] = useState();
-    const [producer, setProducer] = useState();
+    const [producer, setProducer] = useState({});
     const [producerTransport, setProducerTransport] = useState();
     const [consumerTransport, setConsumerTransport] = useState();
     const [producerConnectionState, setProducerConnectionState] = useState();
@@ -3260,11 +3260,11 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     };
 
     useEffect(() => {
-        if (inMeetRoom) {
+        if (device) {
             subscribe();
             publish();
         }
-    }, [inMeetRoom]);
+    }, [device]);
 
     useEffect(() => {
         if (socket) {
@@ -3293,7 +3293,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     }, [socket]);
 
     useEffect(() => {
-        if (socket && isMeet) {
+        if (socket && inMeetRoom) {
             socket.emit('getRouterRtpCapabilities');
             const handleRouterRtpCapabilities = (data) => {
                 loadDevice(data);
@@ -3305,7 +3305,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 socket.off("routerRtpCapabilities", handleRouterRtpCapabilities);
             }
         }
-    }, [socket, isMeet]);
+    }, [socket, inMeetRoom]);
 
     const constructStreams = async (datas, consumerTransport) => {
         let vs = [];
@@ -3412,7 +3412,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 setProducerTransport(transport);
 
                 let stream = await getUserMediaStream();
-                await produce(transport, stream);
+                produce(transport, stream);
             };
             socket.on("producerTransportCreated", handleProducerTransportCreated);
 
@@ -3436,7 +3436,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         case 'connecting':
                             break;
                         case 'connected':
-                            socket.emit("resume");
+                            socket.emit("resume", socket.id);
                             break;
                         case 'failed':
                             transport.close();
@@ -3479,19 +3479,35 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     };
 
     const produce = async (transport, stream) => {
-        const videoTrack = stream.getVideoTracks()[0];
-        const audioTrack = stream.getAudioTracks()[0];
-        const videoProducer = await transport.produce({ track: videoTrack });
-        const audioProducer = await transport.produce({ track: audioTrack });
+        let videoProducer = [];
+        let audioProducer = [];
+        if (stream) {
+            const vts = stream.getVideoTracks();
+            if (vts.length > 0) {
+                for (const t of vts) {
+                    const producer = await transport.produce({ track: t });
+                    videoProducer.push(t);
+                }
+            }
+            const ats = stream.getAudioTracks();
+            if (ats.length > 0) {
+                for (const t of ats) {
+                    const producer = await transport.produce({ track: t });
+                    audioProducer.push(t);
+                }
+            }
+        }
         setProducer({ videoProducer, audioProducer });
     }
 
     const publish = () => {
-        const msg = {
-            forceTcp: false,
-            rtpCapabilities: device.rtpCapabilities,
+        if (device?.rtpCapabilities) {
+            const msg = {
+                forceTcp: false,
+                rtpCapabilities: device.rtpCapabilities,
+            }
+            socket.emit("createProducerTransport", msg);
         }
-        socket.emit("createProducerTransport", msg);
     };
 
     const subscribe = () => {
@@ -5749,7 +5765,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                 onClick={handleVideoClick}
                             />
                         </div> */}
-                        <VideoComponent otherVideos={otherVideos} />
+                        {isMeet &&
+                            <VideoComponent otherVideos={otherVideos} />
+                        }
                     </div>
                     {showVideoPlayer &&
                         <div className={
@@ -6566,7 +6584,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
 
     const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
     const [showStatPanel, setShowStatPanel] = useState(false);
-    const [showMediaCtlMenu, setShowMediaCtlMenu] = useState(!isLiveStream);
+    const [showMediaCtlMenu, setShowMediaCtlMenu] = useState(false);
     const node = useRef();
     const volumeSliderContainerRef = useRef();
     const volumeSliderTimerRef = useRef();
@@ -6578,7 +6596,7 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
     }, [videoRef]);
 
     useEffect(() => {
-        if (!isLiveStream) {
+        if (!isLiveStream && !isMeet) {
             setShowMediaCtlMenu(!callAccepted);
         }
     }, [callAccepted]);

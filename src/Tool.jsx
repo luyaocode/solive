@@ -309,10 +309,11 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
     setVideoCallModalOpen, setIsLiveStream, setLiveStreamModalOpen, deviceType,
     setSaveVideoModalOpen, globalSignal, enterVideoChatView, floatButtonVisible,
     setFloatButtonVisible, sid, subpage, lid, currentView, returnMenu,
-    onLiveStreamBtnClick, onVideoCallBtnClick, onMeetBtnClick,
+    onLiveStreamBtnClick, onVideoCallBtnClick, onMeetBtnClick, mid,
 }) {
     const [videoCallBtnDisabled, setVideoCallBtnDisabled] = useState(false);
     const [liveStreamBtnDisabled, setLiveStreamBtnDisabled] = useState(false);
+    const [meetBtnDisabled, setMeetBtnDisabled] = useState(false);
     useEffect(() => {
         if (currentView === View.Game) {
             setVideoCallBtnDisabled(true);
@@ -321,11 +322,13 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
         else {
             if (lid || subpage === SubPage.LiveStream) {
                 setVideoCallBtnDisabled(true);
+                setMeetBtnDisabled(true);
             }
             else if (sid || subpage === SubPage.VideoCall) {
                 setLiveStreamBtnDisabled(true);
+                setMeetBtnDisabled(true);
             }
-            else {
+            else if (mid || subpage === SubPage.Meet) {
                 setVideoCallBtnDisabled(false);
                 setLiveStreamBtnDisabled(false);
             }
@@ -348,6 +351,7 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
             sid, subpage, lid,
             videoCallBtnDisabled,
             liveStreamBtnDisabled,
+            meetBtnDisabled,
             currentView,
             returnMenu,
             onLiveStreamBtnClick,
