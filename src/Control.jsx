@@ -2892,7 +2892,7 @@ function VideoComponent({ otherVideos }) {
     // 创建用于存储 video 元素引用的数组
     const videoRefs = useRef([]);
     // 定义一个状态来控制是否更新 srcObject
-    const [shouldUpdateSrcObject, setShouldUpdateSrcObject] = useState(false);
+    const [updateSrcObjectCount, setUpdateSrcObjectCount] = useState(0);
     const [filteredPeers, setFilteredPeers] = useState([]);
 
     const filterPeers = (peers) => {
@@ -2911,6 +2911,7 @@ function VideoComponent({ otherVideos }) {
                 }
                 stream.getTracks().forEach((track) => {
                     existingStream.addTrack(track);
+                    stream.removeTrack(track);
                 });
             }
         });
@@ -2931,31 +2932,45 @@ function VideoComponent({ otherVideos }) {
     }, [filteredPeers]);
 
     useEffect(() => {
-        if (shouldUpdateSrcObject) {
+        if (updateSrcObjectCount) {
             // 更新每个 video 元素的 srcObject 属性
+            let haveNullRef = false;
+            console.log('-----更新srcObject-----');
             filteredPeers.forEach((resp, index) => {
-                console.log('-------------');
                 if (videoRefs.current[index] && videoRefs.current[index].current) {
                     if (!(videoRefs.current[index].current.srcObject) ||
                         videoRefs.current[index].current.srcObject.id !== resp.stream.id) {
                         videoRefs.current[index].current.srcObject = resp.stream;
-                        console.log('----peerID: ' + resp.peerId);
-                        console.log('----streamID: ' + resp.stream.id);
-                        resp.stream.getTracks().forEach((track) => {
-                            console.log("track:" + track.kind + ",id:" + track.id);
-                        });
                     }
+                    console.log('peerID: ' + resp.peerId);
+                    console.log('streamID: ' + resp.stream.id);
+                    resp.stream.getTracks().forEach((track) => {
+                        console.log("track:" + track.kind + ",id:" + track.id);
+                    });
                 }
-                console.log('-------------');
+                else {
+                    haveNullRef = true;
+                }
             });
-            setShouldUpdateSrcObject(false);
+            console.log('-----结束更新srcObject-----');
+            if (haveNullRef) {
+                setUpdateSrcObjectCount(prev => prev + 1);
+            }
+            else {
+                setUpdateSrcObjectCount(0);
+            }
         }
-    }, [shouldUpdateSrcObject]);
+    }, [updateSrcObjectCount]);
 
     // 将 shouldUpdateSrcObject 设置为 true，以触发更新
     useEffect(() => {
-        setTimeout(() => setShouldUpdateSrcObject(true), 500);
+        // setTimeout(() => setShouldUpdateSrcObject(true), 500);
+        setUpdateSrcObjectCount(prev => prev + 1);
     }, [filteredPeers]);
+
+    useEffect(() => {
+        console.log("updateSrcObjectCount:" + updateSrcObjectCount);
+    }, [updateSrcObjectCount]);
 
     return (
         <>
