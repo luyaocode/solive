@@ -318,8 +318,14 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
         if (currentView === View.Game) {
             setVideoCallBtnDisabled(true);
             setLiveStreamBtnDisabled(true);
+            setMeetBtnDisabled(true);
         }
         else {
+            if (currentView === View.Menu) {
+                setVideoCallBtnDisabled(false);
+                setLiveStreamBtnDisabled(false);
+                setMeetBtnDisabled(false);
+            }
             if (lid || subpage === SubPage.LiveStream) {
                 setVideoCallBtnDisabled(true);
                 setMeetBtnDisabled(true);

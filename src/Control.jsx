@@ -2341,23 +2341,24 @@ function MeetButton({ inMeetRoom, meetRoomIdToEnter,
     return (
         <div className="call-button">
             {inMeetRoom ? (
-                <Button variant="contained" color="secondary" onClick={onLeaveMeetRoomBtnClick}
-                    style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
-                    离开会议
-                </Button>
-            ) : (
                 <div style={{ display: 'flex', justifyItems: 'center', justifyContent: 'center' }}>
                     <Button variant="contained" color="primary" onClick={onInviteMeetBtnClick}
                         className='invite-call-button' disabled={!(socket?.connected)}>
                         邀请入会
                     </Button>
-                    <Button disabled={meetRoomIdToEnter?.length === 0 || !(socket?.connected)} color="primary" aria-label="call"
-                        onClick={() => onEnterMeetRoomBtnClick(meetRoomIdToEnter)}
-                        className='call-user-button'>
-                        进入会议
+                    <Button variant="contained" color="secondary" onClick={onLeaveMeetRoomBtnClick}
+                        style={{ backgroundColor: 'red', color: 'white', fontWeight: 'bolder', }}>
+                        离开会议
                     </Button>
                 </div>
-            )}
+            ) : (
+                <Button disabled={meetRoomIdToEnter.length === 0 || !(socket?.connected)} color="primary" aria-label="call"
+                    onClick={() => onEnterMeetRoomBtnClick(meetRoomIdToEnter)}
+                    className='call-user-button'>
+                    进入会议
+                </Button>
+            )
+            }
         </div>
     );
 }
@@ -3248,7 +3249,8 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     };
 
     const onLeaveMeetRoomBtnClick = () => {
-
+        socket.emit("leaveMeetRoom", socket.id);
+        setOtherVideos([]);
     };
 
     const onInviteMeetBtnClick = () => {
@@ -3257,6 +3259,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
     const onEnterMeetRoomBtnClick = (mid) => {
         socket.emit("enterMeetRoom", mid);
+        setOtherVideos([]);
     };
 
     useEffect(() => {
@@ -3271,6 +3274,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             const handleMeetRoomCreated = (data) => {
                 if (data) {
                     setMeetRoomId(data);
+                    setInMeetRoom(true);
                 }
             };
             if (!mid) {
@@ -3278,16 +3282,37 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             }
             socket.on("meetRoomCreated", handleMeetRoomCreated);
 
-            const handleMeetRoomEntered = () => {
-                if (mid) {
-                    setInMeetRoom(true);
-                }
+            const handleMeetRoomEntered = (data) => {
+                setInMeetRoom(true);
+                setMeetRoomId(data);
             };
             socket.on("meetRoomEntered", handleMeetRoomEntered);
+
+            const handleMeetRoomLeft = (sid) => {
+                if (sid === socket.id) {
+                    setInMeetRoom(false);
+                    setMeetRoomId();
+                    setMeetRoomIdToEnter('');
+                    setOtherVideos([]);
+                }
+                else {
+                    setOtherVideos(prev => {
+                        let res = [];
+                        for (const video of prev) {
+                            if (!video[sid]) {
+                                res.push(video);
+                            }
+                        }
+                        return res;
+                    });
+                }
+            }
+            socket.on("meetRoomLeft", handleMeetRoomLeft);
 
             return () => {
                 socket.off("meetRoomId", handleMeetRoomCreated);
                 socket.off("meetRoomEntered", handleMeetRoomEntered);
+                socket.off("meetRoomLeft", handleMeetRoomLeft);
             };
         }
     }, [socket]);
@@ -3330,6 +3355,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     rtpParameters,
                     codecOption,
                 });
+
                 if (!stream) {
                     stream = new MediaStream();
                 }
@@ -3486,14 +3512,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             if (vts.length > 0) {
                 for (const t of vts) {
                     const producer = await transport.produce({ track: t });
-                    videoProducer.push(t);
+                    videoProducer.push(producer);
                 }
             }
             const ats = stream.getAudioTracks();
             if (ats.length > 0) {
                 for (const t of ats) {
                     const producer = await transport.produce({ track: t });
-                    audioProducer.push(t);
+                    audioProducer.push(producer);
                 }
             }
         }
@@ -6835,12 +6861,12 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                                                     () => setFloatButtonVisible(prev => !prev)
                                                 } title='其他'>
                                             </div>
-                                            {isMeet &&
+                                            {/* {isMeet &&
                                                 <>
                                                     <Button onClick={publish}>发布</Button>
                                                     <Button onClick={subscribe}>订阅</Button>
                                                 </>
-                                            }
+                                            } */}
                                         </>
                                     }
                                 </div>
