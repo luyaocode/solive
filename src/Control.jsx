@@ -2940,14 +2940,16 @@ function VideoComponent({ otherVideos }) {
             filteredPeers.forEach((resp, index) => {
                 if (videoRefs.current[index] && videoRefs.current[index].current) {
                     if (!(videoRefs.current[index].current.srcObject) ||
-                        videoRefs.current[index].current.srcObject.id !== resp.stream.id) {
+                        videoRefs.current[index].current.srcObject.id !== resp.stream.id)
+                    {
                         videoRefs.current[index].current.srcObject = resp.stream;
+                        console.log('index: '+index);
+                        console.log('peerID: ' + resp.peerId);
+                        console.log('streamID: ' + resp.stream.id);
+                        resp.stream.getTracks().forEach((track) => {
+                            console.log("track:" + track.kind + ",id:" + track.id);
+                        });
                     }
-                    console.log('peerID: ' + resp.peerId);
-                    console.log('streamID: ' + resp.stream.id);
-                    resp.stream.getTracks().forEach((track) => {
-                        console.log("track:" + track.kind + ",id:" + track.id);
-                    });
                 }
                 else {
                     haveNullRef = true;
@@ -3265,9 +3267,21 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     useEffect(() => {
         if (device) {
             subscribe();
-            setTimeout(()=>publish(),1000);
+            publish();
         }
     }, [device]);
+
+    useEffect(() => {
+        if (socket) {
+            const handleResumed = () => {
+                console.log("Resumed");
+            }
+            socket.on("resumed",handleResumed);
+            return () => {
+                socket.off("resumed",handleResumed);
+            }
+        }
+    }, [socket]);
 
     useEffect(() => {
         if (socket) {
@@ -3380,6 +3394,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
 
             const handleNewProducerConsumed = async (datas) => {
                 const vs = await constructStreams(datas, consumerTransport);
+                socket.emit("resume", socket.id);
                 if (vs.length > 0) {
                     setOtherVideos(prev => [...prev, ...vs]);
                 }
@@ -3404,6 +3419,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     socket.off("producerConnected");
                     socket.on("producerConnected", (event) => {
                         callback();
+                        console.log("Producer Transport Created");
                     });
                 });
 
@@ -3417,6 +3433,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     socket.off("produced");
                     socket.on("produced", (data) => {
                         callback(data);
+                        console.log("Produced: "+data);
                     });
                 });
 
@@ -3454,6 +3471,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                     socket.off("consumerConnected");
                     socket.on("consumerConnected", (event) => {
                         callback();
+                        console.log("Consumer Transport Created");
                     });
                 });
 
