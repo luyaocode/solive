@@ -3265,7 +3265,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     useEffect(() => {
         if (device) {
             subscribe();
-            publish();
+            setTimeout(()=>publish(),1000);
         }
     }, [device]);
 
