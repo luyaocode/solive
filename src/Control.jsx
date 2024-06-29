@@ -48,6 +48,7 @@ import {
     showNotification, formatFileSize,
     maskSocketId, formatTime,
 } from './Plugin.jsx'
+import { transform } from 'typescript';
 
 function Timer({ isRestart, setRestart, round, totalRound, nickName, roomId }) {
     const [seconds, setSeconds] = useState(0);
@@ -2809,10 +2810,10 @@ function LiveRoom({ room, onClick }) {
     );
 }
 
-function LiveRoomList({ liveRooms, viewers, onClick, }) {
+function LiveRoomList({ liveRooms, liveRoomCount,viewers, onClick, }) {
     return (
         <div className="live-room-list">
-            {liveRooms &&
+            {liveRoomCount!==0 ?
                 Object.keys(liveRooms).map(sid => (
                     <LiveRoom key={sid} room={{
                         sid: sid,
@@ -2820,7 +2821,19 @@ function LiveRoomList({ liveRooms, viewers, onClick, }) {
                         nViewer: viewers[liveRooms[sid]],
                     }}
                         onClick={onClick} />
-                ))
+                )) :
+                <span style={{
+                    width: '100%',
+                    display: 'inline-block',
+                    position: 'absolute',
+                    left: 0,
+                    top: 0,
+                    transform: 'translateX("-50%")',
+                    marginTop:'20px',
+                    textAlign:'center',
+                    color: 'white',
+                    fontSize:'24px',
+                }}>暂无直播间</span>
             }
         </div>
     );
@@ -2828,6 +2841,7 @@ function LiveRoomList({ liveRooms, viewers, onClick, }) {
 
 function LiveStreamHomePage({ netConnected, socket, onClick }) {
     const [liveRooms, setLiveRooms] = useState();
+    const [liveRoomCount, setLiveRoomCount] = useState(0);
     const [viewers, setViewers] = useState();
 
     useEffect(() => {
@@ -2836,6 +2850,7 @@ function LiveStreamHomePage({ netConnected, socket, onClick }) {
                 if (liveRooms && viewers) {
                     setLiveRooms(liveRooms);
                     setViewers(viewers);
+                    setLiveRoomCount(getPropertyCount(liveRooms));
                 }
             };
 
@@ -2845,9 +2860,13 @@ function LiveStreamHomePage({ netConnected, socket, onClick }) {
         }
     }, [netConnected]);
 
+    const getPropertyCount = (obj) => {
+        return Object.keys(obj).length;
+    };
+
     return (
         <div className='live-stream-home-page'>
-            <LiveRoomList liveRooms={liveRooms} viewers={viewers} onClick={onClick} />
+            <LiveRoomList liveRooms={liveRooms} liveRoomCount={ liveRoomCount} viewers={viewers} onClick={onClick} />
         </div>
     );
 }
@@ -3284,7 +3303,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     }, [socket]);
 
     useEffect(() => {
-        if (socket) {
+        if (socket&&isMeet) {
             const handleMeetRoomCreated = (data) => {
                 if (data) {
                     setMeetRoomId(data);
@@ -3329,7 +3348,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 socket.off("meetRoomLeft", handleMeetRoomLeft);
             };
         }
-    }, [socket]);
+    }, [socket,isMeet]);
 
     useEffect(() => {
         if (socket && inMeetRoom) {
