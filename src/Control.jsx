@@ -754,6 +754,14 @@ function FancyTitle2({ text }) {
     );
 }
 
+function MenuItem({ onClick,style,text}){
+    return (
+        <div className="home-menu-item" onClick={onClick} style={style}>
+            <p>{ text}</p>
+        </div>
+    );
+};
+
 function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, setGameMode, setItemsLoading, setStartModalOpen,
     socket, setNickName, setRoomId, setSeeds,
     deviceType, boardWidth, boardHeight,
@@ -891,32 +899,41 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
                         </div>
                     </> :
                     <div className="home-menu-items">
-                        <div className="home-menu-item" onClick={onLiveStreamBtnClick}>
+                        <MenuItem onClick={onLiveStreamBtnClick} text='直播' />
+                        {/* <div className="home-menu-item" onClick={onLiveStreamBtnClick}>
                             <p>直播</p>
-                        </div>
-                        <div className="home-menu-item" onClick={onMeetBtnClick}>
+                        </div> */}
+                        <MenuItem onClick={onMeetBtnClick} text='会议' />
+
+                        {/* <div className="home-menu-item" onClick={onMeetBtnClick}>
                             <p>会议</p>
-                        </div>
-                        <div className="home-menu-item" onClick={onVideoCallBtnClick}>
+                        </div> */}
+                        <MenuItem onClick={onVideoCallBtnClick} text='视频通话' />
+
+                        {/* <div className="home-menu-item" onClick={onVideoCallBtnClick}>
                             <p>视频通话</p>
-                        </div>
+                        </div> */}
                         <div style={{
                             display: 'flex', flexDirection: 'row',
                             justifyItems: 'center',
                             alignItems: 'center',
                         }}>
-                            <div className="home-menu-item" onClick={() => onRecordVideoBtnClick(outAudioEnabled)}
+                            {/* <div className="home-menu-item" onClick={() => onRecordVideoBtnClick(outAudioEnabled)}
                                 style={{ marginRight: '2rem' }}>
                                 <p>在线录屏</p>
-                            </div>
+                            </div> */}
+                            <MenuItem onClick={() => onRecordVideoBtnClick(outAudioEnabled)} text='在线录屏' style={{ marginRight: '2rem' }} />
+
                             <div>
                                 <Switch isOn={outAudioEnabled} setIsOn={setOutAudioEnabled} onInfo='外部音频' offInfo='内部音频' />
                             </div>
                         </div>
 
-                        <div className="home-menu-item" onClick={() => setIsGameMenu(true)}>
+                        {/* <div className="home-menu-item" onClick={() => setIsGameMenu(true)}>
                             <p>五子棋游戏</p>
-                        </div>
+                        </div> */}
+                        <MenuItem onClick={()=>setIsGameMenu(true)} text='五子棋游戏' />
+
                     </div>
                 }
 

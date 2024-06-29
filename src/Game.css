@@ -1050,10 +1050,11 @@
 
 .home-menu-item {
   width: 100%;
-  margin: 10px auto;
+  margin: 10px 0;
   padding: 10px;
-  color: rgb(0, 0, 0);
-  background-color: rgb(224, 224, 224, 0.7);
+  color: rgb(255, 255, 255);
+  border-radius: 8px; /* 添加圆角 */
+  background-color: rgba(156, 156, 156, 0.3);
   transition: transform 0.3s ease;
   align-items: center;
   display: flex;
@@ -1062,11 +1063,13 @@
   cursor: pointer;
   user-select: none;
   transition: transform 1s ease;
-  /* 过渡效果 */
 }
 
 .home-menu-item p {
-  margin: 0;
+  display: inline-block;
+  margin:0;
+  width:10rem;
+  text-align: left;
   transition: transform 1s ease;
 }
 
@@ -1076,8 +1079,7 @@
 }
 
 .home-menu-item:hover {
-  background-color: rgb(157, 157, 157);
-  transform: scale(1.1);
+  background-color: rgb(92, 90, 90);
   transition: transform 0.3s ease;
 }
 
@@ -1135,7 +1137,7 @@
   position: absolute;
   width: 100%;
   height: 100%;
-  background: linear-gradient(90deg, #f0d9d2, #e91e63, #9c27b0, #2196f3, #00bcd4, #4CAF50, #8BC34A, #FFC107, #FF5722);
+  background-color: rgba(156, 156, 156, 0.3);
   top: 0;
   left: 0;
   z-index: -1;

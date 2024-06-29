@@ -11,7 +11,6 @@ body {
   font-family: sans-serif;
   margin: 0px;
   padding: 0;
-  background: linear-gradient(45deg, rgba(33, 69, 89, 1), rgba(94, 37, 67, 1));
   width: 100vw;
   /* 宽度占据整个视口宽度 */
   height: 100vh;
@@ -28,20 +27,8 @@ body::after {
   top: 0;
   left: 0;
   z-index: -1;
-  background-size: 100% 300%;
-  background: linear-gradient(45deg, rgba(106, 244, 244, 0.8), rgba(252, 126, 195, 0.6));
-  animation: rainFall 120s linear infinite;
 }
 
-@keyframes rainFall {
-  0% {
-    transform: translateY(-200%);
-  }
-
-  100% {
-    transform: translateY(200vh);
-  }
-}
 
 #root {
   width: 100%;
