@@ -127,7 +127,7 @@ function FloatBall({ setElementSize, props }) {
                             />
                         </>
                     }
-                    {(!props?.sid && !props?.lid && !props?.subpage) &&
+                    {(!props?.sid && !props?.lid&&!props?.mid && !props?.subpage) &&
                         <button onClick={onReturnMenuBtnClick}
                             onTouchStart={onReturnMenuBtnClick}>
                             返回主页
@@ -309,13 +309,18 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
     setVideoCallModalOpen, setIsLiveStream, setLiveStreamModalOpen, deviceType,
     setSaveVideoModalOpen, globalSignal, enterVideoChatView, floatButtonVisible,
     setFloatButtonVisible, sid, subpage, lid, currentView, returnMenu,
-    onLiveStreamBtnClick, onVideoCallBtnClick, onMeetBtnClick, mid,
+    onLiveStreamBtnClick, onVideoCallBtnClick, onMeetBtnClick, mid,netConnected
 }) {
     const [videoCallBtnDisabled, setVideoCallBtnDisabled] = useState(false);
     const [liveStreamBtnDisabled, setLiveStreamBtnDisabled] = useState(false);
     const [meetBtnDisabled, setMeetBtnDisabled] = useState(false);
     useEffect(() => {
-        if (currentView === View.Game) {
+        if (!netConnected) {
+            setVideoCallBtnDisabled(true);
+            setLiveStreamBtnDisabled(true);
+            setMeetBtnDisabled(true);
+        }
+        else if (currentView === View.Game) {
             setVideoCallBtnDisabled(true);
             setLiveStreamBtnDisabled(true);
             setMeetBtnDisabled(true);
@@ -327,19 +332,22 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
                 setMeetBtnDisabled(false);
             }
             if (lid || subpage === SubPage.LiveStream) {
+                setLiveStreamBtnDisabled(false);
                 setVideoCallBtnDisabled(true);
                 setMeetBtnDisabled(true);
             }
             else if (sid || subpage === SubPage.VideoCall) {
+                setVideoCallBtnDisabled(false);
                 setLiveStreamBtnDisabled(true);
                 setMeetBtnDisabled(true);
             }
             else if (mid || subpage === SubPage.Meet) {
-                setVideoCallBtnDisabled(false);
-                setLiveStreamBtnDisabled(false);
+                setMeetBtnDisabled(false);
+                setVideoCallBtnDisabled(true);
+                setLiveStreamBtnDisabled(true);
             }
         }
-    }, [currentView]);
+    }, [currentView,netConnected]);
     return (
         <DraggableComponent Element={FloatBall} props={{
             showLive2DRole,
@@ -354,7 +362,7 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
             enterVideoChatView,
             floatButtonVisible,
             setFloatButtonVisible,
-            sid, subpage, lid,
+            sid, subpage, lid,mid,
             videoCallBtnDisabled,
             liveStreamBtnDisabled,
             meetBtnDisabled,

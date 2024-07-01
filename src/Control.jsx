@@ -446,7 +446,7 @@ function LoadingModal({ setModalOpen, loadingText, noCancelBtn }) {
 }
 
 function StartModal({ roomIsFullModalOpen, setRoomIsFullModalOpen, isRestart, setStartModalOpen, setItemsLoading, gameMode, setGameMode, socket, matched,
-    joined, setAllIsOk, restartInSameRoom, roomId, headCount }) {
+    joined, setAllIsOk, restartInSameRoom, roomId, headCount,setSeeds }) {
     const [isModalOpen, setModalOpen] = useState(false);
 
     const { text, text2 } = getTexts();
@@ -505,6 +505,7 @@ function StartModal({ roomIsFullModalOpen, setRoomIsFullModalOpen, isRestart, se
     }
 
     function onCancelButtonClick() {
+        setSeeds([]);
         setItemsLoading(false);
         setStartModalOpen(false);
         if (gameMode === GameMode.MODE_ROOM) {
@@ -754,9 +755,17 @@ function FancyTitle2({ text }) {
     );
 }
 
-function MenuItem({ onClick,style,text}){
+function MenuItem({ onClick, style, text, netConnected = true }) {
     return (
-        <div className="home-menu-item" onClick={onClick} style={style}>
+        <div className={`home-menu-item ${netConnected ? '' : 'disabled'}`} onClick={() => {
+            if (netConnected) {
+                onClick();
+            }
+            else {
+                showNotification("服务器连接失败！");
+            }
+        }
+        } style={style}>
             <p>{ text}</p>
         </div>
     );
@@ -899,16 +908,16 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
                         </div>
                     </> :
                     <div className="home-menu-items">
-                        <MenuItem onClick={onLiveStreamBtnClick} text='直播' />
+                        <MenuItem onClick={onLiveStreamBtnClick} text='直播' netConnected={ netConnected} />
                         {/* <div className="home-menu-item" onClick={onLiveStreamBtnClick}>
                             <p>直播</p>
                         </div> */}
-                        <MenuItem onClick={onMeetBtnClick} text='会议' />
+                        <MenuItem onClick={onMeetBtnClick} text='会议' netConnected={ netConnected} />
 
                         {/* <div className="home-menu-item" onClick={onMeetBtnClick}>
                             <p>会议</p>
                         </div> */}
-                        <MenuItem onClick={onVideoCallBtnClick} text='视频通话' />
+                        <MenuItem onClick={onVideoCallBtnClick} text='视频通话' netConnected={ netConnected} />
 
                         {/* <div className="home-menu-item" onClick={onVideoCallBtnClick}>
                             <p>视频通话</p>
@@ -3491,6 +3500,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 setProducerTransport(transport);
 
                 let stream = await getUserMediaStream();
+                setLocalStream(stream);
                 produce(transport, stream);
             };
             socket.on("producerTransportCreated", handleProducerTransportCreated);
@@ -3773,10 +3783,17 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     }, []);
 
     useEffect(() => {
+        if (localStream&&myVideo?.current) {
+            myVideo.current.srcObject = localStream;
+        }
         window.cleanupMediaTracks = () => {
             stopMediaTracks(localStream);
             stopMediaTracks(localScreenStream);
         };
+        return () => {
+            stopMediaTracks(localStream);
+            stopMediaTracks(localScreenStream); // 修复退出会议时摄像头和麦克风仍然占用问题
+        }
     }, [localStream, localScreenStream]);
 
     useEffect(() => {
@@ -3982,23 +3999,25 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 }
                 if (selectedMediaStream) {
                     setLocalStream(selectedMediaStream);
-                    if (myVideo.current) {
-                        myVideo.current.srcObject = selectedMediaStream;
-                    }
+                    // if (myVideo.current) {
+                    //     myVideo.current.srcObject = selectedMediaStream;
+                    // }
                 }
                 else if (stream) {
-                    setLocalStream(stream);
-                    if (myVideo.current) {
-                        myVideo.current.srcObject = stream;
+                    if (!isMeet) { // 修复进入会议时画面闪烁问题
+                        setLocalStream(stream);
                     }
+                    // if (myVideo.current) {
+                    //     myVideo.current.srcObject = stream;
+                    // }
                 }
             });
 
         return () => {
             // 在组件卸载时停止媒体流
-            if (localStream) {
-                localStream.getTracks().forEach(track => track.stop());
-            }
+            // if (localStream) {
+            //     localStream.getTracks().forEach(track => track.stop());
+            // }
         };
     }, [constraint, selectedAudioDevice, selectedVideoDevice, selectedMediaStream]);
 
@@ -4633,9 +4652,9 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             }
         }
         setLocalStream(newStream);
-        if (myVideo.current) {
-            myVideo.current.srcObject = newStream;
-        }
+        // if (myVideo.current) {
+        //     myVideo.current.srcObject = newStream;
+        // }
     };
 
     // 更新直播轨道

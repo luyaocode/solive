@@ -1065,6 +1065,12 @@
   transition: transform 1s ease;
 }
 
+.home-menu-item.disabled{
+  cursor:not-allowed;
+  background-color: #9c9c9c;
+  opacity: 0.5;
+}
+
 .home-menu-item p {
   display: inline-block;
   margin:0;
@@ -1087,6 +1093,9 @@
   transform: translateX(100%);
 }
 
+.home-menu-item.disabled:hover p {
+  transform: translateX(0);
+}
 
 .menu-item {
   width: 300px;

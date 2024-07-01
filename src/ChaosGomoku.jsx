@@ -549,6 +549,7 @@ function ChaosGomoku() {
                 onVideoCallBtnClick={onVideoCallBtnClick}
                 onMeetBtnClick={onMeetBtnClick}
                 mid={mid}
+                netConnected={netConnected}
             />
             {
                 receiveInviteModalOpen &&
@@ -701,9 +702,9 @@ function ChaosGomoku() {
                         ) : (
                             startModalOpen &&
                             <StartModal
-                                roomIsFullModalOpen={roomIsFullModalOpen} setRoomIsFullModalOpen={setRoomIsFullModalOpen} isRestart={isRestart} setStartModalOpen={setStartModalOpen}
-                                setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} matched={matched}
-                                joined={joined} setAllIsOk={setAllIsOk} restartInSameRoom={restartInSameRoom} roomId={roomId} headCount={headCount} />
+                                    roomIsFullModalOpen={roomIsFullModalOpen} setRoomIsFullModalOpen={setRoomIsFullModalOpen} isRestart={isRestart} setStartModalOpen={setStartModalOpen}
+                                    setItemsLoading={setItemsLoading} gameMode={gameMode} setGameMode={setGameMode} socket={socket} matched={matched}
+                                    joined={joined} setAllIsOk={setAllIsOk} restartInSameRoom={restartInSameRoom} roomId={roomId} headCount={headCount} setSeeds={ setSeeds} />
                         )}
                     </>)
             }
