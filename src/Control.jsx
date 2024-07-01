@@ -4791,7 +4791,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 enterLiveRoom(lid);
             }
         }
-    }, [lid, netConnected, userVideo.current]);
+    }, [lid, netConnected]);
 
     useEffect(() => {
         if (selectedRole === LiveStreamRole.Viewer && (lid || liveRoomIdToEnter)) {
