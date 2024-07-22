@@ -755,7 +755,7 @@ function FancyTitle2({ text }) {
     );
 }
 
-function MenuItem({ onClick, style, text, netConnected = true }) {
+function MenuItem({ onClick, style, text, netConnected = true}) {
     return (
         <div className={`home-menu-item ${netConnected ? '' : 'disabled'}`} onClick={() => {
             if (netConnected) {
@@ -778,7 +778,7 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
     isLoginModalOpen, setLoginModalOpen, isLoginSuccess,
     selectedTable, setSelectedTable, setTableViewOpen, avatarIndex, setShowOverlayArrow,
     gameInviteAccepted, locationData, isGameMenu, setIsGameMenu,
-    onLiveStreamBtnClick, onVideoCallBtnClick, onRecordVideoBtnClick,
+    onLiveStreamBtnClick, onSFULiveStreamBtnClick,onVideoCallBtnClick, onRecordVideoBtnClick,
     userName, setUserProfileOpen, onMeetBtnClick,
 }) {
     const cTitle = '混乱五子棋';
@@ -908,7 +908,14 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
                         </div>
                     </> :
                     <div className="home-menu-items">
-                        <MenuItem onClick={onLiveStreamBtnClick} text='直播' netConnected={ netConnected} />
+                        <div style={{
+                            display: 'flex', flexDirection: 'row',
+                            justifyItems: 'center',
+                            alignItems: 'center',
+                        }}>
+                            <MenuItem onClick={onLiveStreamBtnClick} text='直播' netConnected={netConnected} style={{marginRight:'2rem'}} />
+                            <MenuItem onClick={onSFULiveStreamBtnClick} text='直播2' netConnected={ netConnected} />
+                        </div>
                         {/* <div className="home-menu-item" onClick={onLiveStreamBtnClick}>
                             <p>直播</p>
                         </div> */}
@@ -3028,7 +3035,7 @@ function VideoComponent({ otherVideos }) {
                     <div key={index} className='video'>
                         {/* <video key={index} ref={videoRefs.current[index]} controls autoPlay /> */}
                         <video ref={videoRefs.current[index]}
-                            playsInline loop={true} muted={false} controls={true} autoPlay
+                            playsInline loop={true} muted={true} controls={true} autoPlay
                             style={{ position: 'relative', zIndex: 0, width: '100%' }}
                         />
                     </div>
@@ -6177,6 +6184,597 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     )
 }
 
+function SFULiveStream({ deviceType, socket,
+    netConnected, meetModalOpen, setMeetModalOpen, sfurid,
+    liveStreamModalOpen, setLiveStreamModalOpen,
+}) {
+    const myVideo = useRef();
+    const [localStream, setLocalStream] = useState();
+    useEffect(() => {
+        if (localStream&&myVideo?.current) {
+            myVideo.current.srcObject = localStream;
+        }
+        window.cleanupMediaTracks = () => {
+            stopMediaTracks(localStream);
+        };
+        return () => {
+            stopMediaTracks(localStream);
+        }
+    }, [localStream]);
+
+    // 控制
+    const [videoEnabled, setVideoEnabled] = useState(true);
+    const [audioEnabled, setAudioEnabled] = useState(true);
+    const [myVideoVolume, setMyVideoVolume] = useState(0); // myVideo volume
+    const [userVideoVolume, setUserVideoVolume] = useState(0); // userVideo volume
+    const [remoteShareScreenVolume, setRemoteShareScreenVolume] = useState(0); // remoteShareScreen volume
+    const [remoteVideoEnabled, setRemoteVideoEnabled] = useState(false);
+    const [remoteAudioEnabled, setRemoteAudioEnabled] = useState(false);
+    const [screenAudioEnabled, setScreenAudioEnabled] = useState(true); // display media audio
+    const [remoteScreenAudioEnabled, setRemoteScreenAudioEnabled] = useState(true);
+    const [selectedAudioDevice, setSelectedAudioDevice] = useState('');
+    const [selectedVideoDevice, setSelectedVideoDevice] = useState('');
+    const [hasLocalVideoTrack, setHasLocalVideoTrack] = useState(true);
+    const [hasRemoteVideoTrack, setHasRemoteVideoTrack] = useState(true);
+    const [hasLocalAudioTrack, setHasLocalAudioTrack] = useState(true);
+    const [hasRemoteAudioTrack, setHasRemoteAudioTrack] = useState(true);
+    const [isShareScreen, setIsShareScreen] = useState(false);
+    const [isReceiveShareScreen, setIsReceiveShareScreen] = useState(false);
+    const [inviteVideoChatModalOpen, setInviteVideoChatModalOpen] = useState(false);
+    const [strNowDate, setStrNowDate] = useState(); // current time formatted from server
+    const [peerConfig, setPeerConfig] = useState();
+    // MediaTrackSettings
+    const [mediaTrackSettingsModalOpen, setMediaTrackSettingsModalOpen] = useState(false);
+    const [localVideoWidth, setLocalVideoWidth] = useState(InitMediaTrackSettings.localVideoWidth);
+    const [localVideoHeight, setLocalVideoHeight] = useState(InitMediaTrackSettings.localVideoHeight);
+    const [localFrameRate, setLocalFrameRate] = useState(InitMediaTrackSettings.localFrameRate);
+    const [facingMode, setFacingMode] = useState(InitMediaTrackSettings.facingMode);
+
+    const [autoGainControl, setAutoGainControl] = useState(InitMediaTrackSettings.autoGainControl);
+    const [echoCancellation, setEchoCancellation] = useState(InitMediaTrackSettings.echoCancellation);
+    const [noiseSuppression, setNoiseSuppression] = useState(InitMediaTrackSettings.noiseSuppression);
+    const [voiceIsolation, setVoiceIsolation] = useState(InitMediaTrackSettings.voiceIsolation);
+
+    const [sampleRate, setSampleRate] = useState(InitMediaTrackSettings.sampleRate);
+    const [constraint, setConstraint] = useState({
+        video: videoEnabled ? {
+            width: localVideoWidth,
+            height: localVideoHeight,
+            frameRate: localFrameRate,
+            facingMode: facingMode,
+        } : false,
+        audio: audioEnabled ? {
+            autoGainControl: autoGainControl,
+            echoCancellation: echoCancellation,
+            noiseSuppression: noiseSuppression,
+            voiceIsolation: voiceIsolation,
+            sampleRate: sampleRate,
+        } : false,
+    });
+    // /////////////直播相关变量//////////////////////
+    const [name, setName] = useState("");   // 我的昵称
+    const [selectedRole, setSelectedRole] = useState();//扮演的角色
+    const [liveRoomId, setLiveRoomId] = useState(); // 服务器分配给主播的房间号
+    const [liveUrl, setLiveUrl] = useState(); // 直播间链接
+    const [liveRoomIdToEnter, setLiveRoomIdToEnter] = useState(); // 观众进入的直播间号
+    const [anchorSocketId, setAnchorSocketId] = useState();// 主播socketId
+    const [liveBtnClicked, setLiveBtnClicked] = useState(false); // 我是主播按钮是否被点击
+    const [anchorName, setAnchorName] = useState();//主播名称
+    const [enteringLiveRoomModalOpen, setEnteringLiveRoomModalOpen] = useState(false);
+    const [isConnected, setIsConnected] = useState(false);//观众是否连接到主播
+    const [rootAnchorSid, setRootAnchorSid] = useState(); // 根主播socketId
+    const [roomNotExistModalOpen, setRoomNotExistModalOpen] = useState(false);
+
+    useEffect(() => {
+        if (selectedRole === LiveStreamRole.Anchor) {
+
+        }
+    }, [selectedRole]);
+
+    useEffect(() => {
+        if (liveBtnClicked) {
+            const liveBtnClickedTimer = setTimeout(() => {
+                setLiveBtnClicked(false);
+            }, ExitLiveStreamBtnWaitTime);
+            return () => clearTimeout(liveBtnClickedTimer);
+        }
+    }, [liveBtnClicked]);
+
+    const onLiveBtnClick = () => {
+        setAudioEnabled(true);
+        setVideoEnabled(true);
+        setName('主播' + maskSocketId(socket?.id));
+        socket.emit("createMeetRoom", {isLive:true});
+        setLiveBtnClicked(true);
+        setSelectedRole(LiveStreamRole.Anchor);
+    };
+    const onViewBtnClick = () => {
+        setName('观众' + maskSocketId(socket?.id));
+        setSelectedRole(LiveStreamRole.Viewer);
+    };
+    const enterLiveRoom = (liveRoomId, isReconnect) => {
+        if (liveRoomId) {
+            if (!isReconnect) {
+                setEnteringLiveRoomModalOpen(true);
+            }
+            socket.emit("enterLiveRoom", liveRoomId);
+        }
+    }
+    const stopLive = () => {
+        // for (let id in peerConn) {
+        //     if (id.startsWith('$')) continue;
+        //     stopLiveStream(id);
+        //     socket.emit("stopLiveStream", { to: id, from: socket.id });
+        // }
+        // setVideoEnabled(false);
+        // setAudioEnabled(false);
+    };
+    const leaveLiveRoom = () => {
+        // for (let id in peerConn) {
+        //     if (id.startsWith('$')) continue;
+        //     stopLiveStream(id);
+        //     socket.emit("leaveLiveRoom", { to: id, from: socket.id });
+        //     setViewerLeaveLiveRoom(true);
+        // }
+    };
+    // 会议相关
+    const [device, setDevice] = useState();
+    const [producer, setProducer] = useState({});
+    const [producerTransport, setProducerTransport] = useState();
+    const [consumerTransport, setConsumerTransport] = useState();
+    const [producerConnectionState, setProducerConnectionState] = useState();
+    const [consumerConnectionState, setConsumerConnectionState] = useState();
+    const [otherVideos, setOtherVideos] = useState([]);
+
+    const [meetRoomId, setMeetRoomId] = useState(); // 服务器分配给用户的会议房间号
+    const [inMeetRoom, setInMeetRoom] = useState(false);// 是否在会议室内
+    const [meetRoomIdReadOnly, setMeetRoomIdReadOnly] = useState(false);
+    const [meetRoomIdToEnter, setMeetRoomIdToEnter] = useState('');
+    const [inviteMeetModalOpen, setInviteMeetModalOpen] = useState(false);
+
+    // 获取媒体流
+    async function getUserMediaStream() {
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia(constraint);
+            return stream;
+        } catch (error) {
+            console.error('未打开摄像头和麦克风', error);
+        }
+    }
+
+    const stopMediaTracks = (stream) => {
+        if (stream) {
+            stream.getTracks().forEach(track => {
+                track.stop();
+            });
+        }
+    };
+
+    useEffect(() => {
+        if (netConnected && sfurid) {
+            setSelectedRole(LiveStreamRole.Viewer);
+            onEnterMeetRoomBtnClick(sfurid);
+        }
+    }, [netConnected, sfurid]);
+
+    const onMeetRoomIdTextAreaChange = (e) => {
+        let newValue = e.target.value.replace(/\n/g, '');
+        if (newValue.length > Meet_Room_ID_Len) {
+            showNotification('输入字符长度达到上限！');
+            newValue = newValue.substring(0, Meet_Room_ID_Len);
+        }
+        setMeetRoomIdToEnter(newValue);
+    };
+
+    const onLeaveMeetRoomBtnClick = () => {
+        socket.emit("leaveMeetRoom", socket.id);
+        setOtherVideos([]);
+    };
+
+    const onInviteMeetBtnClick = () => {
+        setInviteMeetModalOpen(true);
+    };
+
+    const onEnterMeetRoomBtnClick = (id) => {
+        socket.emit("enterMeetRoom", { isLive:true,id: id });
+        setOtherVideos([]);
+    };
+
+    // useEffect(() => {
+    //     if (device) {
+    //         if (selectedRole === LiveStreamRole.Anchor) {
+    //             publish();
+    //         }
+    //         else if(selectedRole === LiveStreamRole.Viewer){
+    //             subscribe();
+    //         }
+    //     }
+    // }, [device,selectedRole]);
+
+    useEffect(() => {
+        if (socket) {
+            const handleResumed = () => {
+                console.log("Resumed");
+            }
+            socket.on("resumed", handleResumed);
+            const handleLiveRoomNotExist = () => {
+                setRoomNotExistModalOpen(true);
+            }
+            socket.on("liveRoomNotExist",handleLiveRoomNotExist);
+            return () => {
+                socket.off("resumed", handleResumed);
+                socket.off("liveRoomNotExist",handleLiveRoomNotExist);
+            }
+        }
+    }, [socket]);
+
+    useEffect(() => {
+        if (socket) {
+            const handleMeetRoomCreated = (data) => {
+                if (data) {
+                    setMeetRoomId(data);
+                    setInMeetRoom(true);
+                }
+            };
+            // if (!mid) {
+            //     socket.emit("createMeetRoom");
+            // }
+            socket.on("meetRoomCreated", handleMeetRoomCreated);
+
+            const handleMeetRoomEntered = (data) => {
+                setInMeetRoom(true);
+                setMeetRoomId(data);
+            };
+            socket.on("meetRoomEntered", handleMeetRoomEntered);
+
+            const handleMeetRoomLeft = (sid) => {
+                if (sid === socket.id) {
+                    setInMeetRoom(false);
+                    setMeetRoomId();
+                    setMeetRoomIdToEnter('');
+                    setOtherVideos([]);
+                }
+                else {
+                    setOtherVideos(prev => {
+                        let res = [];
+                        for (const video of prev) {
+                            if (!video[sid]) {
+                                res.push(video);
+                            }
+                        }
+                        return res;
+                    });
+                }
+            }
+            socket.on("meetRoomLeft", handleMeetRoomLeft);
+
+            return () => {
+                socket.off("meetRoomId", handleMeetRoomCreated);
+                socket.off("meetRoomEntered", handleMeetRoomEntered);
+                socket.off("meetRoomLeft", handleMeetRoomLeft);
+            };
+        }
+    }, [socket]);
+
+    useEffect(() => {
+        if (socket && inMeetRoom) {
+            socket.emit('getRouterRtpCapabilities');
+            const handleRouterRtpCapabilities = (data) => {
+                loadDevice(data);
+                console.log(data);
+            };
+
+            socket.on("routerRtpCapabilities", handleRouterRtpCapabilities);
+            return () => {
+                socket.off("routerRtpCapabilities", handleRouterRtpCapabilities);
+            }
+        }
+    }, [socket, inMeetRoom]);
+
+    const constructStreams = async (datas, consumerTransport) => {
+        let vs = [];
+        for (const data of datas) {/**data：隶属于同一个peer的所有consumer */
+            let resp = {};
+            let pid;
+            let stream;
+            for (const item of data) {
+                const {
+                    peerId,
+                    producerId,
+                    id,
+                    kind,
+                    rtpParameters,
+                } = item;
+                pid = peerId;
+                let codecOption = {};
+                const consumer = await consumerTransport.consume({
+                    producerId,
+                    id,
+                    kind,
+                    rtpParameters,
+                    codecOption,
+                });
+
+                if (!stream) {
+                    stream = new MediaStream();
+                }
+                stream.addTrack(consumer.track);
+            }
+            resp[pid] = stream;
+            vs.push(resp);
+            // testVideo.current.srcObject = stream;
+        };
+        return vs;
+    }
+
+    useEffect(() => {
+        if (socket && consumerTransport) {
+            const handleSubscribed = async (datas) => {
+                const vs = await constructStreams(datas, consumerTransport);
+                if (vs.length > 0) {
+                    setOtherVideos(prev => [...prev, ...vs]);
+                }
+                console.log("subscribed");
+            };
+            socket.on("subscribed", handleSubscribed);
+
+            const handleNewProducerConsumed = async (datas) => {
+                const vs = await constructStreams(datas, consumerTransport);
+                socket.emit("resume", socket.id);
+                if (vs.length > 0) {
+                    setOtherVideos(prev => [...prev, ...vs]);
+                }
+            };
+            socket.on("newProducerConsumed", handleNewProducerConsumed);
+
+            return () => {
+                socket.off("subscribed", handleSubscribed);
+                socket.off("newProducerConsumed", handleNewProducerConsumed);
+            }
+        }
+    }, [socket, consumerTransport]);
+
+    useEffect(() => {
+        if (device) {
+            let handleProducerTransportCreated;
+            let handleConsumerTransportCreated;
+            // publish();
+            // publish
+            if (selectedRole === LiveStreamRole.Anchor) {
+                handleProducerTransportCreated = async (data) => {
+                    const transport = device.createSendTransport(data);
+                    transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+                        socket.emit("connectProducerTransport", dtlsParameters);
+                        socket.off("producerConnected");
+                        socket.on("producerConnected", (event) => {
+                            callback();
+                            console.log("Producer Transport Created");
+                        });
+                    });
+
+                    // begin transport on producer
+                    transport.on("produce", async ({ kind, rtpParameters }, callback, errback) => {
+                        socket.emit("produce", {
+                            transportId: transport.id,
+                            kind,
+                            rtpParameters,
+                        });
+                        socket.off("produced");
+                        socket.on("produced", (data) => {
+                            callback(data);
+                            console.log("Produced: " + data);
+                        });
+                    });
+
+                    transport.on("connectionstatechange", (state) => {
+                        switch (state) {
+                            case 'connecting':
+                                break;
+                            case 'connected':
+                                break;
+                            case 'failed':
+                                transport.close();
+                                break;
+                            default:
+                                break;
+                        }
+                        setProducerConnectionState(state);
+                    });
+
+                    setProducerTransport(transport);
+
+                    let stream = await getUserMediaStream();
+                    setLocalStream(stream);
+                    produce(transport, stream);
+                };
+                socket.on("producerTransportCreated", handleProducerTransportCreated);
+                // 发布
+                publish();
+            }
+            else if (selectedRole === LiveStreamRole.Viewer) {
+                // subscribe();
+                // consumer
+                handleConsumerTransportCreated = async (data) => {
+                    const transport = device.createRecvTransport(data);
+                    transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+                        socket.emit("connectConsumerTransport", {
+                            transportId: transport.id,
+                            dtlsParameters
+                        });
+                        socket.off("consumerConnected");
+                        socket.on("consumerConnected", (event) => {
+                            callback();
+                            console.log("Consumer Transport Created");
+                        });
+                    });
+
+                    transport.on("connectionstatechange", (state) => {
+                        switch (state) {
+                            case 'connecting':
+                                break;
+                            case 'connected':
+                                socket.emit("resume", socket.id);
+                                break;
+                            case 'failed':
+                                transport.close();
+                                break;
+                            default:
+                                break;
+                        }
+                        setConsumerConnectionState(state);
+                    });
+
+                    setConsumerTransport(transport);
+                    // 消费
+                    consume(transport);
+                };
+                socket.on("consumerTransportCreated", handleConsumerTransportCreated);
+                // 订阅
+                subscribe();
+            }
+            // new producer
+            const handleNewProducer = () => {
+                // consume();
+                consumeNewProducer();
+            };
+            socket.on("newProducer", handleNewProducer);
+
+            return () => {
+                socket.off("producerTransportCreated", handleProducerTransportCreated);
+                socket.off("consumerTransportCreated", handleConsumerTransportCreated);
+                socket.off("newProducer", handleNewProducer);
+            }
+        }
+    }, [device,selectedRole]);
+
+    const loadDevice = async (routerRtpCapabilities) => {
+        try {
+            let dev = new mediasoup.Device();
+            await dev.load({ routerRtpCapabilities });
+            setDevice(dev);
+        } catch (error) {
+            console.error(error);
+        }
+    };
+
+    const produce = async (transport, stream) => {
+        let videoProducer = [];
+        let audioProducer = [];
+        if (stream) {
+            const vts = stream.getVideoTracks();
+            if (vts.length > 0) {
+                for (const t of vts) {
+                    const producer = await transport.produce({ track: t });
+                    videoProducer.push(producer);
+                }
+            }
+            const ats = stream.getAudioTracks();
+            if (ats.length > 0) {
+                for (const t of ats) {
+                    const producer = await transport.produce({ track: t });
+                    audioProducer.push(producer);
+                }
+            }
+        }
+        setProducer({ videoProducer, audioProducer });
+    }
+
+    const publish = () => {
+        if (device?.rtpCapabilities) {
+            const msg = {
+                forceTcp: false,
+                rtpCapabilities: device.rtpCapabilities,
+            }
+            socket.emit("createProducerTransport", msg);
+        }
+    };
+
+    const subscribe = () => {
+        const msg = {
+            forceTcp: false,
+        }
+        socket.emit("createConsumerTransport", msg);
+    };
+
+    const consume = async (transport) => {
+        const { rtpCapabilities } = device;
+        socket.emit("consume", rtpCapabilities);
+    };
+
+    const consumeNewProducer = async () => {
+        const { rtpCapabilities } = device;
+        socket.emit("consumeNewProducer", rtpCapabilities);
+    }
+
+    return (
+        <>
+            {
+                <VideoFrameCapture socket={socket} videoRef={myVideo} localStream={localStream} />
+            }
+            <div className='video-chat-view'>
+                <div className={`video-container-parent ${deviceType === DeviceType.MOBILE ? 'mobile' : ''}`}>
+                    <div className={`video-container meet`}>
+                        {selectedRole === LiveStreamRole.Anchor &&
+                            <video ref={myVideo} playsInline loop={true} muted controls={false} autoPlay
+                                style={{ position: 'relative', zIndex: 0, width: '100%' }}
+                            />
+                        }
+                        {selectedRole === LiveStreamRole.Viewer &&
+                            <VideoComponent otherVideos={otherVideos} />
+                        }
+                    </div>
+                </div>
+                <ToolBar backgroundColor='black' />
+            </div >
+            {/* 会议 */}
+            {meetModalOpen &&
+                <MeetModal props={{
+                    parent: 'ChaosGomoku',
+                    setMeetModalOpen,
+                    inMeetRoom,
+                    meetRoomIdToEnter, meetRoomIdReadOnly, onMeetRoomIdTextAreaChange,
+                    onLeaveMeetRoomBtnClick, onInviteMeetBtnClick, onEnterMeetRoomBtnClick,
+                    socket,
+                }} />
+            }
+            {
+                liveStreamModalOpen &&
+                <SFULiveStreamModal socket={socket}
+                    selectedRole={selectedRole}
+                    setSelectedRole={setSelectedRole}
+                    liveRoomId={meetRoomId}
+                    setLiveRoomId={setMeetRoomId}
+                    liveUrl={liveUrl}
+                    setLiveUrl={setLiveUrl}
+                    setModalOpen={setLiveStreamModalOpen}
+                    onLiveBtnClick={onLiveBtnClick}
+                    onViewBtnClick={onViewBtnClick}
+                    name={name} setName={setName}
+                    setAnchorName={setAnchorName}
+                    enterLiveRoom={enterLiveRoom}
+                    liveRoomIdToEnter={liveRoomIdToEnter}
+                    setLiveRoomIdToEnter={setLiveRoomIdToEnter}
+                    stopLive={stopLive}
+                    leaveLiveRoom={leaveLiveRoom}
+                    isConnected={isConnected}
+                    lid={sfurid}
+                    liveBtnClicked={liveBtnClicked}
+                    setRootAnchorSid={setRootAnchorSid}
+                />
+            }
+            {inviteMeetModalOpen &&
+                <InviteMeetModal closeModal={() => setInviteMeetModalOpen(false)}
+                    socket={socket} inviteMeetModalOpen={inviteMeetModalOpen}
+                    strNowDate={strNowDate}
+                    meetRoomId={meetRoomId} />
+            }
+            {roomNotExistModalOpen&&
+                <InfoModal modalInfo="直播间不存在！" setModalOpen={setRoomNotExistModalOpen}/>
+            }
+        </>
+    );
+}
+
 function InviteVideoChatModal({ closeModal, me, name, socket, inviteVideoChatModalOpen, strNowDate }) {
     const url = window.location.origin + '/call/' + me;
     const text = '，点击链接直接通话：';
@@ -6531,6 +7129,182 @@ function LiveStreamModal({ socket, selectedRole, setSelectedRole,
             };
         }
     }, [socket]);
+
+    const handleLiveBtnClick = () => {
+        onLiveBtnClick();
+    };
+
+    const handleViewBtnClick = () => {
+        onViewBtnClick();
+    };
+
+    const onNameTextAreaChange = (e) => {
+        let newValue = e.target.value.replace(/\n/g, '');
+        if (newValue.length > Text_Max_Len) {
+            showNotification('输入字符长度达到上限！');
+            newValue = newValue.substring(0, Text_Max_Len);
+        }
+        setName(newValue);
+    };
+
+    const onLiveRoomIdTextAreaChange = (e) => {
+        let newValue = e.target.value.replace(/\n/g, '');
+        if (newValue.length > Live_Room_ID_Len) {
+            showNotification('输入字符长度达到上限！');
+            newValue = newValue.substring(0, Live_Room_ID_Len);
+        }
+        setLiveRoomIdToEnter(newValue);
+    };
+
+    const onXSignClick = () => {
+        setModalOpen(false);
+    };
+
+    const onEnterLiveRoomBtnClick = () => {
+        if (liveRoomIdToEnter) {
+            if (liveRoomIdToEnter.length < Live_Room_ID_Len) {
+                showNotification('输入直播间号无效！');
+                return;
+            }
+            enterLiveRoom(liveRoomIdToEnter);
+            setModalOpen(false);
+        }
+    };
+
+    const onExitBtnClick = () => {
+        if (selectedRole === LiveStreamRole.Anchor) {
+            setName('');
+            stopLive();
+        }
+        else if (selectedRole === LiveStreamRole.Viewer) {
+            leaveLiveRoom();
+            setAnchorName('');
+        }
+        // if (!lid) {
+        //     setSelectedRole(LiveStreamRole.Unknown);
+        // }
+        setSelectedRole(LiveStreamRole.Unknown);
+        setModalOpen(false);
+    };
+
+    return (
+        <div className='modal-overlay'>
+            <div className='modal' style={{
+                paddingTop: '0rem',
+                paddingLeft: '0rem',
+                paddingRight: '0rem',
+            }}>
+                {
+                    <XSign onClick={onXSignClick} />
+                }
+                {!selectedRole ?
+                    <>
+                        <p>请选择你的身份</p>
+                        <ButtonBoxN props={{
+                            infoArray: ['我是主播', '我是观众'],
+                            onClickArray: [
+                                handleLiveBtnClick,
+                                handleViewBtnClick],
+                        }} />
+                    </> : null
+                }
+                {selectedRole === LiveStreamRole.Anchor &&
+                    <>
+                        <div style={{
+                            margin: '2rem 1rem'
+                        }}>
+                            <TextArea placeholder='我的昵称' label='Name'
+                                value={name} onChange={onNameTextAreaChange} />
+                        </div>
+                        <CopyToClipboard text={liveUrl} style={{ marginRight: '10px' }}>
+                            <Button variant="contained" color="primary" onClick={() => showNotification('直播间链接已复制到剪切板', 2000, 'white')}>
+                                分享直播间
+                            </Button>
+                        </CopyToClipboard>
+                        <CopyToClipboard text={liveRoomId} style={{ marginRight: '10px' }}>
+                            <Button variant="contained" color="primary" onClick={() => showNotification('直播间号已复制到剪切板', 2000, 'white')}>
+                                复制直播间号
+                            </Button>
+                        </CopyToClipboard>
+                        <Button id='exit-live-btn' disabled={liveBtnClicked} variant="contained" color="primary" onClick={onExitBtnClick} >
+                            {liveBtnClicked ? countdown : '退出直播'}
+                        </Button>
+                    </>
+                }
+                {selectedRole === LiveStreamRole.Viewer &&
+                    <>
+                        <div style={{
+                            margin: '2rem 1rem'
+                        }}>
+                            <TextArea placeholder='我的昵称' label='Name'
+                                value={name} onChange={onNameTextAreaChange} />
+                        </div>
+                        <div style={{
+                            margin: '2rem 1rem'
+                        }}>
+                            <TextArea isReadyOnly={lid} placeholder='直播间号' label='LiveRoomId'
+                                value={liveRoomIdToEnter} onChange={onLiveRoomIdTextAreaChange} />
+                        </div>
+                        {!isConnected ?
+                            <Button variant="contained" color="primary" style={{ marginRight: '10px' }}
+                                disabled={!liveRoomIdToEnter}
+                                onClick={onEnterLiveRoomBtnClick}>
+                                进入直播间
+                            </Button> :
+                            <Button variant="contained" color="primary" onClick={onExitBtnClick} style={{
+                                backgroundColor: 'red',
+                                color: 'white'
+                            }}>
+                                退出直播间
+                            </Button>
+                        }
+                    </>
+                }
+            </div>
+        </div >
+    );
+}
+
+function SFULiveStreamModal({ socket, selectedRole, setSelectedRole,
+    liveRoomId, setLiveRoomId, liveUrl, setLiveUrl, setNewViewer,
+    setModalOpen, onLiveBtnClick, onViewBtnClick, name, setName,
+    setAnchorName,
+    enterLiveRoom, liveRoomIdToEnter, setLiveRoomIdToEnter,
+    stopLive, leaveLiveRoom, isConnected, lid, liveBtnClicked,
+    setRootAnchorSid,
+}) {
+    const [countdown, setCountdown] = useState(ExitLiveStreamBtnWaitTime / 1000);
+
+    useEffect(() => {
+        if (liveBtnClicked) {
+            const timer = setInterval(() => {
+                setCountdown(prevCountdown => prevCountdown - 1);
+            }, 1000);
+            return () => clearInterval(timer);
+        }
+        else {
+            setCountdown(ExitLiveStreamBtnWaitTime / 1000);
+        }
+    }, [liveBtnClicked]);
+
+    useEffect(() => {
+        setLiveUrl(window.location.origin + '/sfulive/' + liveRoomId);
+    }, [liveRoomId]);
+
+    // useEffect(() => {
+    //     if (socket) {
+    //         const handleLiveStreamRoomId = (data) => {
+    //             if (data) {
+    //                 setLiveRoomId(data);
+    //                 setRootAnchorSid(socket.id);
+    //             }
+    //         };
+    //         socket.on("liveStreamRoomId", handleLiveStreamRoomId);
+    //         return () => {
+    //             socket.off("liveStreamRoomId", handleLiveStreamRoomId);
+    //         };
+    //     }
+    // }, [socket]);
 
     const handleLiveBtnClick = () => {
         onLiveBtnClick();
@@ -7608,6 +8382,6 @@ export {
     Timer, GameLog, ItemInfo, MusicPlayer, ItemManager, StartModal,
     Menu, ConfirmModal, InfoModal, Modal, SettingsButton, LoginButton, LoginModal,
     TableViewer, PlayerAvatar, ChatPanel, VideoChat, OverlayArrow, NoticeBoard,
-    AudioIconComponent, ReturnMenuButton, VideoCallModal, ButtonBox, ButtonBoxN, XSign,
-    Switch, UserProfile
+    AudioIconComponent, ReturnMenuButton, VideoCallModal, ButtonBox, ButtonBoxN, XSign, Switch, UserProfile,
+    SFULiveStream,
 };

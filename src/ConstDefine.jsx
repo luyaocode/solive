@@ -66,10 +66,10 @@ export const Avatar_Number_Y = 5;
 export const Messages_Max_Send = 1000;  // 消息数量上限
 export const Message_Max_Len = 1000;   // 单条消息长度上限
 export const Text_Max_Len = 100; // 单条输入框限制
-export const Live_Room_ID_Len = 8;
+export const Live_Room_ID_Len = 8;      // 直播间号长度
 export const Live_Messages_Max_Send = 10000;
 export const Live_Message_Max_Len = 50;
-export const Meet_Room_ID_Len = 12;
+export const Meet_Room_ID_Len = 12;     // 会议室号码长度
 
 export const ExitLiveStreamBtnWaitTime = 3000; // 退出直播按钮需要在开启直播后等待3000ms才能被点击
 
@@ -77,7 +77,8 @@ export const View = {
     Menu: 0,
     Table: 1,
     VideoChat: 2,
-    Game: 3
+    Game: 3,
+    SFULiveStream:4,
 }
 
 export const AudioIcon = '/picture/svg/AudioIcon.svg';
@@ -202,6 +203,7 @@ export const SubPage = {
     VideoCall: 'video-call',
     LiveStream: 'live-stream',
     Meet: 'meet-room',
+    SFULive:'sfu-live',
 }
 
 export const mouseEvents = [

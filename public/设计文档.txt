@@ -90,3 +90,10 @@ Bug:
 回声问题
 共享屏幕刷新率低，音画不同步
 
+mediasoup直播流程
+发布：
+订阅：
+    服务器createConsumerTransport（createWebrtcTransport）传递参数params给客户端
+->  客户端createRecvTransport，编写回调函数connect和connectionstatechange
+->  客户端consume，resume
+

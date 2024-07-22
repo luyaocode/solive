@@ -7,7 +7,7 @@ import {
     Timer, GameLog, ItemManager, StartModal, Menu, Modal, ConfirmModal,
     TableViewer,
     ChatPanel,
-    VideoChat,
+    VideoChat,SFULiveStream,
     OverlayArrow, NoticeBoard, AudioIconComponent,
     UserProfile,
 } from './Control.jsx'
@@ -290,6 +290,9 @@ function ChaosGomoku() {
             else if (subpage === SubPage.Meet) {
                 onMeetBtnClick();
             }
+            else if (subpage === SubPage.SFULive) {
+                onSFULiveStreamBtnClick();
+            }
         }
     }, [socket, netConnected]);
 
@@ -476,6 +479,24 @@ function ChaosGomoku() {
         setLiveStreamModalOpen(true);
     };
 
+    // SFU Live Stream
+    const [SFULiveStreamModalOpen, setSFULiveStreamModalOpen] = useState(false);
+
+    const onSFULiveStreamBtnClick = () => {
+        setCurrentView(View.SFULiveStream);
+        setLiveStreamModalOpen(true);
+    };
+
+    const [isSfuLive, setIsSfuLive] = useState(false);
+    const { sfurid } = useParams(); // sfu live stream room id in url
+    useEffect(() => {
+        if (sfurid && socket) {
+            setIsSfuLive(true);
+            onSFULiveStreamBtnClick();
+            setLiveStreamModalOpen(false);
+        }
+    }, [sfurid, socket]);
+
     const onMeetBtnClick = () => {
         if (!isMeet) {
             setIsMeet(true);
@@ -612,6 +633,7 @@ function ChaosGomoku() {
                                     gameInviteAccepted={gameInviteAccepted} locationData={locationData}
                                     isGameMenu={isGameMenu} setIsGameMenu={setIsGameMenu}
                                     onLiveStreamBtnClick={onLiveStreamBtnClick}
+                                    onSFULiveStreamBtnClick={ onSFULiveStreamBtnClick}
                                     onVideoCallBtnClick={onVideoCallBtnClick}
                                     onRecordVideoBtnClick={onRecordVideoBtnClick}
                                     userName={userName} setUserProfileOpen={setUserProfileOpen}
@@ -628,7 +650,13 @@ function ChaosGomoku() {
                                         setLiveStreamModalOpen={setLiveStreamModalOpen} isLiveStream={isLiveStream} lid={lid} netConnected={netConnected}
                                         isMeet={isMeet} meetModalOpen={meetModalOpen} setMeetModalOpen={setMeetModalOpen}
                                         mid={mid} />
-                                    : null
+                                    : (currentView === View.SFULiveStream ?
+                                        <SFULiveStream setMeetModalOpen={setSFULiveStreamModalOpen} meetModalOpen={SFULiveStreamModalOpen} deviceType={deviceType}
+                                            socket={socket} netConnected={netConnected} sfurid={sfurid}
+                                            liveStreamModalOpen={liveStreamModalOpen} setLiveStreamModalOpen={setLiveStreamModalOpen}
+                                        />
+                                        :null
+                                    )
                                 )
                             )
                         }
@@ -708,7 +736,7 @@ function ChaosGomoku() {
                         )}
                     </>)
             }
-            {deviceType === DeviceType.PC && (!rid && !sid && !lid && !mid) &&
+            {deviceType === DeviceType.PC && (!rid && !sid && !lid && !mid&&!sfurid) &&
                 < div style={{
                     display: (showLive2DRole ? 'block' : 'none'),
                     zIndex: 19,
