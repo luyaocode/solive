@@ -1775,6 +1775,16 @@
   align-content: center;
 }
 
+.video-container.sfulive video {
+  position: relative;
+  width: var(--video-container-video-width);
+  height: var(--video-container-video-height);
+  overflow-y: hidden;
+  overflow-x: hidden;
+  border: 1px solid rgb(56, 46, 46);
+  /* margin: -2px; */
+}
+
 .video-container::-webkit-scrollbar {
   display: none;
 }

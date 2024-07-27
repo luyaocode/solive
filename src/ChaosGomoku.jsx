@@ -633,7 +633,7 @@ function ChaosGomoku() {
                                     gameInviteAccepted={gameInviteAccepted} locationData={locationData}
                                     isGameMenu={isGameMenu} setIsGameMenu={setIsGameMenu}
                                     onLiveStreamBtnClick={onLiveStreamBtnClick}
-                                    onSFULiveStreamBtnClick={ onSFULiveStreamBtnClick}
+                                    onSFULiveStreamBtnClick={onSFULiveStreamBtnClick}
                                     onVideoCallBtnClick={onVideoCallBtnClick}
                                     onRecordVideoBtnClick={onRecordVideoBtnClick}
                                     userName={userName} setUserProfileOpen={setUserProfileOpen}
@@ -654,6 +654,7 @@ function ChaosGomoku() {
                                         <SFULiveStream setMeetModalOpen={setSFULiveStreamModalOpen} meetModalOpen={SFULiveStreamModalOpen} deviceType={deviceType}
                                             socket={socket} netConnected={netConnected} sfurid={sfurid}
                                             liveStreamModalOpen={liveStreamModalOpen} setLiveStreamModalOpen={setLiveStreamModalOpen}
+                                            setChatPanelOpen={ setChatPanelOpen}
                                         />
                                         :null
                                     )
