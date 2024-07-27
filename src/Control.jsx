@@ -1696,6 +1696,9 @@ function LiveRoomChatPanel({ messages, setMessages, socket, anchorSocketId,
         if (selectedRole !== LiveStreamRole.Unknown) {
             setLiveRoomChatPanelDisplay(true);
         }
+        else {
+            setLiveRoomChatPanelDisplay(false);
+        }
     }, [selectedRole]);
 
     useEffect(() => {
@@ -6219,6 +6222,10 @@ function AnchorVideoOverlay({ props}) {
     return (
         <>
             <TextOverlay
+                position="top-left"
+                content={props.roomId}
+            />
+            <TextOverlay
                 isMediaCtlMenu={true}
                 position="top-center"
                 audioEnabled={props.audioEnabled}
@@ -6251,8 +6258,8 @@ function AnchorVideoOverlay({ props}) {
                 // onReturnMenuBtnClick={onReturnMenuBtnClick}
                 myVideoVolume={props.myVideoVolume}
                 setMyVideoVolume={props.setMyVideoVolume}
-                // setFloatButtonVisible={setFloatButtonVisible}
-                // floatButtonVisible={floatButtonVisible}
+                setFloatButtonVisible={props.setFloatButtonVisible}
+                floatButtonVisible={props.floatButtonVisible}
                 // setTransferFileModalOpen={setTransferFileModalOpen}
                 // setTransferFileModalVisible={setTransferFileModalVisible}
                 // isLiveStream={isLiveStream}
@@ -6269,6 +6276,10 @@ function ViewerVideoOverlay({ props}) {
     return (
         <>
             <TextOverlay
+                position="top-left"
+                content={props.roomId}
+            />
+            <TextOverlay
                 isMediaCtlMenu={true}
                 // isLiveStream={isLiveStream}
                 selectedRole={props.selectedRole}
@@ -6281,14 +6292,16 @@ function ViewerVideoOverlay({ props}) {
                 setLiveRoomChatPanelDisplay={props.setLiveRoomChatPanelDisplay}
             />
             <TextOverlay position="top-right" iconSrc={ShareIcon} liveUrl={props.liveUrl} />
+            <TextOverlay position="bottom-right" iconSrc={FullScreenIcon} parentRef={ props.videoRef} />
         </>
     );
 }
 
 function SFULiveStream({ deviceType, socket,
     netConnected, meetModalOpen, setMeetModalOpen, sfurid,
-    liveStreamModalOpen, setLiveStreamModalOpen,setChatPanelOpen,
-
+    liveStreamModalOpen, setLiveStreamModalOpen, setChatPanelOpen,
+    setFloatButtonVisible,
+    floatButtonVisible,
 }) {
     const myVideo = useRef();
     const [localStream, setLocalStream] = useState();
@@ -6371,7 +6384,7 @@ function SFULiveStream({ deviceType, socket,
     };
     // /////////////直播相关变量//////////////////////
     const [name, setName] = useState("");   // 我的昵称
-    const [selectedRole, setSelectedRole] = useState();//扮演的角色
+    const [selectedRole, setSelectedRole] = useState(LiveStreamRole.Unknown);//扮演的角色
     const [liveRoomId, setLiveRoomId] = useState(); // 服务器分配给主播的房间号
     const [liveUrl, setLiveUrl] = useState(); // 直播间链接
     const [liveRoomIdToEnter, setLiveRoomIdToEnter] = useState(); // 观众进入的直播间号
@@ -6852,9 +6865,12 @@ function SFULiveStream({ deviceType, socket,
                                     setFacingMode,
                                     myVideoVolume,
                                     setMyVideoVolume,
+                                    floatButtonVisible,
+                                    setFloatButtonVisible,
                                     selectedRole,
                                     setLiveRoomChatPanelDisplay,
-                                    liveUrl
+                                    liveUrl,
+                                    roomId:meetRoomId,
                                 }} />
                             </div>
                         }
@@ -6866,7 +6882,8 @@ function SFULiveStream({ deviceType, socket,
                                 setUserVideoVolume,
                                 handleVolumeChange,
                                 setLiveRoomChatPanelDisplay,
-                                liveUrl
+                                liveUrl,
+                                roomId:meetRoomId,
                             }}
                             />
                         }

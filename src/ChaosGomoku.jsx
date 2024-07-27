@@ -654,7 +654,8 @@ function ChaosGomoku() {
                                         <SFULiveStream setMeetModalOpen={setSFULiveStreamModalOpen} meetModalOpen={SFULiveStreamModalOpen} deviceType={deviceType}
                                             socket={socket} netConnected={netConnected} sfurid={sfurid}
                                             liveStreamModalOpen={liveStreamModalOpen} setLiveStreamModalOpen={setLiveStreamModalOpen}
-                                            setChatPanelOpen={ setChatPanelOpen}
+                                            setChatPanelOpen={setChatPanelOpen} setFloatButtonVisible={setFloatButtonVisible}
+                                            floatButtonVisible={ floatButtonVisible}
                                         />
                                         :null
                                     )
