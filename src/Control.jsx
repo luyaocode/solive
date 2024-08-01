@@ -5969,7 +5969,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                             </div>
                         </div>
                     }
-                    {
+                    {isLiveStream&&
                         <LiveRoomChatPanel
                             messages={liveMsgs}
                             setMessages={setLiveMsgs}
