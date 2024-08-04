@@ -3055,10 +3055,11 @@ function VideoComponent({ otherVideos,VideoOverlay,props }) {
                             playsInline loop={true} muted={true} controls={false} autoPlay
                             style={{ position: 'relative', zIndex: 0, width: '100%' }}
                         />
-                        <VideoOverlay props={{
-                            ...props,
-                            videoRef:videoRefs.current[index],
-                        }} />
+                        {VideoOverlay &&
+                            <VideoOverlay props={{
+                                ...props,
+                                videoRef: videoRefs.current[index],
+                            }} />}
                     </div>
                 ))
             }
