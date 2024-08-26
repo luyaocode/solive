@@ -6399,7 +6399,14 @@ function SFULiveStream({ deviceType, socket,
     const [liveRoomChatPanelDisplay, setLiveRoomChatPanelDisplay] = useState(false); // 显示/隐藏聊天板
     const [liveMsgs, setLiveMsgs] = useState([]); // 聊天室消息
     const [reconnect, setReconnect] = useState(false); // 观众重连
+    const [virtualVideoUrl, setVirtualVideoUrl] = useState();// 虚拟视频地址
 
+    // 清理临时资源
+    useEffect(() => {
+        if (virtualVideoUrl) {
+            URL.revokeObjectURL(virtualVideoUrl);
+        }
+    }, []);
 
     useEffect(() => {
         if (selectedRole === LiveStreamRole.Anchor) {
@@ -6441,12 +6448,6 @@ function SFULiveStream({ deviceType, socket,
         stopMediaTracks(localStream);
     };
     const leaveLiveRoom = () => {
-        // for (let id in peerConn) {
-        //     if (id.startsWith('$')) continue;
-        //     stopLiveStream(id);
-        //     socket.emit("leaveLiveRoom", { to: id, from: socket.id });
-        //     setViewerLeaveLiveRoom(true);
-        // }
     };
     // 会议相关
     const [device, setDevice] = useState();
@@ -6465,13 +6466,99 @@ function SFULiveStream({ deviceType, socket,
 
     // 获取媒体流
     async function getUserMediaStream() {
+        let stream = null;
         try {
-            const stream = await navigator.mediaDevices.getUserMedia(constraint);
+            stream = await navigator.mediaDevices.getUserMedia(constraint);
             return stream;
         } catch (error) {
-            console.error('未打开摄像头和麦克风', error);
+            stream = await getMediaStream();
+            return stream;
         }
     }
+
+    async function getMediaStream() {
+        try {
+            // 首先尝试获取音频和视频
+            const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: true });
+            return stream;
+        } catch (error) {
+            console.warn('Failed to get audio and video:', error);
+
+            // 如果音频或视频获取失败，分别尝试获取
+            try {
+                const videoOnlyStream = await navigator.mediaDevices.getUserMedia({ video: true });
+                return videoOnlyStream;
+            } catch (videoError) {
+                console.warn('Failed to get video:', videoError);
+
+                try {
+                    const audioOnlyStream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                    return audioOnlyStream;
+                } catch (audioError) {
+                    console.warn('Failed to get audio:', audioError);
+
+                    // 如果音频和视频都不可用，返回虚拟视频
+                    const file = await fetchVideoFile();
+                    return await getVirtualMediaStream(file);
+                }
+            }
+        }
+    }
+
+    async function fetchVideoFile() {
+        let serverUrl;
+        if (process.env.REACT_APP_ENV === 'dev') {
+            serverUrl = process.env.REACT_APP_BACKEND_HTTP_DEV;
+        }
+        else if (process.env.REACT_APP_ENV === 'prod') {
+            serverUrl = process.env.REACT_APP_BACKEND_HTTP;
+        }
+        const response = await fetch(serverUrl+'/static/earth.mp4');
+        const data = await response.blob();
+        const file = new File([data], 'earth.mp4', { type: 'video/mp4' });
+        return file;
+    }
+
+    const getVirtualMediaStream = (file) => {
+        return new Promise((resolve, reject) => {
+            if (!file) {
+                reject('No file provided');
+                return;
+            }
+
+            const reader = new FileReader();
+            reader.onload = async () => {
+                try {
+                    const videoUrl = URL.createObjectURL(file);
+                    setVirtualVideoUrl(videoUrl);
+                    const video = document.createElement('video');
+                    video.src = videoUrl;
+                    video.loop = true;
+                    video.muted = true;
+                    await video.play();
+                    const actx = new AudioContext();
+                    const source = actx.createMediaElementSource(video);
+                    const destination = actx.createMediaStreamDestination();
+                    source.connect(destination);
+
+                    const mediaStream = new MediaStream();
+                    const mediaTracks = video.captureStream().getTracks();
+                    mediaTracks.forEach(track => {
+                        mediaStream.addTrack(track);
+                    });
+
+                    video.addEventListener('loadeddata', () => {
+                    });
+
+                    resolve(mediaStream);
+                } catch (error) {
+                    reject(error);
+                }
+            };
+
+            reader.readAsArrayBuffer(file);
+        });
+    };
 
     const stopMediaTracks = (stream) => {
         if (stream) {
