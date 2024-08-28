@@ -219,3 +219,8 @@ export const LiveStreamRole = {
     Viewer: 2,
 }
 
+export const Request_Type = {
+    LIANMAI: 'lianmai',
+    LIANMAI_EXIT: 'lianmai_exit',
+}
+

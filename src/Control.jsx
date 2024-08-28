@@ -39,6 +39,7 @@ import {
     Piece_Type_White, LiveStreamRole, Live_Room_ID_Len, ExitLiveStreamBtnWaitTime,
     InitMediaTrackSettings, FacingMode, FrameRate, FrameWidth, FrameHeight, SampleRate, GlobalSignal,
     Meet_Room_ID_Len,
+    Request_Type,
 } from './ConstDefine.jsx';
 import { Howl } from 'howler';
 import {
@@ -1684,13 +1685,15 @@ function ChatPanel({ messages, setMessages, setChatPanelOpen, ncobj }) {
  */
 function LiveRoomChatPanel({ messages, setMessages, socket, anchorSocketId,
     deviceType, liveRoomChatPanelDisplay, setLiveRoomChatPanelDisplay, selectedRole,
-    isConnected, reconnect, rootAnchorSid,isSfuLive
+    isConnected, reconnect, rootAnchorSid, isSfuLive, isViewer, meetRoomId, lianMaing,
+    setLianMaing
 }) {
     const [inputText, setInputText] = useState('');
     const textareaRef = useRef(null);
     const messageContainerRef = useRef(null);
     const handleSendMessageRef = useRef(null);
     const [modalOpen, setModalOpen] = useState(false);
+    const [confirmLianMaiModal, setConfirmLianMaiModalOpen] = useState(false);
 
     useEffect(() => {
         if (selectedRole !== LiveStreamRole.Unknown) {
@@ -1752,6 +1755,25 @@ function LiveRoomChatPanel({ messages, setMessages, socket, anchorSocketId,
         }
     }, [handleSendMessageRef, inputText, socket]);
     // 处理发送消息
+
+    const handleLianMai = () => {
+        socket.emit("lianMaiRequest", {
+            roomId: meetRoomId,
+            type: Request_Type.LIANMAI,
+            from: socket.id,
+            content:''
+        });
+    }
+
+    const exitLianMai = () => {
+        setLianMaing(false);
+        socket.emit("lianMaiRequest", {
+            roomId: meetRoomId,
+            type: Request_Type.LIANMAI_EXIT,
+            from: socket.id,
+            content:''
+        });
+    }
 
     function onClose() {
         setLiveRoomChatPanelDisplay(false);
@@ -1830,8 +1852,30 @@ function LiveRoomChatPanel({ messages, setMessages, socket, anchorSocketId,
                     />
                     <button onClick={() => handleSendMessageRef.current()}>发送</button>
                 </div>
+                {isViewer?
+                <div className="live-input-container" style={{
+                    justifyContent: 'center',
+                    margin: '1rem',
+
+                    }}>
+                        {!lianMaing ?
+                            <button onClick={() => setConfirmLianMaiModalOpen(true)}>连麦</button> :
+                            <button onClick={() => exitLianMai()}>退出连麦</button>
+                        }
+                </div>:null}
             </div >
             {modalOpen && <Modal modalInfo='消息数量已达上限！' setModalOpen={setModalOpen} />
+            }
+            {confirmLianMaiModal &&
+                <ConfirmModal modalInfo={'是否申请加入直播间 ' + meetRoomId}
+                onOkBtnClick={() => {
+                    handleLianMai();
+                    setConfirmLianMaiModalOpen(false);
+                }}
+                OnCancelBtnClick={() => {
+                    setConfirmLianMaiModalOpen(false);
+                }}
+            />
             }
         </>
     );
@@ -2985,7 +3029,10 @@ function VideoComponent({ otherVideos,VideoOverlay,props }) {
                 });
             }
         });
-        uniquePeers = Array.from(peerMap, ([key, value]) => ({ peerId: key, stream: value }));
+        uniquePeers = Array.from(peerMap, ([key, value]) => ({
+            peerId: key,
+            stream: value
+        }));
         return uniquePeers;
     }
 
@@ -3059,6 +3106,9 @@ function VideoComponent({ otherVideos,VideoOverlay,props }) {
                             <VideoOverlay props={{
                                 ...props,
                                 videoRef: videoRefs.current[index],
+                                peerId: filteredPeers[index]?.peerId,
+                                isSelf:props?.socketId&&filteredPeers[index]?.peerId!==props.socketId,
+                                isAnchor:props?.socketId&&filteredPeers[index]?.peerId===props.socketId
                             }} />}
                     </div>
                 ))
@@ -3494,13 +3544,14 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             // publish();
             // publish
             const handleProducerTransportCreated = async (data) => {
+                console.log("Producer transport created.");
                 const transport = device.createSendTransport(data);
                 transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
                     socket.emit("connectProducerTransport", dtlsParameters);
                     socket.off("producerConnected");
                     socket.on("producerConnected", (event) => {
                         callback();
-                        console.log("Producer Transport Created");
+                        console.log("Producer transport connected.");
                     });
                 });
 
@@ -6224,7 +6275,7 @@ function AnchorVideoOverlay({ props}) {
         <>
             <TextOverlay
                 position="top-left"
-                content={props.roomId}
+                content={props?.socketId+'【我】'}
             />
             <TextOverlay
                 isMediaCtlMenu={true}
@@ -6264,7 +6315,7 @@ function AnchorVideoOverlay({ props}) {
                 // setTransferFileModalOpen={setTransferFileModalOpen}
                 // setTransferFileModalVisible={setTransferFileModalVisible}
                 // isLiveStream={isLiveStream}
-                selectedRole={props.selectedRole}
+                selectedRole={LiveStreamRole.Anchor}
                 setLiveRoomChatPanelDisplay={props.setLiveRoomChatPanelDisplay}
                 // isMeet={isMeet}
             />
@@ -6278,12 +6329,15 @@ function ViewerVideoOverlay({ props}) {
         <>
             <TextOverlay
                 position="top-left"
-                content={props.roomId}
+                content={props.peerId}
+                contenStyle={props?.isAnchor?{
+                    color: 'red',
+                }:undefined}
             />
-            <TextOverlay
+            { <TextOverlay
                 isMediaCtlMenu={true}
                 // isLiveStream={isLiveStream}
-                selectedRole={props.selectedRole}
+                selectedRole={LiveStreamRole.Viewer}
                 position="top-center"
                 videoRef={props.videoRef}
                 userVideoVolume={props.userVideoVolume}
@@ -6291,8 +6345,10 @@ function ViewerVideoOverlay({ props}) {
                 handleVolumeChange={props.handleVolumeChange}
                 // refreshLiveStream={refreshLiveStream}
                 setLiveRoomChatPanelDisplay={props.setLiveRoomChatPanelDisplay}
-            />
-            <TextOverlay position="top-right" iconSrc={ShareIcon} liveUrl={props.liveUrl} />
+            />}
+            {props?.selectedRole===LiveStreamRole.Viewer &&!props?.lianMaing&&
+                <TextOverlay position="top-right" iconSrc={ShareIcon} liveUrl={props.liveUrl} />
+            }
             <TextOverlay position="bottom-right" iconSrc={FullScreenIcon} parentRef={ props.videoRef} />
         </>
     );
@@ -6400,6 +6456,15 @@ function SFULiveStream({ deviceType, socket,
     const [liveMsgs, setLiveMsgs] = useState([]); // 聊天室消息
     const [reconnect, setReconnect] = useState(false); // 观众重连
     const [virtualVideoUrl, setVirtualVideoUrl] = useState();// 虚拟视频地址
+    const [confirmAcceptLianMaiModal, setConfirmAcceptLianMaiModal] = useState({
+        show: false,
+        from:   undefined,
+    });
+    const [lianMaiResponseModal, setLianMaiResponseModal] = useState({
+        show: false,
+        accepted: false,
+    });
+    const [lianMaing, setLianMaing] = useState(false);
 
     // 清理临时资源
     useEffect(() => {
@@ -6615,13 +6680,55 @@ function SFULiveStream({ deviceType, socket,
                 }
             };
             socket.on("getLiveMsgs", handleGetLiveMsgs);
+            const handleRequest = (request) => {
+                switch (request?.type) {
+                    case Request_Type.LIANMAI:
+                        setConfirmAcceptLianMaiModal({
+                            show: true,
+                            from: request?.from,
+                        });
+                        break;
+                    default:
+                        console.log("Unknown type request.")
+                        break;
+                }
+            }
+            socket.on("request", handleRequest);
+            const handleResponse = (response) => {
+                switch (response?.type) {
+                    case Request_Type.LIANMAI:
+                        if (response.content?.accepted) {
+                            setLianMaing(true);
+                        }
+                        else {
+                            setLianMaing(false);
+                        }
+                        setLianMaiResponseModal({
+                            show: true,
+                            accepted: response.content?.accepted,
+                        });
+                        break;
+                    default:
+                        console.log("Unknown type response.")
+                        break;
+                }
+            }
+            socket.on("response", handleResponse);
             return () => {
                 socket.off("resumed", handleResumed);
                 socket.off("liveRoomNotExist", handleLiveRoomNotExist);
                 socket.off("getLiveMsgs", handleGetLiveMsgs);
+                socket.off("request", handleRequest);
+                socket.off("response", handleResponse);
             }
         }
     }, [socket]);
+
+    useEffect(() => {
+        if (lianMaing) {
+            publish();
+        }
+    }, [lianMaing]);
 
     useEffect(() => {
         if (socket) {
@@ -6751,111 +6858,105 @@ function SFULiveStream({ deviceType, socket,
 
     useEffect(() => {
         if (device) {
-            let handleProducerTransportCreated;
-            let handleConsumerTransportCreated;
-            // publish();
-            // publish
-            if (selectedRole === LiveStreamRole.Anchor) {
-                handleProducerTransportCreated = async (data) => {
-                    const transport = device.createSendTransport(data);
-                    transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
-                        socket.emit("connectProducerTransport", dtlsParameters);
-                        socket.off("producerConnected");
-                        socket.on("producerConnected", (event) => {
-                            callback();
-                            console.log("Producer Transport Created");
-                        });
+            const handleProducerTransportCreated = async (data) => {
+                console.log("Producer transport created.");
+                const transport = device.createSendTransport(data);
+                transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+                    socket.emit("connectProducerTransport", dtlsParameters);
+                    socket.off("producerConnected");
+                    socket.on("producerConnected", (event) => {
+                        callback();
+                        console.log("Producer transport connected.");
                     });
+                });
 
-                    // begin transport on producer
-                    transport.on("produce", async ({ kind, rtpParameters }, callback, errback) => {
-                        socket.emit("produce", {
-                            transportId: transport.id,
-                            kind,
-                            rtpParameters,
-                        });
-                        socket.off("produced");
-                        socket.on("produced", (data) => {
-                            callback(data);
-                            console.log("Produced: " + data);
-                        });
+                // begin transport on producer
+                transport.on("produce", async ({ kind, rtpParameters }, callback, errback) => {
+                    socket.emit("produce", {
+                        transportId: transport.id,
+                        kind,
+                        rtpParameters,
                     });
-
-                    transport.on("connectionstatechange", (state) => {
-                        switch (state) {
-                            case 'connecting':
-                                break;
-                            case 'connected':
-                                break;
-                            case 'failed':
-                                transport.close();
-                                break;
-                            default:
-                                break;
-                        }
-                        setProducerConnectionState(state);
+                    socket.off("produced");
+                    socket.on("produced", (data) => {
+                        callback(data);
+                        console.log("Produced: " + data);
                     });
+                });
 
-                    setProducerTransport(transport);
+                transport.on("connectionstatechange", (state) => {
+                    switch (state) {
+                        case 'connecting':
+                            break;
+                        case 'connected':
+                            break;
+                        case 'failed':
+                            transport.close();
+                            break;
+                        default:
+                            break;
+                    }
+                    setProducerConnectionState(state);
+                });
 
-                    let stream = await getUserMediaStream();
-                    setLocalStream(stream);
-                    produce(transport, stream);
-                };
-                socket.on("producerTransportCreated", handleProducerTransportCreated);
-                // 发布
-                publish();
-            }
-            else if (selectedRole === LiveStreamRole.Viewer) {
-                // subscribe();
-                // consumer
-                handleConsumerTransportCreated = async (data) => {
-                    const transport = device.createRecvTransport(data);
-                    console.log("Consumer Transport Created.");
-                    transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
-                        socket.emit("connectConsumerTransport", {
-                            transportId: transport.id,
-                            dtlsParameters
-                        });
-                        socket.off("consumerConnected");
-                        socket.on("consumerConnected", (event) => {
-                            callback();
-                            console.log("Consumer Transport Connected.");
-                        });
+                setProducerTransport(transport);
+
+                let stream = await getUserMediaStream();
+                setLocalStream(stream);
+                produce(transport, stream);
+            };
+            socket.on("producerTransportCreated", handleProducerTransportCreated);
+
+            const handleConsumerTransportCreated = async (data) => {
+                const transport = device.createRecvTransport(data);
+                console.log("Consumer Transport Created.");
+                transport.on('connect', async ({ dtlsParameters }, callback, errback) => {
+                    socket.emit("connectConsumerTransport", {
+                        transportId: transport.id,
+                        dtlsParameters
                     });
-
-                    transport.on("connectionstatechange", (state) => {
-                        switch (state) {
-                            case 'connecting':
-                                break;
-                            case 'connected':
-                                socket.emit("resume", socket.id);
-                                console.log("Consumer Transport Resume.");
-                                break;
-                            case 'failed':
-                                transport.close();
-                                break;
-                            default:
-                                break;
-                        }
-                        setConsumerConnectionState(state);
+                    socket.off("consumerConnected");
+                    socket.on("consumerConnected", (event) => {
+                        callback();
+                        console.log("Consumer Transport Connected.");
                     });
+                });
 
-                    setConsumerTransport(transport);
-                    // 消费
-                    consume(transport);
-                };
-                socket.on("consumerTransportCreated", handleConsumerTransportCreated);
-                // 订阅
-                subscribe();
-            }
+                transport.on("connectionstatechange", (state) => {
+                    switch (state) {
+                        case 'connecting':
+                            break;
+                        case 'connected':
+                            socket.emit("resume", socket.id);
+                            console.log("Consumer Transport Resume.");
+                            break;
+                        case 'failed':
+                            transport.close();
+                            break;
+                        default:
+                            break;
+                    }
+                    setConsumerConnectionState(state);
+                });
+
+                setConsumerTransport(transport);
+                // 消费
+                consume(transport);
+            };
+            socket.on("consumerTransportCreated", handleConsumerTransportCreated);
             // new producer
             const handleNewProducer = () => {
-                // consume();
                 consumeNewProducer();
             };
             socket.on("newProducer", handleNewProducer);
 
+            if (selectedRole === LiveStreamRole.Anchor) {
+                publish();
+                subscribe();
+            }
+            else if (selectedRole === LiveStreamRole.Viewer) {
+                subscribe();
+            }
             return () => {
                 socket.off("producerTransportCreated", handleProducerTransportCreated);
                 socket.off("consumerTransportCreated", handleConsumerTransportCreated);
@@ -6931,7 +7032,7 @@ function SFULiveStream({ deviceType, socket,
             <div className='video-chat-view'>
                 <div className={`video-container-parent ${deviceType === DeviceType.MOBILE ? 'mobile' : ''}`}>
                     <div className={`video-container sfulive`}>
-                        {selectedRole === LiveStreamRole.Anchor &&
+                        {(selectedRole === LiveStreamRole.Anchor||lianMaing) &&
                             <div className='video'>
                                 <video ref={myVideo} playsInline loop={true} muted controls={false} autoPlay
                                     style={{ position: 'relative', zIndex: 0, width: '100%' }}
@@ -6958,11 +7059,12 @@ function SFULiveStream({ deviceType, socket,
                                     selectedRole,
                                     setLiveRoomChatPanelDisplay,
                                     liveUrl,
-                                    roomId:meetRoomId,
+                                    roomId: meetRoomId,
+                                    socketId:socket.id,
                                 }} />
                             </div>
                         }
-                        {selectedRole === LiveStreamRole.Viewer &&
+                        {/* {selectedRole === LiveStreamRole.Viewer && */}
                             <VideoComponent otherVideos={otherVideos} VideoOverlay={ViewerVideoOverlay}
                             props={{
                                 selectedRole,
@@ -6971,10 +7073,13 @@ function SFULiveStream({ deviceType, socket,
                                 handleVolumeChange,
                                 setLiveRoomChatPanelDisplay,
                                 liveUrl,
-                                roomId:meetRoomId,
+                                roomId: meetRoomId,
+                                socketId:socket.id,
+                                anchorId: anchorSocketId, // 待完善
+                                lianMaing:lianMaing,
                             }}
                             />
-                        }
+                        {/* } */}
                     </div>
                     {
                         <LiveRoomChatPanel
@@ -6987,7 +7092,11 @@ function SFULiveStream({ deviceType, socket,
                             socket={socket}
                             anchorSocketId={anchorSocketId}
                             rootAnchorSid={rootAnchorSid}
-                            isSfuLive={ true}
+                            isSfuLive={true}
+                            isViewer={selectedRole === LiveStreamRole.Viewer}
+                            meetRoomId={meetRoomId}
+                            lianMaing={lianMaing}
+                            setLianMaing={ setLianMaing}
                         />
                     }
                 </div>
@@ -7037,6 +7146,45 @@ function SFULiveStream({ deviceType, socket,
             }
             {roomNotExistModalOpen&&
                 <InfoModal modalInfo="直播间不存在！" setModalOpen={setRoomNotExistModalOpen}/>
+            }
+            {confirmAcceptLianMaiModal?.show &&
+                <ConfirmModal modalInfo={confirmAcceptLianMaiModal?.from + '申请连麦，是否同意？'}
+                onOkBtnClick={() => {
+                    socket?.emit('lianMaiResponse', {
+                        roomId: meetRoomId,
+                        type:Request_Type.LIANMAI,
+                        from: socket.id,
+                        to: confirmAcceptLianMaiModal?.from,
+                        content: {
+                            accepted: true
+                        }
+                    });
+                    setConfirmAcceptLianMaiModal({
+                        show: false,
+                        from:'',
+                    });
+                }}
+                OnCancelBtnClick={() => {
+                    socket?.emit('lianMaiResponse', {
+                        roomId: meetRoomId,
+                        type:Request_Type.LIANMAI,
+                        from: socket.id,
+                        to: confirmAcceptLianMaiModal?.from,
+                        content: {
+                            accepted: false
+                        }
+                    });
+                    setConfirmAcceptLianMaiModal({
+                        show: false,
+                        from:'',
+                    });
+                }}
+                />
+            }
+            {lianMaiResponseModal?.show &&
+                <Modal modalInfo={lianMaiResponseModal.accepted ? '主播同意了您的连麦请求' : '主播拒绝了您的连麦请求'}
+                setModalOpen={setLianMaiResponseModal}
+                />
             }
         </>
     );
@@ -7708,7 +7856,7 @@ function SFULiveStreamModal({ socket, selectedRole, setSelectedRole,
     );
 }
 
-function TextOverlay({ position, content, contents, audioEnabled, setAudioEnabled,
+function TextOverlay({ position, content, contenStyle,contents, audioEnabled, setAudioEnabled,
     iconSrc, videoEnabled, setVideoEnabled, setSelectedAudioDevice,
     setSelectedVideoDevice, callAccepted, selectedFileName, setSelectedMediaStream,
     isMediaCtlMenu, videoRef, handleVolumeChange, name, peerSocketId, isShareScreen,
@@ -8021,7 +8169,9 @@ function TextOverlay({ position, content, contents, audioEnabled, setAudioEnable
                         }}
                     />
                 }
-                {content && (isMediaCtlMenu ? !showMediaCtlMenu : true) && content}
+                {content && (isMediaCtlMenu ? !showMediaCtlMenu : true) &&
+                    <span style={contenStyle}>{content}</span>
+                }
                 {
                     isShowLocalVideo &&
                     <LocalVideoDisplay selectedMediaStream={selectedMediaStream} onBackButtonClick={onBackButtonClick}
