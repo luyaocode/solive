@@ -175,6 +175,12 @@ function ChaosGomoku() {
     const { sid } = useParams(); // socketId in url
     const { subpage } = useParams();
     useEffect(() => {
+        if (subpage === SubPage.Gomoku) {
+            setIsGameMenu(true);
+        }
+    }, [subpage]);
+
+    useEffect(() => {
         if (sid && socket) {
             enterVideoChatView();
         }
@@ -253,9 +259,11 @@ function ChaosGomoku() {
 
     // 调整主页面为视频通话
     useEffect(() => {
-        if (currentView === View.Menu && (!sid && !subpage)) {
-            root.style.setProperty('--menu-container-display', 'flex');
-            setShowNoticeBoard(true);
+        if (currentView === View.Menu && !sid) {
+            if (subpage === '' || subpage === SubPage.Gomoku) {
+                root.style.setProperty('--menu-container-display', 'flex');
+                setShowNoticeBoard(true);
+            }
         }
         else {
             root.style.setProperty('--menu-container-display', 'none');

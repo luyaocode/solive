@@ -952,7 +952,7 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
                         {/* <div className="home-menu-item" onClick={() => setIsGameMenu(true)}>
                             <p>五子棋游戏</p>
                         </div> */}
-                        <MenuItem onClick={()=>setIsGameMenu(true)} text='五子棋游戏' />
+                        {/* <MenuItem onClick={()=>setIsGameMenu(true)} text='五子棋' /> */}
 
                     </div>
                 }

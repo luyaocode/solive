@@ -200,6 +200,7 @@ export const WebsiteTitle = {
 }
 
 export const SubPage = {
+    Gomoku: 'gomoku',
     VideoCall: 'video-call',
     LiveStream: 'live-stream',
     Meet: 'meet-room',
