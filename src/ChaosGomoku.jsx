@@ -260,7 +260,7 @@ function ChaosGomoku() {
     // 调整主页面为视频通话
     useEffect(() => {
         if (currentView === View.Menu && !sid) {
-            if (subpage === '' || subpage === SubPage.Gomoku) {
+            if (subpage === undefined || subpage === SubPage.Gomoku) {
                 root.style.setProperty('--menu-container-display', 'flex');
                 setShowNoticeBoard(true);
             }
