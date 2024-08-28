@@ -6345,6 +6345,7 @@ function ViewerVideoOverlay({ props}) {
                 handleVolumeChange={props.handleVolumeChange}
                 // refreshLiveStream={refreshLiveStream}
                 setLiveRoomChatPanelDisplay={props.setLiveRoomChatPanelDisplay}
+                noRoomChatPanel={props?.selectedRole===LiveStreamRole.Anchor|| props?.lianMaing}
             />}
             {props?.selectedRole===LiveStreamRole.Viewer &&!props?.lianMaing&&
                 <TextOverlay position="top-right" iconSrc={ShareIcon} liveUrl={props.liveUrl} />
@@ -6521,6 +6522,9 @@ function SFULiveStream({ deviceType, socket,
     const [consumerTransport, setConsumerTransport] = useState();
     const [producerConnectionState, setProducerConnectionState] = useState();
     const [consumerConnectionState, setConsumerConnectionState] = useState();
+    /**
+     * otherVideos:[{peerId: MediaStream},{...:...}]
+     */
     const [otherVideos, setOtherVideos] = useState([]);
 
     const [meetRoomId, setMeetRoomId] = useState(); // 服务器分配给用户的会议房间号
@@ -6528,6 +6532,10 @@ function SFULiveStream({ deviceType, socket,
     const [meetRoomIdReadOnly, setMeetRoomIdReadOnly] = useState(false);
     const [meetRoomIdToEnter, setMeetRoomIdToEnter] = useState('');
     const [inviteMeetModalOpen, setInviteMeetModalOpen] = useState(false);
+
+    useEffect(() => {
+        setLiveUrl(window.location.origin + '/sfulive/' + meetRoomId);
+    }, [meetRoomId]);
 
     // 获取媒体流
     async function getUserMediaStream() {
@@ -6744,8 +6752,10 @@ function SFULiveStream({ deviceType, socket,
             socket.on("meetRoomCreated", handleMeetRoomCreated);
 
             const handleMeetRoomEntered = (data) => {
+                const { rid, anchorId } = data;
                 setInMeetRoom(true);
-                setMeetRoomId(data);
+                setMeetRoomId(rid);
+                setRootAnchorSid(anchorId);
             };
             socket.on("meetRoomEntered", handleMeetRoomEntered);
 
@@ -6757,6 +6767,7 @@ function SFULiveStream({ deviceType, socket,
                     setOtherVideos([]);
                 }
                 else {
+                    // 删除对等方的媒体流
                     setOtherVideos(prev => {
                         let res = [];
                         for (const video of prev) {
@@ -6769,11 +6780,25 @@ function SFULiveStream({ deviceType, socket,
                 }
             }
             socket.on("meetRoomLeft", handleMeetRoomLeft);
+            const handleLianMaiExit = (sid) => {
+                // 删除对等方的媒体流
+                setOtherVideos(prev => {
+                    let res = [];
+                    for (const video of prev) {
+                        if (!video[sid]) {
+                            res.push(video);
+                        }
+                    }
+                    return res;
+                });
+            }
+            socket.on("lianMaiExited", handleLianMaiExit);
 
             return () => {
                 socket.off("meetRoomId", handleMeetRoomCreated);
                 socket.off("meetRoomEntered", handleMeetRoomEntered);
                 socket.off("meetRoomLeft", handleMeetRoomLeft);
+                socket.off("lianMaiExited", handleLianMaiExit);
             };
         }
     }, [socket]);
@@ -7868,7 +7893,7 @@ function TextOverlay({ position, content, contenStyle,contents, audioEnabled, se
     isLiveStream, selectedRole, userVideoVolume, setUserVideoVolume, refreshLiveStream,
     setLiveRoomChatPanelDisplay,
     isMeet, publish, subscribe,
-    liveUrl,
+    liveUrl,noRoomChatPanel/**是否取消控制公屏按钮 */
 }) {
 
     const [speakerIcon, setSpeakerIcon] = useState(SmallSpeakerIcon);
@@ -8074,9 +8099,9 @@ function TextOverlay({ position, content, contenStyle,contents, audioEnabled, se
                                                 <img src={speakerIcon} alt="Speaker" className="icon" onClick={handleSpeakerClick}
                                                     title='扬声器' />
                                             </div>
-                                            <img src={LiveChatPanelIcon} alt="LiveChatPanel" className="icon" onClick={() => {
-                                                setLiveRoomChatPanelDisplay(prev => !prev);
-                                            }} title='公屏' />
+                                        {!noRoomChatPanel && <img src={LiveChatPanelIcon} alt="LiveChatPanel" className="icon" onClick={() => {
+                                            setLiveRoomChatPanelDisplay(prev => !prev);
+                                        }} title='公屏' />}
                                             {/* <img src={RefreshLiveStreamIcon} alt="RefreshLiveStream" className="icon"
                                             onClick={onRefreshLiveStreamIconClick}
                                             title='刷新'/> */}{ /**直播时转播节点刷新导致其子节点连锁刷新 */}
