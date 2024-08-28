@@ -346,6 +346,11 @@ function DraggableButton({ showLive2DRole, setShowLive2DRole, setGlobalSignal,
                 setVideoCallBtnDisabled(true);
                 setLiveStreamBtnDisabled(true);
             }
+            if (subpage === SubPage.Gomoku) {
+                setLiveStreamBtnDisabled(false);
+                setMeetBtnDisabled(false);
+                setVideoCallBtnDisabled(false);
+            }
         }
     }, [currentView,netConnected]);
     return (
