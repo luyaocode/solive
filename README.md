@@ -47,7 +47,7 @@
 
 2. 后端配置（信令服务器配置）
 
-   [请移步到这里](https://github.com/luyaocode/chaos-gomoku-server)
+   [请移步到这里](https://github.com/luyaocode/solive-server)
 
 3. Coturn服务器配置
 
