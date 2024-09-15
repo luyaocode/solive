@@ -3170,6 +3170,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     const [hasLocalAudioTrack, setHasLocalAudioTrack] = useState(true);
     const [hasRemoteAudioTrack, setHasRemoteAudioTrack] = useState(true);
     const [isShareScreen, setIsShareScreen] = useState(false);
+    const [prepareShareScreen, setPrepareShareScreen] = useState(false);
     const [isReceiveShareScreen, setIsReceiveShareScreen] = useState(false);
     const [inviteVideoChatModalOpen, setInviteVideoChatModalOpen] = useState(false);
     const [strNowDate, setStrNowDate] = useState(); // current time formatted from server
@@ -3881,7 +3882,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             stopMediaTracks(localScreenStream);
         };
         return () => {
-            stopMediaTracks(localStream);
+            // stopMediaTracks(localStream);
             stopMediaTracks(localScreenStream); // 修复退出会议时摄像头和麦克风仍然占用问题
         }
     }, [localStream, localScreenStream]);
@@ -3980,38 +3981,54 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
     };
 
     useEffect(() => {
+        if (prepareShareScreen) {
+            getDisplayMediaStream().then(stream => {
+                if (stream) {
+                    setIsShareScreen(true);
+                    setLocalScreenStream(stream);
+                }
+            })
+        }
+        else {
+            setIsShareScreen(false);
+        }
+    }, [prepareShareScreen]);
+
+    useEffect(() => {
+        if (!localScreenStream) return;
         if (!isShareScreen) {
             notifyShareScreenStopped();
         }
-        else if (isShareScreen && shareScreenVideo.current && !shareScreenVideo.current.srcObject) {
-            getDisplayMediaStream()
-                .then(stream => {
-                    if (stream) {
-                        const audioTracksLength = stream.getAudioTracks().length;
-                        if (audioTracksLength > 0) {
-                            setScreenAudioEnabled(true);
-                        }
-                        else {
-                            setScreenAudioEnabled(false);
-                        }
-                        setLocalScreenStream(stream);
-                        shareScreenVideo.current.srcObject = stream;
-                        if (callAccepted) {
-                            shareScreen(stream, another);
-                        }
-                        if (isLiveStream && selectedRole === LiveStreamRole.Anchor) {/**直播 */
-                            for (let id in peerConn) {
-                                if (id === '$isCloseConn') continue;
-                                pushScreenStream(id, stream, true);
-                            }
-                        }
-                    }
-                    else {
-                        setIsShareScreen(false);
-                    }
-                });
+        else if (shareScreenVideo.current && !shareScreenVideo.current.srcObject) {
+            const audioTracksLength = localScreenStream.getAudioTracks().length;
+            if (audioTracksLength > 0) {
+                setScreenAudioEnabled(true);
+            }
+            else {
+                setScreenAudioEnabled(false);
+            }
+            shareScreenVideo.current.srcObject = localScreenStream;
+            if (callAccepted) {
+                shareScreen(localScreenStream, another);
+            }
+            if (isLiveStream && selectedRole === LiveStreamRole.Anchor) {/**直播 */
+                for (let id in peerConn) {
+                    if (id === '$isCloseConn') continue;
+                    pushScreenStream(id, localScreenStream, true);
+                }
+            }
         }
-    }, [isShareScreen]);
+    }, [isShareScreen, localScreenStream]);
+
+    useEffect(() => {
+        if (!remoteShareScreenVideo?.current?.srcObject) return;
+        if (isReceiveShareScreen&&remoteScreenStream) {
+            remoteShareScreenVideo.current.srcObject = remoteScreenStream;
+        }
+        else {
+            remoteShareScreenVideo.current.srcObject = null;
+        }
+    }, [isReceiveShareScreen, remoteScreenStream,remoteShareScreenVideo.current]);
 
     const stopMediaTracks = (stream) => {
         if (stream) {
@@ -4410,7 +4427,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                 peer.on("stream", (stream) => {
                     if (remoteShareScreenVideo.current) {
                         remoteShareScreenVideo.current.srcObject = stream;
-                        setRemoteStream(stream);
+                        setRemoteScreenStream(stream);
                     }
                 });
 
@@ -5278,7 +5295,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
             peer.on("stream", (stream) => {
                 if (remoteShareScreenVideo.current) {
                     remoteShareScreenVideo.current.srcObject = stream;
-                    setRemoteStream(stream);
+                    setRemoteScreenStream(stream);
                 }
             });
         }
@@ -5633,6 +5650,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                         onIdToCallTextAreaChange={onIdToCallTextAreaChange}
                         isShareScreen={isShareScreen}
                         setIsShareScreen={setIsShareScreen}
+                        setPrepareShareScreen={setPrepareShareScreen}
                         setChatPanelOpen={setChatPanelOpen}
                         selectedMediaStream={selectedMediaStream}
                         setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
@@ -5697,6 +5715,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         onIdToCallTextAreaChange={onIdToCallTextAreaChange}
                                         isShareScreen={isShareScreen}
                                         setIsShareScreen={setIsShareScreen}
+                                        setPrepareShareScreen={setPrepareShareScreen}
                                         setChatPanelOpen={setChatPanelOpen}
                                         selectedMediaStream={selectedMediaStream}
                                         setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
@@ -5996,6 +6015,7 @@ function VideoChat({ sid, deviceType, socket, returnMenuView,
                                         onIdToCallTextAreaChange={onIdToCallTextAreaChange}
                                         isShareScreen={isShareScreen}
                                         setIsShareScreen={setIsShareScreen}
+                                        setPrepareShareScreen={setPrepareShareScreen}
                                         setChatPanelOpen={setChatPanelOpen}
                                         selectedMediaStream={selectedMediaStream}
                                         setMediaTrackSettingsModalOpen={setMediaTrackSettingsModalOpen}
@@ -7885,7 +7905,7 @@ function TextOverlay({ position, content, contenStyle,contents, audioEnabled, se
     iconSrc, videoEnabled, setVideoEnabled, setSelectedAudioDevice,
     setSelectedVideoDevice, callAccepted, selectedFileName, setSelectedMediaStream,
     isMediaCtlMenu, videoRef, handleVolumeChange, name, peerSocketId, isShareScreen,
-    setIsShareScreen, setChatPanelOpen, selectedMediaStream,
+    setIsShareScreen, setPrepareShareScreen,setChatPanelOpen, selectedMediaStream,
     setMediaTrackSettingsModalOpen, setFacingMode, setSelectVideoModalOpen,
     isShowLocalVideo, selectedVideoRef, parentRef, handleVideoClick,
     myVideoVolume, setMyVideoVolume, localVideoDisplayRenderKey, setFloatButtonVisible,
@@ -8125,7 +8145,7 @@ function TextOverlay({ position, content, contenStyle,contents, audioEnabled, se
                                                     title='扬声器' />
                                             </div>
                                             <img src={isShareScreen ? StopShareScreenIcon : ShareScreenIcon} alt="ShareScreen" className="icon" onClick={() => {
-                                                setIsShareScreen(prev => !prev);
+                                                setPrepareShareScreen(prev => !prev);
                                             }} title='分享屏幕' />
                                             {selectedRole === LiveStreamRole.Anchor ?
                                                 <img src={LiveChatPanelIcon} alt="LiveChatPanel" className="icon" onClick={() => {
