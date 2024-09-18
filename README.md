@@ -12,7 +12,17 @@
 
 <img src="./public/live-stream-system-demo.png" style="zoom:33%;" />
 
+### 子模块
 
+**后端服务器**：https://github.com/luyaocode/solive-server
+
+**客户端**：
+
+1. Windows	https://github.com/luyaocode/solive-client-qt
+2. Linux
+3. Android
+4. IOS
+5. ...
 
 ### 准备阶段
 
@@ -138,45 +148,3 @@
    
    // 注意：生产环境中，webRtcTransport[listenIps][announcedIp]需要修改为实际服务器公网
    ```
-
-# 混乱五子棋
-
-### 项目介绍
-
-在传统五子棋玩法上加上特殊道具加成，使得每颗棋子具有更强大的能力。道具的不确定性带来了更多的随机性，使得本游戏在休闲益智的同时，也具有一定的紧张刺激感。
-
-本项目采用**create-react-app**构建生成。
-
-<img src="./public/game-demo.png" style="zoom:33%;" />
-
-### 游戏特色
-
-- 特色道具：剑、盾、弓、药水、炸弹、花朵、冰冻魔法等
-- 趣味音效：根据道具操作对象、作用对象及使用结果分别设计不同音效
-- ...
-
-### 更新记录
-
-1. v0.1版本：增加剑、盾、弓、药水、炸弹、花朵、冰冻魔法道具，增加音效、悔棋等常规功能 ——2024/1/26
-2. v0.2版本：增加联机功能 ——2024/2/15
-3. v0.3版本：增加AI模式，增加文字聊天和视频通话功能 ——2024/3/5
-
-### 准备阶段
-
-确保你已安装**Node.js**和**npm**
-
-Node.js版本不低于v20.11.0
-npm版本不低于v10.2.4
-
-### 运行步骤
-
-```
-# 下载代码
-git clone https://github.com/luyaocode/chaos-gomoku.git
-或者
-git clone https://gitee.com/luyaocoding/chaos-gomoku.git
-# 安装依赖模块
-npm install
-# 开始运行
-npm run start
-```
