@@ -1,4 +1,4 @@
-import { useEffect } from 'react';
+import { useEffect,useRef  } from 'react';
 import io from 'socket.io-client';
 import {
     DeviceType, LoginStatus, Table_Client_Ips, Table_Game_Info, Table_Step_Info,
@@ -21,7 +21,7 @@ function Client({ socket, setSocket, setPieceType, setLastStep, setSeeds, gameMo
     setClientIpsData, setGameInfoData, setStepInfoData, setAvatarIndex, setAvatarIndexPB,
     setMessages, setReceiveInviteModalOpen, setPublicMsgs, setNotices,
     setPeerSocketId, setCompletelyReady, currentView, chatPanelOpen,
-    setUserName }) {
+    setUserName,set_backend_ip }) {
 
     function getDeviceType() {
         const isMobile = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -67,6 +67,12 @@ function Client({ socket, setSocket, setPieceType, setLastStep, setSeeds, gameMo
             // 当从服务器接收到消息时触发
             socket.on('message', (data) => {
                 console.log('Server:', data);
+            });
+
+            // 负载均衡分配的后端地址（确保只触发一次）
+            socket.on('backend_ip', (data) => {
+                console.log('Backend IP: ' + data);
+                set_backend_ip(data);
             });
 
             socket.on('currentHeadCount', (data) => {

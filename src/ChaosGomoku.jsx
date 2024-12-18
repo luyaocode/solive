@@ -196,6 +196,8 @@ function ChaosGomoku() {
     const [saveVideoModalOpen, setSaveVideoModalOpen] = useState(false);
     const [floatButtonVisible, setFloatButtonVisible] = useState(true);
 
+    const [backend_ip, set_backend_ip] = useState("");
+
     // 直播
     const [isLiveStream, setIsLiveStream] = useState(false);
     const { lid } = useParams(); // liveId in url
@@ -620,6 +622,7 @@ function ChaosGomoku() {
                 setPublicMsgs={setPublicMsgs} setNotices={setNotices} setPeerSocketId={setPeerSocketId}
                 setCompletelyReady={setCompletelyReady} currentView={currentView} chatPanelOpen={chatPanelOpen}
                 setUserName={setUserName}
+                set_backend_ip={ set_backend_ip}
             />
             {
                 gameMode === GameMode.MODE_NONE && (
@@ -646,6 +649,7 @@ function ChaosGomoku() {
                                     onRecordVideoBtnClick={onRecordVideoBtnClick}
                                     userName={userName} setUserProfileOpen={setUserProfileOpen}
                                     onMeetBtnClick={onMeetBtnClick}
+                                    backend_ip={backend_ip}
                                 />
                                 ) :
                                 (currentView === View.VideoChat ?

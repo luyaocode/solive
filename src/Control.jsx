@@ -783,7 +783,7 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
     selectedTable, setSelectedTable, setTableViewOpen, avatarIndex, setShowOverlayArrow,
     gameInviteAccepted, locationData, isGameMenu, setIsGameMenu,
     onLiveStreamBtnClick, onSFULiveStreamBtnClick,onVideoCallBtnClick, onRecordVideoBtnClick,
-    userName, setUserProfileOpen, onMeetBtnClick,
+    userName, setUserProfileOpen, onMeetBtnClick,backend_ip
 }) {
     const cTitle = '混乱五子棋';
     const title = 'Chaos Gomoku';
@@ -987,7 +987,7 @@ function Menu({ enterRoomTried, setEnterRoomTried, setRoomIsFullModalOpen, rid, 
                     />
                 }
             </div>
-            <ToolBar backgroundColor='transparent' />
+            <ToolBar backgroundColor='transparent' backend_ip={ backend_ip} />
         </>
     );
 }
@@ -2511,10 +2511,10 @@ function LocalVideoDisplayBoard({ selectedVideoRef, selectedMediaStream, name, h
     );
 }
 
-function ToolBar({ backgroundColor }) {
+function ToolBar({ backgroundColor,backend_ip }) {
     return (
-        <div className='toolbar' style={{ backgroundColor: backgroundColor }}>
-            <p> </p>
+        <div className="toolbar" style={{ backgroundColor: backgroundColor }}>
+            <p style={{ backgroundColor: 'white',color: 'gray' }}>{backend_ip}</p>
         </div>
     );
 }
