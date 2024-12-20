@@ -1,0 +1,14 @@
+{
+    "service": {
+      "id": "backend-service-1",
+      "name": "backend_service",
+      "tags": ["v1", "primary"],
+      "address": "192.168.204.129",
+      "port": 5000,
+      "check": {
+        "http": "http://192.168.204.129:5000",
+        "interval": "10s",
+        "timeout": "5s"
+      }
+    }
+}

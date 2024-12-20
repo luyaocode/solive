@@ -667,7 +667,7 @@ function ChaosGomoku() {
                                             socket={socket} netConnected={netConnected} sfurid={sfurid}
                                             liveStreamModalOpen={liveStreamModalOpen} setLiveStreamModalOpen={setLiveStreamModalOpen}
                                             setChatPanelOpen={setChatPanelOpen} setFloatButtonVisible={setFloatButtonVisible}
-                                            floatButtonVisible={ floatButtonVisible}
+                                            floatButtonVisible={floatButtonVisible} backend_ip={ backend_ip}
                                         />
                                         :null
                                     )

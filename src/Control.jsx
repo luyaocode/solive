@@ -6379,7 +6379,7 @@ function SFULiveStream({ deviceType, socket,
     netConnected, meetModalOpen, setMeetModalOpen, sfurid,
     liveStreamModalOpen, setLiveStreamModalOpen, setChatPanelOpen,
     setFloatButtonVisible,
-    floatButtonVisible,
+    floatButtonVisible,backend_ip
 }) {
     const myVideo = useRef();
     const [localStream, setLocalStream] = useState();
@@ -7145,7 +7145,7 @@ function SFULiveStream({ deviceType, socket,
                         />
                     }
                 </div>
-                <ToolBar backgroundColor='black' />
+                <ToolBar backgroundColor='black' backend_ip={backend_ip}/>
             </div >
             {/* 会议 */}
             {meetModalOpen &&
